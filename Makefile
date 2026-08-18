@@ -34,3 +34,9 @@ tune-team:         ## tune Dixon-Coles decay on out-of-sample log-loss
 
 blend:             ## model vs market vs blend, walk-forward
 	$(PY) fpl/backtest/eval_blend.py
+
+attacking:         ## evaluate share-based attacking returns
+	$(PY) fpl/backtest/eval_attacking.py
+
+bonus:             ## evaluate BPS -> bonus recovery
+	$(PY) fpl/backtest/eval_bonus.py

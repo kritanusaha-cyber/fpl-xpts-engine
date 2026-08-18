@@ -273,3 +273,68 @@ Partial mitigation already available: the live API exposes `penalties_order`
 `direct_freekicks_order`. That is official set-piece duty, better than inferring
 it, and it removes most of the doc's §5 manual-override burden — but it is
 current-season only, so it helps live prediction and not the historical fit.
+
+---
+
+# Phase 5 — bonus points
+
+## The award logic is exactly right; the inputs are not available
+
+Ranking by *true* BPS reproduces bonus almost perfectly, which validates the
+tie-handling: **100.00% of bonus winners recovered (760/760 fixtures)**, 99.16%
+exact on the full 3/2/1 vector. The residual 0.84% is tie-rule edge cases.
+
+That is the ceiling. The binding constraint is predicting BPS itself.
+
+## BPS is deterministic given the action log — but FPL stopped publishing it
+
+Fitted on 2016/17, the last season with the full action detail:
+
+| feature set | R² | MAE |
+|---|---|---|
+| every published action column | **0.9893** | **0.88** |
+| only columns today's API still provides | 0.8967 | 2.60 |
+
+Key passes, dribbles, crosses, fouls, big chances and pass completion are all
+BPS inputs, and all disappeared from the FPL feed after 2018/19. The doc's
+"BPS is fully deterministic given the action log, so it's tractable" is true in
+principle and **not currently actionable** — the action log is the missing piece,
+and closing it needs FBref/Opta, not FPL.
+
+## What that costs, measured
+
+| | exact | MAE | corr |
+|---|---|---|---|
+| oracle (true BPS rank) | 99.16% | 0.0084 | 0.9907 |
+| model (predicted BPS) | 90.48% | 0.1306 | 0.7669 |
+
+Bonus winner recovered in **68.95%** of fixtures (vs 100% oracle). Any-bonus
+detection: precision 68.2%, recall 75.9%. Better than chance by a wide margin —
+a fixture has 22–28 candidates — but far from deterministic.
+
+The fitted weights are **reduced-form and should not be read as the official
+table**: omitted correlated actions inflate the coefficients on the actions that
+remain visible (fitted assist ≈ 11 against a published 9, fitted MID goal ≈ 20
+against 18). They are fit for ranking within a fixture, which is all bonus
+depends on.
+
+## Bonus is worth less than the doc claims
+
+The doc puts bonus at "roughly 15–20% of a top score". Measured on 2025/26:
+
+| bucket | n | avg points | avg bonus | % from bonus |
+|---|---|---|---|---|
+| elite (150+) | 30 | 174.5 | 19.7 | **11.3%** |
+| strong (100–149) | 108 | 120.7 | 9.3 | 7.7% |
+| mid (50–99) | 157 | 72.6 | 4.3 | 5.9% |
+| fringe (<50) | 241 | 19.5 | 0.6 | 3.2% |
+
+11.3% for elite players, not 15–20%. Combined with 69% winner accuracy, Phase 5's
+return on complexity is **lower than the doc assumes**. The doc's own advice —
+"measure rather than assume" whether Phases 4 and 5 earn their complexity — is
+the right instinct, and on this evidence bonus is the weaker of the two.
+
+Recommendation: keep the reduced-form BPS model as a ranking input to the bonus
+simulation, and do not invest in Monte-Carlo BPS simulation over the full action
+set until FBref action data is ingested. Without the action log the extra
+machinery has nothing to consume.
