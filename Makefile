@@ -81,3 +81,8 @@ horizon:           ## multi-gameweek simulation (H=6)
 simulation:        ## (superseded) standalone simulation page
 	$(PY) fpl/export_simulation.py
 	$(PY) scripts/build_simulation.py
+
+PORT ?= 8733
+serve:             ## serve the dashboards at http://localhost:$(PORT)
+	@echo "serving $(CURDIR) at http://localhost:$(PORT)   (ctrl-C to stop)"
+	@python3 -m http.server $(PORT) --bind 127.0.0.1 --directory $(CURDIR)
