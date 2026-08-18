@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Template. Run `make install-snapshot`, which substitutes __FPL_ROOT__
+     with this checkout's path before installing. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -8,12 +10,12 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/kritanusaha/FPL/.venv/bin/python</string>
-    <string>/Users/kritanusaha/FPL/fpl/ingest/snapshot.py</string>
+    <string>__FPL_ROOT__/.venv/bin/python</string>
+    <string>__FPL_ROOT__/fpl/ingest/snapshot.py</string>
   </array>
 
   <key>WorkingDirectory</key>
-  <string>/Users/kritanusaha/FPL</string>
+  <string>__FPL_ROOT__</string>
 
   <!-- 18:45 America/New_York = 22:45 UTC, ahead of FPL's 23:00 UTC price change.
        launchd uses LOCAL time, so this shifts with daylight saving; the FPL
@@ -31,8 +33,8 @@
   <false/>
 
   <key>StandardOutPath</key>
-  <string>/Users/kritanusaha/FPL/data/raw/snapshot.log</string>
+  <string>__FPL_ROOT__/data/raw/snapshot.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/kritanusaha/FPL/data/raw/snapshot.err</string>
+  <string>__FPL_ROOT__/data/raw/snapshot.err</string>
 </dict>
 </plist>

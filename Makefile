@@ -51,7 +51,8 @@ coldstart:         ## build 2026/27 cold-start priors
 	$(PY) fpl/models/coldstart.py
 
 install-snapshot:  ## install the daily snapshotter as a LaunchAgent
-	cp scripts/com.fpl.snapshot.plist ~/Library/LaunchAgents/
+	@sed 's|__FPL_ROOT__|$(CURDIR)|g' scripts/com.fpl.snapshot.plist \
+	  > ~/Library/LaunchAgents/com.fpl.snapshot.plist
 	launchctl unload ~/Library/LaunchAgents/com.fpl.snapshot.plist 2>/dev/null || true
 	launchctl load  ~/Library/LaunchAgents/com.fpl.snapshot.plist
 	@echo "installed. verify with: launchctl list | grep fpl"
