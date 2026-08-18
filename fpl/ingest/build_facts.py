@@ -119,7 +119,7 @@ FACT_COLS = [
     "expected_goals", "expected_assists", "expected_goal_involvements",
     "expected_goals_conceded", "tackles", "clearances_blocks_interceptions",
     "recoveries", "defcon", "defcon_source", "value", "selected",
-    "transfers_in", "transfers_out", "name",
+    "transfers_in", "transfers_out", "name", "team_h_score", "team_a_score",
 ]
 
 

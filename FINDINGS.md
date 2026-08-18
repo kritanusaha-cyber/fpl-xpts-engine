@@ -135,3 +135,75 @@ position-interacted substitution term rather than more features.
   ten seasons with zero nulls, including the four that have no `team` column.
 * `(season, gw, element)` is **not** a unique key — double gameweeks break it.
   The key is `(season, gw, element, fixture)`.
+
+---
+
+# Phase 2 — team model
+
+Dixon-Coles bivariate Poisson, fitted walk-forward: at each gameweek, train on
+every fixture that kicked off strictly earlier, predict, roll. 758 fixtures
+across 2024/25–2025/26.
+
+## Both of the doc's modelling calls are confirmed
+
+**Time decay ξ = 0.003/day is empirically optimal.** Clean U-shape on
+out-of-sample 1X2 log-loss, minimum exactly at the doc's suggested starting
+value:
+
+| ξ | 0.000 | 0.001 | 0.002 | **0.003** | 0.005 | 0.008 |
+|---|---|---|---|---|---|---|
+| 1X2 logloss | 1.0202 | 1.0139 | 1.0104 | **1.0093** | 1.0125 | 1.0250 |
+
+**Fitting on xG beats fitting on goals**, on both metrics, despite xG being
+available for only 4 of 10 seasons:
+
+| target | 1X2 logloss | CS Brier |
+|---|---|---|
+| goals | 1.0093 | 0.1777 |
+| **xG** | **0.9978** | **0.1757** |
+
+## The market beats the model, and the blend adds nothing measurable
+
+This is the headline result and it is negative.
+
+| w_model | 1X2 logloss | CS Brier |
+|---|---|---|
+| 0.0 (market only) | 0.9915 | **0.1732** |
+| **0.3 (best blend)** | **0.9905** | 0.1734 |
+| 1.0 (model only) | 0.9979 | 0.1757 |
+
+The blend's edge over the market alone is **+0.00101 log-loss, t = +0.58, 95% CI
+[−0.0024, +0.0044] — not significant**. On clean sheets the market alone is
+*better*, also insignificantly (−0.00022, t = −0.65).
+
+So on 758 fixtures the Dixon-Coles model adds **no measurable value over
+de-vigged closing odds** for team-level rates. The doc says the model's job is to
+add the residual rather than beat Pinnacle. Measured, the residual is currently
+indistinguishable from zero.
+
+### What follows from that
+
+1. **Use the market directly for near-term team rates.** It is free, one API pull
+   per gameweek, and better calibrated than the model on clean sheets — the
+   output Phase 3 and 4 consume most heavily.
+2. **Dixon-Coles still earns its place, but for a different reason than the doc
+   gives.** The optimizer runs an H = 5–8 gameweek horizon, and bookmakers do not
+   post lines that far ahead. The model is what covers fixtures the market has no
+   view on yet. That argues for a *horizon-dependent* weight — market-dominant for
+   the next fixture, model-dominant beyond it — rather than one fixed w.
+3. **Modelling effort should move to where the market has no view at all**:
+   player-level shares, minutes, DefCon, and bonus. Team goal rates are close to
+   a solved problem you can buy for free; player-level allocation is not.
+
+Market calibration for reference — implied vs realised over 1,520 matches:
+total 2.96 vs 2.95, home 1.61 vs 1.62, away 1.34 vs 1.34.
+
+## Entity resolution
+
+All football-data.co.uk club names resolve to FPL clubs with a 10-row alias table
+(`Man United`→`Man Utd`, `Tottenham`→`Spurs`, …). Zero unmatched. Well below the
+doc's predicted 40–80 manual overrides, consistent with the Phase 0 finding.
+
+Implied goal expectations are recovered by inverting P(total > 2.5) under a
+Poisson total, then solving for the supremacy that reproduces the market's
+home-win probability. Two markets, two constraints, exactly identified.

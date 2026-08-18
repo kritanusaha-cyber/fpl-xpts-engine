@@ -22,3 +22,15 @@ snapshot:          ## capture mutable API state (run daily 22:45 UTC)
 
 clean:
 	rm -rf data/interim/* data/features/*
+
+team-match:        ## build team_match fact table
+	$(PY) fpl/ingest/build_team_match.py
+
+odds:              ## historical closing odds -> implied goal expectations
+	$(PY) fpl/ingest/odds.py
+
+tune-team:         ## tune Dixon-Coles decay on out-of-sample log-loss
+	$(PY) fpl/backtest/tune_team_model.py
+
+blend:             ## model vs market vs blend, walk-forward
+	$(PY) fpl/backtest/eval_blend.py
