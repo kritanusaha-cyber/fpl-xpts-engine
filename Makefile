@@ -49,3 +49,13 @@ gw1:               ## end-to-end GW1 projection + optimal squad
 
 coldstart:         ## build 2026/27 cold-start priors
 	$(PY) fpl/models/coldstart.py
+
+install-snapshot:  ## install the daily snapshotter as a LaunchAgent
+	cp scripts/com.fpl.snapshot.plist ~/Library/LaunchAgents/
+	launchctl unload ~/Library/LaunchAgents/com.fpl.snapshot.plist 2>/dev/null || true
+	launchctl load  ~/Library/LaunchAgents/com.fpl.snapshot.plist
+	@echo "installed. verify with: launchctl list | grep fpl"
+
+uninstall-snapshot:
+	launchctl unload ~/Library/LaunchAgents/com.fpl.snapshot.plist 2>/dev/null || true
+	rm -f ~/Library/LaunchAgents/com.fpl.snapshot.plist

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fpl.snapshot</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/kritanusaha/FPL/.venv/bin/python</string>
+    <string>/Users/kritanusaha/FPL/fpl/ingest/snapshot.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/kritanusaha/FPL</string>
+
+  <!-- 18:45 America/New_York = 22:45 UTC, ahead of FPL's 23:00 UTC price change.
+       launchd uses LOCAL time, so this shifts with daylight saving; the FPL
+       deadline does not. Recheck after the November DST change. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>18</integer>
+    <key>Minute</key><integer>45</integer>
+  </dict>
+
+  <!-- The reason for launchd over cron: if the Mac was asleep at 18:45, this
+       fires on next wake instead of skipping the day. A missed snapshot is
+       unrecoverable - no upstream source backfills price or ownership. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/kritanusaha/FPL/data/raw/snapshot.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/kritanusaha/FPL/data/raw/snapshot.err</string>
+</dict>
+</plist>
