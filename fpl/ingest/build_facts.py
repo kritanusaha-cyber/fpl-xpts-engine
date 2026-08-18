@@ -54,6 +54,30 @@ def _resolve_positions(gw: pd.DataFrame, season: str, raw_dir: Path) -> pd.DataF
     return gw
 
 
+def _derive_team_id(gw: pd.DataFrame) -> pd.DataFrame:
+    """Recover each player's club id from the fixture, for every season.
+
+    The `team` column only exists from 2020/21 and carries a club *name*, while
+    `opponent_team` is an id throughout. Within one fixture exactly two distinct
+    opponent ids appear -- a player facing A plays for B. That derivation is
+    exact and, unlike joining players_raw, it handles mid-season transfers
+    correctly (a player's club is a per-match attribute, not per season).
+    """
+    pairs = (gw.dropna(subset=["fixture", "opponent_team"])
+               .groupby("fixture")["opponent_team"].unique())
+    lut = {}
+    for fixture, opps in pairs.items():
+        if len(opps) == 2:
+            a, b = int(opps[0]), int(opps[1])
+            lut[(fixture, a)] = b
+            lut[(fixture, b)] = a
+    gw["team_id"] = [
+        lut.get((f, int(o)) if pd.notna(o) else None)
+        for f, o in zip(gw["fixture"], gw["opponent_team"])
+    ]
+    return gw
+
+
 def _normalise_positions(gw: pd.DataFrame) -> pd.DataFrame:
     gw["position"] = gw["position"].map(POSITION_ALIASES).astype("object")
     return gw
@@ -87,7 +111,7 @@ def _add_defcon(gw: pd.DataFrame) -> pd.DataFrame:
 
 # Columns carried into the fact table, in a stable order.
 FACT_COLS = [
-    "season", "element", "gw", "position", "team", "opponent_team", "fixture",
+    "season", "element", "gw", "position", "team", "team_id", "opponent_team", "fixture",
     "was_home", "kickoff_time", "minutes", "starts", "total_points", "xP",
     "goals_scored", "assists", "clean_sheets", "goals_conceded", "own_goals",
     "penalties_saved", "penalties_missed", "yellow_cards", "red_cards", "saves",
@@ -109,6 +133,7 @@ def build(raw_dir: Path = Path("data/raw"),
         gw["season"] = season
         gw = _resolve_positions(gw, season, raw_dir)
         gw = _normalise_positions(gw)
+        gw = _derive_team_id(gw)
         gw = _add_defcon(gw)
         for c in FACT_COLS:
             if c not in gw.columns:

@@ -75,3 +75,63 @@ Implications:
 - 10 byte-identical duplicate rows in 2025/26. Deduped, with a >100 tripwire.
 - Players can change club mid-season (e.g. element 391, Liverpool → Bournemouth),
   so `team` is a per-row attribute, not per player-season.
+
+---
+
+# Phase 1 — minutes model
+
+Walk-forward over 2023/24–2025/26, 86,755 player-match predictions. Training set
+at each gameweek is every row that kicked off strictly earlier, prior seasons
+included. No k-fold anywhere.
+
+## It beats the honest baseline, not just the trivial one
+
+| | Brier | LogLoss | skill vs base rate |
+|---|---|---|---|
+| **model P(≥60)** | **0.0881** | **0.2889** | **55.4%** |
+| baseline: base rate | 0.1974 | 0.5840 | 0% |
+| baseline: persistence (last match) | 0.1208 | 1.6683 | 38.8% |
+| baseline: EWMA start rate (hl=5) | 0.1124 | 0.6126 | 43.1% |
+
+Beating the base rate is not evidence of anything — a decayed start-rate average
+already gets 43%. The number that matters is that the model is **21.6% better in
+Brier than the best single-feature baseline**, which is where the actual edge is.
+
+P(appear) scores Brier 0.0996 / LogLoss 0.3334 against a 0.397 base rate.
+
+## Calibration is acceptable; forwards are the weak spot
+
+| Position | n | Brier | predicted | realised | bias |
+|---|---|---|---|---|---|
+| GKP | 9,709 | 0.0437 | 0.238 | 0.233 | +0.005 |
+| DEF | 28,490 | 0.0982 | 0.317 | 0.315 | +0.002 |
+| MID | 38,406 | 0.0941 | 0.281 | 0.260 | +0.021 |
+| FWD | 10,150 | 0.0793 | 0.257 | 0.225 | **+0.032** |
+
+Keepers are the best-calibrated, as expected — keeper minutes are close to
+deterministic given selection. **Forwards are systematically over-predicted by
+3.2 points of probability**, because they are substituted off more often than the
+shared feature set implies. Reliability is within ±0.04 across all deciles, with
+mild overconfidence in the 0.6–0.8 band.
+
+This is good enough to build on, and the forward bias is a known, bounded
+correction rather than a structural break. Fixing it likely needs a
+position-interacted substitution term rather than more features.
+
+## Structural notes
+
+* `chance_of_playing_next_round` is **excluded from training** despite being the
+  strongest injury signal, because the API exposes no history and using it would
+  leak. It enters at prediction time only, from the snapshot table.
+* `starts` only exists from 2022/23; earlier seasons fall back to a 60-minute
+  proxy so the feature is defined over all ten seasons.
+* Leakage is enforced structurally by `@point_in_time` in `fpl/features/base.py`,
+  which audits both the input and the returned frame. Tested in
+  `fpl/features/test_leakage.py` — including that it catches a function which
+  re-joins its way back to the future.
+* `team_id` is derived from fixture structure (the two distinct `opponent_team`
+  values per fixture identify both sides) rather than joined from players_raw,
+  because a player's club is a per-match attribute. This recovered clubs for all
+  ten seasons with zero nulls, including the four that have no `team` column.
+* `(season, gw, element)` is **not** a unique key — double gameweeks break it.
+  The key is `(season, gw, element, fixture)`.
