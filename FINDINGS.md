@@ -414,3 +414,72 @@ the proxy used here is team xG conceded. The relationship may well be real and
 simply invisible to this proxy. The honest statement is: **with the best
 covariate currently available, the hedge is undetectable** — and FBref possession
 data is the way to settle it, not more modelling on FPL columns.
+
+---
+
+# Phases 6 & 7 — assembly and optimiser
+
+End-to-end pipeline runs: cold-start priors → Dixon-Coles carried across the
+season boundary → 20,000-draw joint simulation per fixture → MILP squad.
+`make gw1` reproduces it.
+
+## Cold start, measured
+
+2026/27 has **zero** played gameweeks, so every blend weight sits at 1.0 on
+priors. Two separate problems:
+
+* **Players.** 405 of 592 (68.4%) map to 2025/26 via the stable FPL `code`
+  (identical coverage to `opta_code`). The other 187 have no history and fall
+  back to the position × price-tier prior — which empirical Bayes already
+  handles, since n90 = 0 puts full weight on the prior.
+* **Clubs.** Promoted sides have no Premier League matches. Rather than let the
+  fit invent parameters, they get a prior measured from 27 promoted club-seasons
+  in this dataset: **attack 0.711× league average, defence 1.245×** (they concede
+  ~25% more). Coventry City and Hull City are on that prior for 2026/27.
+
+## Simulating jointly is not optional — and revealed two omissions
+
+Simulating one team at a time cannot produce bonus, because bonus is a
+competition across all 22+ players in a fixture. Restructuring to draw one
+scoreline and play out **both** squads against it fixed that and surfaced two
+terms that had been silently missing (bonus, goalkeeper saves). Their absence was
+biasing every projection down:
+
+| position | gap before | gap after | realised |
+|---|---|---|---|
+| GKP | −0.80 | **−0.23** | 3.38 |
+| DEF | −0.74 | −0.69 | 3.70 |
+| MID | −1.30 | −1.23 | 3.97 |
+| FWD | −1.59 | −1.32 | 4.11 |
+
+A separate bug found the same way: goals-conceded points were being charged to
+players who never appeared, giving a benched keeper **negative** xPts. Conceded
+is now drawn as Binomial(conceded, minutes/90) and gated on appearance, matching
+FPL's "while on the pitch" rule.
+
+## Honest status: not yet trustworthy for team selection
+
+**Attackers are still under-projected by ~1.2–1.3 points per match.** The known
+cause is the gap already flagged in Phase 3: penalties and set pieces are not
+separated, which needs Understat. The doc puts penalty duty alone at 0.15–0.20
+pts/90 for a designated taker, and set-piece threat is unmodelled on top.
+
+The symptom shows up in the optimiser. Budget sensitivity:
+
+| budget | £90m | £95m | £98m | £100m | £103m | £110m |
+|---|---|---|---|---|---|---|
+| xPts | 55.06 | 56.11 | 56.28 | **56.28** | 56.80 | 56.98 |
+
+The curve is **flat from £95m to £100m** — the budget does not bind, and the
+shadow price at £100m is ~0. In real FPL the budget always binds. The binding
+constraints here are max-3-per-club and a talent pool the model has flattened:
+price vs xPts correlation is only **0.343**, when premiums should clearly
+out-project cheap players.
+
+So the machinery is right and the inputs are not yet good enough. The doc's own
+test — "ship the cut-down version, measure it, then decide whether the later
+phases earn their complexity" — is what produced this diagnosis, and the answer
+is that **the next unit of effort belongs in Understat ingest, not in more
+optimiser features**. Chip scheduling, transfer planning over an H-gameweek
+horizon and rank-vs-EV objectives are all deferred until attacking returns
+calibrate.

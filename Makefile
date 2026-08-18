@@ -43,3 +43,9 @@ bonus:             ## evaluate BPS -> bonus recovery
 
 defcon:            ## walk-forward DefCon threshold evaluation
 	$(PY) fpl/backtest/eval_defcon.py
+
+gw1:               ## end-to-end GW1 projection + optimal squad
+	$(PY) fpl/predict_gw1.py
+
+coldstart:         ## build 2026/27 cold-start priors
+	$(PY) fpl/models/coldstart.py
