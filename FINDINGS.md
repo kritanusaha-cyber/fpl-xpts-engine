@@ -635,3 +635,95 @@ price tier — rather than presenting all three as equivalent.
 **The budget constraint now binds**: optimal spend went £97.0m → **£100.0m**, and
 Haaland enters the XI. Better differentiation among new signings was part of what
 the flat budget curve had been missing.
+
+---
+
+# Getting real separation into implied value
+
+Three changes, in increasing order of effect.
+
+## 1. The shrinkage constant was hardcoded; it should be fitted per position
+
+The doc specifies w = n / (n + sigma2_within/sigma2_between). I had used a flat
+k = 8. Estimated from the historical variance decomposition:
+
+| position | k = within/between |
+|---|---|
+| DEF | 15.7 |
+| MID | **6.5** |
+| FWD | 15.7 |
+
+Midfielders separate from one another more than twice as fast as defenders or
+forwards, whose match-to-match noise swamps the between-player signal for far
+longer. Worth noting this *narrows* DEF and FWD spreads — accuracy and spread
+pull in opposite directions here, and accuracy wins.
+
+## 2. One gameweek is too short a horizon to separate anyone
+
+Over a single match the gap between the best and worst pick is a couple of
+points, most of it noise. Over the doc's H = 5-8 horizon, fixture runs compound:
+
+| | 1 GW | 6 GW |
+|---|---|---|
+| top projected xPts | 5.48 | **29.80** |
+
+This is the single largest lever on deviation size, and it is also the horizon on
+which transfer decisions are actually made.
+
+## 3. Comparing within FPL position is still too coarse
+
+FPL's four positions are a scoring construct, not a football one. "MID" holds
+both Saka and Zubimendi. Ranking a player against everyone sharing his FPL label
+compares people who are not doing the same job.
+
+Roles are clustered (k-means) on three axes available for every player — share
+of team xG, share of team xA, defensive actions per 90 — then labelled by their
+dominant axis:
+
+| position | roles found |
+|---|---|
+| DEF | high goal threat (37), high creator (34), low creator (124) |
+| MID | high goal threat (27), high creator (33), high defensive (139), low involvement (62) |
+| FWD | high creator (19), low involvement (51) |
+
+The groups are recognisable: *MID high goal threat* is Rogers, Semenyo,
+Gibbs-White, Ndiaye — the wingers. *MID high defensive* is Zubimendi,
+Gravenberch, Ampadu. *DEF high goal threat* is Virgil, Tarkowski, Van Hecke —
+which is exactly Vuskovic's comparison set.
+
+**An earlier version of the labels was wrong and had to be thrown out.** It
+guessed football names from cluster centroids and produced "attacking full-back"
+for Virgil and Tarkowski (both centre-backs) and put Haaland in "support
+forward". The clusters were real; the names were invented. They are now derived
+mechanically from the dominant axis, which claims only what the data supports.
+
+## Value is now measured against replacement level within role
+
+    surplus_role = xPts_H - lambda*price - mu_position - role_replacement
+    fair_price   = price + surplus_role / lambda
+
+**Replacement level, not the role median.** Most members of a role cluster are
+squad filler who will never play; centring on the median over all of them put the
+baseline near zero and made every real starter look enormously underpriced — a
+£6.5m holding midfielder came out with an £18.9m "fair price". Replacement is now
+the median among players projected to actually start.
+
+Result, across 359 projected starters:
+
+| | p5 | median | p95 |
+|---|---|---|---|
+| mispricing (£m) | −2.4 | 0.0 | +3.6 |
+
+and every role lands at roughly 50% underpriced / 50% overpriced, with genuine
+spread (best +7.8, worst −4.0) rather than one position being uniformly punished.
+
+## Two more element-id bugs, same root cause
+
+Both the role join and the earlier newcomer test were silently broken by joining
+on `element` across seasons. FPL reassigns element ids annually, so the role join
+attached 2025/26 roles to whichever 2026/27 player inherited the number — it put
+Haaland in a centre-back cluster. Both now join on the stable `code`.
+
+Related: a carried-over role whose prefix no longer matches the player's current
+position is now discarded and re-derived, because **position is a per-season
+attribute** and FPL reclassifies players between seasons.

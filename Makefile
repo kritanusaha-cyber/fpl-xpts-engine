@@ -72,3 +72,10 @@ foreign:           ## pull Big 5 output for incoming transfers
 
 transfers:         ## backtest cold-start priors for new signings
 	$(PY) fpl/backtest/eval_transfers.py
+
+horizon:           ## multi-gameweek simulation (H=6)
+	$(PY) fpl/predict_horizon.py
+
+simulation:        ## export simulation JSON and build the graphs dashboard
+	$(PY) fpl/export_simulation.py
+	$(PY) scripts/build_simulation.py

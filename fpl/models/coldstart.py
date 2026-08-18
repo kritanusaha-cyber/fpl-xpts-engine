@@ -78,6 +78,10 @@ def promoted_club_prior(db: str = "data/fpl.duckdb") -> dict:
 
 PENALTY_XG = 0.79
 
+# sigma2_within / sigma2_between for xG share, estimated on 2022/23-2025/26.
+# See fpl/backtest/fit_shrinkage.py.
+SHRINK_K = {"GKP": 12.0, "DEF": 15.7, "MID": 6.5, "FWD": 15.7}
+
 
 def _strip_penalty_xg(hist: pd.DataFrame, season: str) -> pd.DataFrame:
     """Subtract penalty xG from each player's season xG, spread across appearances."""
@@ -236,8 +240,14 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
             has_f = d["foreign_starts60"].notna()
             base = base.where(~has_f, (1 - fw) * grp_mean + fw * d["foreign_starts60"])
 
-        # Empirical-Bayes weight: few 90s -> sit near the prior.
-        w = d["n90"] / (d["n90"] + 8.0)
+        # Empirical-Bayes weight, w = n / (n + sigma2_within/sigma2_between).
+        # The ratio is estimated per position from the historical variance
+        # decomposition rather than hardcoded -- it differs a lot by position:
+        # midfielders separate from each other much faster (k=6.5) than
+        # defenders or forwards (k~15.7), whose match-to-match noise swamps the
+        # between-player signal for far longer.
+        k = d["position"].map(SHRINK_K).fillna(10.0)
+        w = d["n90"] / (d["n90"] + k)
         d[col] = w * d[col].fillna(base) + (1 - w) * base
     return d
 

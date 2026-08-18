@@ -1,0 +1,344 @@
+<title>Six Gameweeks Out</title>
+<style>
+:root{
+  --ground:#F6F7F3; --surface:#FFFFFF; --surface-2:#FBFCF9;
+  --ink:#171A13; --ink-2:#3D4436; --muted:#6C7364; --line:#E2E5DC; --line-2:#EDEFE9;
+  --accent:#9A6A11; --accent-soft:#F0E4CA;
+  --pos:#2E7A5E; --neg:#A8452E; --grid:#E8EBE3;
+  --r1:#B37A16; --r2:#3C7E68; --r3:#5E8FA3; --r4:#7C6A93; --r5:#B4705C;
+  --r6:#8A9180; --r7:#D0A75A; --r8:#96A2AC; --r9:#8E5A4A; --r10:#4F7A4A;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#121410; --surface:#191C15; --surface-2:#1E221A;
+  --ink:#E7EAE0; --ink-2:#BFC5B5; --muted:#8A9180; --line:#2B3025; --line-2:#232720;
+  --accent:#D9A33A; --accent-soft:#3A2F17;
+  --pos:#59AC8C; --neg:#CE7054; --grid:#252A20;
+  --r1:#D9A33A; --r2:#4C9B80; --r3:#6E9FB4; --r4:#8E7BA6; --r5:#C07A63;
+  --r6:#7C8471; --r7:#B08A45; --r8:#7C8792; --r9:#9C6553; --r10:#6E9A66;
+}}
+:root[data-theme="dark"]{
+  --ground:#121410; --surface:#191C15; --surface-2:#1E221A;
+  --ink:#E7EAE0; --ink-2:#BFC5B5; --muted:#8A9180; --line:#2B3025; --line-2:#232720;
+  --accent:#D9A33A; --accent-soft:#3A2F17;
+  --pos:#59AC8C; --neg:#CE7054; --grid:#252A20;
+  --r1:#D9A33A; --r2:#4C9B80; --r3:#6E9FB4; --r4:#8E7BA6; --r5:#C07A63;
+  --r6:#7C8471; --r7:#B08A45; --r8:#7C8792; --r9:#9C6553; --r10:#6E9A66;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:26px 18px 70px}
+h1{font-family:var(--mono);font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  font-weight:600;margin:0 0 3px}
+.hint{font-size:12px;color:var(--muted);margin:0 0 12px;max-width:68ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:16px 16px 12px;margin-top:16px}
+.summary{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:3px;margin:20px 0 4px;overflow:hidden}
+.stat{background:var(--surface);padding:10px 14px;flex:1 1 130px}
+.stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:18px;font-weight:600;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.stat.hero .v{color:var(--accent)}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 2px}
+select,input[type=search]{font:inherit;font-size:12.5px;padding:5px 9px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:3px}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chartwrap{overflow-x:auto}
+svg{display:block;max-width:100%}
+.ax{stroke:var(--line);stroke-width:1}
+.gr{stroke:var(--grid);stroke-width:1}
+.tk{font-family:var(--mono);font-size:9.5px;fill:var(--muted)}
+.albl{font-size:10.5px;fill:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.dot{cursor:pointer}
+.dot:hover{stroke:var(--ink);stroke-width:1.5}
+.leg{display:flex;flex-wrap:wrap;gap:5px 13px;margin-top:10px}
+.leg button{display:flex;align-items:center;gap:5px;font:inherit;font-size:11.5px;
+  background:none;border:0;color:var(--ink-2);cursor:pointer;padding:1px 2px;border-radius:2px}
+.leg button[aria-pressed="false"]{opacity:.32}
+.sw{width:9px;height:9px;border-radius:1px;flex:none}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--line);
+  border-radius:3px;padding:6px 9px;font-size:11.5px;box-shadow:0 3px 12px rgba(0,0,0,.13);
+  z-index:20;opacity:0;transition:opacity .1s;max-width:230px}
+.tip b{font-family:var(--mono)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:800px){.two{grid-template-columns:1fr}}
+.pinfo{display:grid;grid-template-columns:1fr auto;gap:3px 12px;font-size:12px;margin-top:10px}
+.pinfo dt{color:var(--muted)} .pinfo dd{margin:0;font-family:var(--mono);text-align:right;
+  font-variant-numeric:tabular-nums}
+footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:74ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <h1>Six Gameweeks Out</h1>
+  <div class="sub" id="sub"></div>
+  <div class="summary" id="summary"></div>
+
+  <div class="card">
+    <h2>Risk against reward</h2>
+    <p class="hint">Every projected starter over the horizon. Rightward is more expected points;
+      upward is more volatile. The useful players sit low and right &mdash; the same return with
+      less variance. Captaincy wants the opposite corner. Click a point to inspect it.</p>
+    <div class="ctl">
+      <input type="search" id="q" placeholder="Find a player&hellip;" aria-label="Find a player">
+      <select id="posf" aria-label="Filter by position">
+        <option value="ALL">All positions</option>
+        <option>GKP</option><option>DEF</option><option>MID</option><option>FWD</option>
+      </select>
+    </div>
+    <div class="chartwrap"><svg id="scatter" viewBox="0 0 720 400" role="img"
+      aria-label="Expected points against standard deviation"></svg></div>
+    <div class="leg" id="leg"></div>
+  </div>
+
+  <div class="card">
+    <h2>What the model thinks players should cost</h2>
+    <p class="hint">Fair price against listed price, within role. Points above the diagonal are
+      underpriced for the job they do; below it, overpriced. Distance from the line is the size
+      of the disagreement, in pounds.</p>
+    <div class="chartwrap"><svg id="price" viewBox="0 0 720 360" role="img"
+      aria-label="Fair price against listed price"></svg></div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2 id="dh">Outcome distribution</h2>
+      <p class="hint" id="dhint">Simulated six-gameweek totals. The spread is the point &mdash;
+        two players with the same mean can carry very different risk.</p>
+      <div class="chartwrap"><svg id="dist" viewBox="0 0 420 250" role="img"
+        aria-label="Distribution of simulated point totals"></svg></div>
+      <dl class="pinfo" id="pinfo"></dl>
+    </div>
+    <div class="card">
+      <h2>Fixture run</h2>
+      <p class="hint">Expected points per gameweek, with the match the model expects underneath.
+        A good run is worth more than a good player on a bad one.</p>
+      <div class="chartwrap"><svg id="run" viewBox="0 0 420 250" role="img"
+        aria-label="Expected points by gameweek"></svg></div>
+    </div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script id="payload" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('payload').textContent);
+const S = D.players.filter(p=>p.starter);
+const ROLES = D.roles;
+const RC = {}; ROLES.forEach((r,i)=>RC[r]=`var(--r${(i%10)+1})`);
+let hidden = new Set(), sel = S[0], pos='ALL', q='';
+const tip = document.getElementById('tip');
+const NS='http://www.w3.org/2000/svg';
+const el=(n,a={})=>{const e=document.createElementNS(NS,n);
+  for(const k in a) e.setAttribute(k,a[k]); return e;};
+
+document.getElementById('sub').textContent =
+  `Horizon of ${D.horizon} gameweeks \u00B7 ${D.n_sims.toLocaleString()} simulations per fixture \u00B7 `+
+  `${S.length} projected starters \u00B7 generated ${D.generated}`;
+
+document.getElementById('summary').innerHTML = [
+  ['Horizon', D.horizon+' GW', 'gameweeks simulated', true],
+  ['Budget price', '\u03BB = '+D['lambda'].toFixed(2), 'xPts per \u00A31.0m over H', false],
+  ['Roles', String(ROLES.length), 'clustered from play style', false],
+  ['Starters', String(S.length), 'of '+D.players.length+' priced', false]
+].map(([k,v,n,h])=>`<div class="stat${h?' hero':''}"><div class="k">${k}</div>
+  <div class="v">${v}</div><div class="k" style="text-transform:none;letter-spacing:0">${n}</div></div>`).join('');
+
+function shown(){
+  return S.filter(p=>!hidden.has(p.role)
+    && (pos==='ALL'||p.pos===pos)
+    && (!q || (p.name+' '+p.club).toLowerCase().includes(q)));
+}
+function showTip(e,html){ tip.innerHTML=html; tip.style.opacity=1;
+  tip.style.left=Math.min(e.clientX+12, innerWidth-245)+'px';
+  tip.style.top=(e.clientY+14)+'px'; }
+function hideTip(){ tip.style.opacity=0; }
+
+/* ---------- scatter: xPts vs sd ---------- */
+function drawScatter(){
+  const svg=document.getElementById('scatter'); svg.textContent='';
+  const W=720,H=400,L=52,R=14,T=14,B=42;
+  const d=shown(); if(!d.length) return;
+  const xs=d.map(p=>p.xpts), ys=d.map(p=>p.sd);
+  const x0=0, x1=Math.max(...xs)*1.05, y0=Math.min(...ys)*0.9, y1=Math.max(...ys)*1.05;
+  const X=v=>L+(v-x0)/(x1-x0)*(W-L-R), Y=v=>H-B-(v-y0)/(y1-y0)*(H-T-B);
+  for(let i=0;i<=5;i++){
+    const v=x0+(x1-x0)*i/5;
+    svg.appendChild(el('line',{x1:X(v),x2:X(v),y1:T,y2:H-B,class:'gr'}));
+    const t=el('text',{x:X(v),y:H-B+15,class:'tk','text-anchor':'middle'});
+    t.textContent=v.toFixed(0); svg.appendChild(t);
+  }
+  for(let i=0;i<=4;i++){
+    const v=y0+(y1-y0)*i/4;
+    svg.appendChild(el('line',{x1:L,x2:W-R,y1:Y(v),y2:Y(v),class:'gr'}));
+    const t=el('text',{x:L-7,y:Y(v)+3,class:'tk','text-anchor':'end'});
+    t.textContent=v.toFixed(1); svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:L,x2:W-R,y1:H-B,y2:H-B,class:'ax'}));
+  svg.appendChild(el('line',{x1:L,x2:L,y1:T,y2:H-B,class:'ax'}));
+  const xl=el('text',{x:(L+W-R)/2,y:H-8,class:'albl','text-anchor':'middle'});
+  xl.textContent='expected points over '+D.horizon+' gameweeks'; svg.appendChild(xl);
+  const yl=el('text',{x:14,y:(T+H-B)/2,class:'albl','text-anchor':'middle',
+    transform:`rotate(-90 14 ${(T+H-B)/2})`}); yl.textContent='volatility (sd)'; svg.appendChild(yl);
+
+  d.forEach(p=>{
+    const c=el('circle',{cx:X(p.xpts),cy:Y(p.sd),r:Math.max(2.6,Math.sqrt(p.price)*1.25),
+      fill:RC[p.role],'fill-opacity':.72,stroke:'none',class:'dot'});
+    c.addEventListener('mousemove',e=>showTip(e,
+      `<b>${p.name}</b> &middot; ${p.club}<br>${p.role}<br>
+       <b>${p.xpts.toFixed(1)}</b> xPts &plusmn; ${p.sd.toFixed(1)} &middot; &pound;${p.price.toFixed(1)}m<br>
+       fair &pound;${p.fair.toFixed(1)}m (${p.mis>=0?'+':''}${p.mis.toFixed(1)})`));
+    c.addEventListener('mouseleave',hideTip);
+    c.addEventListener('click',()=>{sel=p; drawDist(); drawRun();});
+    svg.appendChild(c);
+  });
+  if(sel && d.includes(sel))
+    svg.appendChild(el('circle',{cx:X(sel.xpts),cy:Y(sel.sd),r:9,fill:'none',
+      stroke:'var(--ink)','stroke-width':1.6}));
+}
+/* ---------- fair vs listed price ---------- */
+function drawPrice(){
+  const svg=document.getElementById('price'); svg.textContent='';
+  const W=720,H=360,L=52,R=14,T=14,B=42;
+  const d=shown(); if(!d.length) return;
+  const lo=3.5, hi=Math.max(...d.map(p=>Math.max(p.price,p.fair)))*1.03;
+  const X=v=>L+(v-lo)/(hi-lo)*(W-L-R), Y=v=>H-B-(v-lo)/(hi-lo)*(H-T-B);
+  for(let v=4;v<=hi;v+=2){
+    svg.appendChild(el('line',{x1:X(v),x2:X(v),y1:T,y2:H-B,class:'gr'}));
+    svg.appendChild(el('line',{x1:L,x2:W-R,y1:Y(v),y2:Y(v),class:'gr'}));
+    const a=el('text',{x:X(v),y:H-B+15,class:'tk','text-anchor':'middle'}); a.textContent=v;
+    const b=el('text',{x:L-7,y:Y(v)+3,class:'tk','text-anchor':'end'}); b.textContent=v;
+    svg.appendChild(a); svg.appendChild(b);
+  }
+  svg.appendChild(el('line',{x1:X(lo),y1:Y(lo),x2:X(hi),y2:Y(hi),
+    stroke:'var(--muted)','stroke-dasharray':'4 4','stroke-width':1}));
+  svg.appendChild(el('line',{x1:L,x2:W-R,y1:H-B,y2:H-B,class:'ax'}));
+  svg.appendChild(el('line',{x1:L,x2:L,y1:T,y2:H-B,class:'ax'}));
+  const xl=el('text',{x:(L+W-R)/2,y:H-8,class:'albl','text-anchor':'middle'});
+  xl.textContent='listed price (\u00A3m)'; svg.appendChild(xl);
+  const yl=el('text',{x:14,y:(T+H-B)/2,class:'albl','text-anchor':'middle',
+    transform:`rotate(-90 14 ${(T+H-B)/2})`}); yl.textContent='fair price (\u00A3m)'; svg.appendChild(yl);
+  d.forEach(p=>{
+    const c=el('circle',{cx:X(p.price),cy:Y(p.fair),r:3.4,
+      fill:p.mis>=0?'var(--pos)':'var(--neg)','fill-opacity':.62,class:'dot'});
+    c.addEventListener('mousemove',e=>showTip(e,
+      `<b>${p.name}</b> &middot; ${p.club}<br>${p.role}<br>
+       listed &pound;${p.price.toFixed(1)}m &rarr; fair &pound;${p.fair.toFixed(1)}m<br>
+       <b>${p.mis>=0?'+':''}${p.mis.toFixed(1)}</b> &middot; rank ${p.rank} of ${p.role_n} in role`));
+    c.addEventListener('mouseleave',hideTip);
+    c.addEventListener('click',()=>{sel=p; drawDist(); drawRun();});
+    svg.appendChild(c);
+  });
+}
+/* ---------- distribution ---------- */
+function drawDist(){
+  const svg=document.getElementById('dist'); svg.textContent='';
+  const W=420,H=250,L=38,R=10,T=10,B=36;
+  const p=sel; if(!p) return;
+  document.getElementById('dh').textContent=`Outcome distribution \u2014 ${p.name}`;
+  const h=p.hist, edges=D.hist_edges, mx=Math.max(...h)||1;
+  const bw=(W-L-R)/h.length;
+  h.forEach((v,i)=>{
+    const ht=(v/mx)*(H-T-B);
+    const r=el('rect',{x:L+i*bw+0.7,y:H-B-ht,width:bw-1.4,height:ht,
+      fill:RC[p.role],'fill-opacity':.68});
+    r.addEventListener('mousemove',e=>showTip(e,
+      `${edges[i]}\u2013${edges[i+1]} pts<br><b>${(v/D.n_sims*100).toFixed(1)}%</b> of simulations`));
+    r.addEventListener('mouseleave',hideTip);
+    svg.appendChild(r);
+  });
+  [[p.q[0],'5th'],[p.q[2],'median'],[p.q[4],'95th']].forEach(([v,lab])=>{
+    const x=L+(v-edges[0])/(edges[edges.length-1]-edges[0])*(W-L-R);
+    svg.appendChild(el('line',{x1:x,x2:x,y1:T,y2:H-B,stroke:'var(--ink)',
+      'stroke-width':lab==='median'?1.4:1,'stroke-dasharray':lab==='median'?'':'3 3',
+      'stroke-opacity':lab==='median'?.75:.4}));
+    const t=el('text',{x:x,y:T+9,class:'tk','text-anchor':'middle'}); t.textContent=lab;
+    svg.appendChild(t);
+  });
+  svg.appendChild(el('line',{x1:L,x2:W-R,y1:H-B,y2:H-B,class:'ax'}));
+  for(let i=0;i<edges.length;i+=3){
+    const x=L+(edges[i]-edges[0])/(edges[edges.length-1]-edges[0])*(W-L-R);
+    const t=el('text',{x:x,y:H-B+14,class:'tk','text-anchor':'middle'});
+    t.textContent=edges[i]; svg.appendChild(t);
+  }
+  const xl=el('text',{x:(L+W-R)/2,y:H-6,class:'albl','text-anchor':'middle'});
+  xl.textContent='points over '+D.horizon+' gameweeks'; svg.appendChild(xl);
+
+  document.getElementById('pinfo').innerHTML = [
+    ['Club', p.club], ['Role', p.role],
+    ['Rank in role', `${p.rank} of ${p.role_n}`],
+    ['Listed price', '\u00A3'+p.price.toFixed(1)+'m'],
+    ['Fair price', '\u00A3'+p.fair.toFixed(1)+'m'],
+    ['Mispricing', (p.mis>=0?'+':'')+p.mis.toFixed(1)],
+    ['Ownership', p.own.toFixed(1)+'%'],
+    ['Prior', p.hist_pl?'Premier League record':'no PL history']
+  ].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+}
+/* ---------- fixture run ---------- */
+function drawRun(){
+  const svg=document.getElementById('run'); svg.textContent='';
+  const W=420,H=250,L=38,R=10,T=12,B=52;
+  const p=sel; if(!p||!p.runs.length) return;
+  const mx=Math.max(...p.runs.map(r=>r.xpts))*1.15||1;
+  const bw=(W-L-R)/p.runs.length;
+  for(let i=0;i<=4;i++){
+    const v=mx*i/4, y=H-B-(v/mx)*(H-T-B);
+    svg.appendChild(el('line',{x1:L,x2:W-R,y1:y,y2:y,class:'gr'}));
+    const t=el('text',{x:L-6,y:y+3,class:'tk','text-anchor':'end'});
+    t.textContent=v.toFixed(1); svg.appendChild(t);
+  }
+  p.runs.forEach((r,i)=>{
+    const ht=(r.xpts/mx)*(H-T-B);
+    const bar=el('rect',{x:L+i*bw+bw*0.18,y:H-B-ht,width:bw*0.64,height:ht,
+      fill:RC[p.role],'fill-opacity':.75});
+    bar.addEventListener('mousemove',e=>showTip(e,
+      `GW${r.gw} &middot; ${r.is_home?'home':'away'}<br><b>${r.xpts.toFixed(2)}</b> xPts<br>
+       team goals ${r.team_goals.toFixed(2)} &middot; conceding ${r.opp_goals.toFixed(2)}`));
+    bar.addEventListener('mouseleave',hideTip);
+    svg.appendChild(bar);
+    const g=el('text',{x:L+i*bw+bw/2,y:H-B+14,class:'tk','text-anchor':'middle'});
+    g.textContent='GW'+r.gw; svg.appendChild(g);
+    const hm=el('text',{x:L+i*bw+bw/2,y:H-B+26,class:'tk','text-anchor':'middle'});
+    hm.textContent=r.is_home?'H':'A'; hm.setAttribute('fill', r.is_home?'var(--accent)':'var(--muted)');
+    svg.appendChild(hm);
+    const og=el('text',{x:L+i*bw+bw/2,y:H-B+38,class:'tk','text-anchor':'middle'});
+    og.textContent=r.opp_goals.toFixed(1); svg.appendChild(og);
+  });
+  svg.appendChild(el('line',{x1:L,x2:W-R,y1:H-B,y2:H-B,class:'ax'}));
+  const xl=el('text',{x:(L+W-R)/2,y:H-4,class:'albl','text-anchor':'middle'});
+  xl.textContent='gameweek \u00B7 home/away \u00B7 goals conceded'; svg.appendChild(xl);
+}
+/* ---------- legend + controls ---------- */
+document.getElementById('leg').innerHTML = ROLES.map(r=>
+  `<button type="button" data-r="${r}" aria-pressed="true">
+     <span class="sw" style="background:${RC[r]}"></span>${r}</button>`).join('');
+document.getElementById('leg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const r=b.dataset.r;
+  if(hidden.has(r)) hidden.delete(r); else hidden.add(r);
+  b.setAttribute('aria-pressed', String(!hidden.has(r)));
+  drawScatter(); drawPrice();
+});
+document.getElementById('posf').addEventListener('change',e=>{pos=e.target.value; drawScatter(); drawPrice();});
+document.getElementById('q').addEventListener('input',e=>{
+  q=e.target.value.toLowerCase().trim();
+  const hit=shown(); if(q && hit.length){ sel=hit[0]; drawDist(); drawRun(); }
+  drawScatter(); drawPrice();
+});
+document.getElementById('foot').innerHTML =
+  `Each gameweek is simulated independently and accumulated, which is right for the mean and mildly
+   understates variance &mdash; it ignores serial correlation in form and rotation. Roles are k-means
+   clusters on goal threat, creation and defensive workload, labelled by their dominant axis rather
+   than by assumed football positions. Fair price inverts the reduced cost through the budget shadow
+   price, measured against replacement level <em>within role</em>. Projections run on priors alone:
+   2026/27 has no completed gameweeks.`;
+
+drawScatter(); drawPrice(); drawDist(); drawRun();
+</script>
