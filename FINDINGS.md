@@ -338,3 +338,79 @@ Recommendation: keep the reduced-form BPS model as a ranking input to the bonus
 simulation, and do not invest in Monte-Carlo BPS simulation over the full action
 set until FBref action data is ingested. Without the action log the extra
 machinery has nothing to consume.
+
+---
+
+# Phase 4 — DefCon
+
+Walk-forward within 2025/26 (train GW1..t, test t+1), 8,626 player-matches.
+2025/26 is the **only** season played under the DefCon rule that also carries the
+component counts; 2016/17–2018/19 have the counts but predate the rule by seven
+seasons, so they are not used as training data.
+
+## Negative binomial beats Poisson, as the doc says
+
+| | Brier | predicted | realised | bias |
+|---|---|---|---|---|
+| **negative binomial @ projected minutes** | **0.0993** | 0.135 | 0.137 | **−0.0016** |
+| Poisson @ projected minutes | 0.1010 | 0.109 | 0.137 | −0.0277 |
+| negative binomial @ **flat 90 minutes** | 0.1270 | 0.225 | 0.137 | **+0.0884** |
+| baseline: base rate | 0.1183 | 0.137 | 0.137 | 0.0000 |
+
+Poisson does not just score slightly worse — it is **systematically biased
+downward** (−0.028), exactly the underfit the doc predicts from ignoring
+overdispersion. The negative binomial is near-unbiased.
+
+**Evaluating at 90 minutes instead of projected minutes is catastrophic**: Brier
+0.1270, *worse than simply predicting the base rate*, with +0.088 of
+over-prediction. The doc's insistence on projected minutes is not a refinement,
+it is load-bearing — and this is the clearest measured vindication of building
+Phase 1 first.
+
+Overall skill over base rate is a modest **16%**.
+
+## The doc was right that this is the worst-calibrated component
+
+| position | n | Brier | predicted | realised | bias |
+|---|---|---|---|---|---|
+| FWD | 1,178 | 0.0075 | 0.008 | 0.008 | +0.0003 |
+| MID | 4,266 | 0.0891 | 0.112 | 0.118 | −0.0053 |
+| DEF | 3,182 | 0.1470 | 0.213 | 0.211 | +0.0026 |
+
+Aggregate bias is tiny, but the reliability curve falls apart in the tail:
+
+| predicted bin | n | predicted | realised |
+|---|---|---|---|
+| 0.0–0.2 | 6,650 | ~0.10 | ~0.09 |
+| 0.2–0.4 | 1,734 | 0.295 | 0.348 |
+| 0.5–0.6 | 19 | 0.543 | 0.368 |
+| 0.6–0.8 | 11 | 0.664 | **0.000** |
+| 0.8–1.0 | 6 | 0.829 | **0.167** |
+
+Above ~0.5 the model is badly overconfident. The samples are small (37 rows over
+0.5), but the direction is consistent and these are exactly the players a
+DefCon-targeting strategy would buy. Treat any predicted DefCon probability
+above 0.5 as unreliable until there is more data.
+
+## The DefCon / clean-sheet hedge is not measurable
+
+This is the notable negative result. The doc argues the two should be modelled
+jointly because "a hard fixture lowers P(clean sheet) and raises P(DefCon)",
+creating a hedge "worth building explicitly". Measured across defenders:
+
+| | correlation |
+|---|---|
+| P(DefCon) vs clean sheet | **−0.0377** |
+| DefCon hit vs clean sheet | **+0.0290** |
+| opponent strength vs DefCon hit | +0.0660 |
+
+All ≈ 0, and the first two have *opposite signs*. On this evidence joint
+modelling buys close to nothing, and two independent screens would misprice
+almost nothing.
+
+**Important caveat before acting on this.** The doc specifies *projected opponent
+possession share* as the key covariate; possession is not in the FPL feed, so
+the proxy used here is team xG conceded. The relationship may well be real and
+simply invisible to this proxy. The honest statement is: **with the best
+covariate currently available, the hedge is undetectable** — and FBref possession
+data is the way to settle it, not more modelling on FPL columns.

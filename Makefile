@@ -40,3 +40,6 @@ attacking:         ## evaluate share-based attacking returns
 
 bonus:             ## evaluate BPS -> bonus recovery
 	$(PY) fpl/backtest/eval_bonus.py
+
+defcon:            ## walk-forward DefCon threshold evaluation
+	$(PY) fpl/backtest/eval_defcon.py
