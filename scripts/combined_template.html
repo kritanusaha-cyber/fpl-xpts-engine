@@ -58,6 +58,31 @@ h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut
 .stat .n{font-size:11px;color:var(--muted);margin-top:1px}
 .stat.hero .v{color:var(--accent)}
 .stat.mu .v{font-size:12px;line-height:1.5}
+.tabs{display:flex;gap:2px;margin-top:16px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:13px;font-weight:600;padding:8px 15px;border:0;
+  background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.m h3{font-size:14.5px;margin:26px 0 6px;color:var(--ink)}
+.m h4{font-size:12.5px;margin:16px 0 4px;color:var(--ink-2);font-weight:600}
+.m p{margin:0 0 9px;max-width:74ch;color:var(--ink-2);font-size:13px}
+.m ul{margin:0 0 10px;padding-left:19px;max-width:74ch;color:var(--ink-2);font-size:13px}
+.m li{margin-bottom:4px}
+.m code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:2px;padding:1px 4px}
+.m .eq{font-family:var(--mono);font-size:12.5px;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:2px;
+  padding:10px 13px;margin:8px 0 12px;overflow-x:auto;white-space:pre}
+.m table{border-collapse:collapse;margin:6px 0 14px;font-size:12.5px;min-width:0;width:auto}
+.m th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted);font-weight:600;padding:5px 13px 5px 0;border-bottom:1px solid var(--line)}
+.m td{padding:4px 13px 4px 0;border-bottom:1px solid var(--line-2);
+  font-variant-numeric:tabular-nums}
+.m td.n{font-family:var(--mono)}
+.m .caveat{border-left:3px solid var(--neg);background:var(--surface);padding:10px 13px;
+  margin:10px 0 14px;font-size:12.5px;color:var(--ink-2);max-width:74ch}
+.m .caveat b{color:var(--neg)}
+.m .ok{border-left-color:var(--pos)} .m .ok b{color:var(--pos)}
 .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;
   position:sticky;top:0;z-index:6;background:var(--ground);padding:8px 0}
 select,input[type=search]{font:inherit;font-size:12.5px;padding:6px 10px;
@@ -142,6 +167,11 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
 <div class="wrap">
   <h1>Shadow Price</h1>
   <div class="sub" id="sub"></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-model" aria-selected="true" aria-controls="panel-model">Players</button>
+    <button role="tab" id="tab-method" aria-selected="false" aria-controls="panel-method">Methodology</button>
+  </div>
+  <div id="panel-model" role="tabpanel" aria-labelledby="tab-model">
   <div class="summary" id="summary"></div>
 
   <p class="hint" style="margin-top:14px">
@@ -193,6 +223,9 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
   </div>
 
   <footer id="foot"></footer>
+  </div>
+
+  <div id="panel-method" role="tabpanel" aria-labelledby="tab-method" hidden>__METHOD__</div>
 </div>
 <div class="tip" id="tip" role="status"></div>
 
@@ -423,4 +456,13 @@ document.getElementById('foot').innerHTML=
    residual bias of roughly &minus;0.3 xPts per match from unmodelled set-piece threat. Penalty xG is
    separated out and re-attached to the current designated taker.`;
 mountSeg(); redraw();
+
+const tabs=[['tab-model','panel-model'],['tab-method','panel-method']];
+tabs.forEach(([t,pn])=>document.getElementById(t).addEventListener('click',()=>{
+  tabs.forEach(([t2,p2])=>{
+    document.getElementById(t2).setAttribute('aria-selected',String(t2===t));
+    document.getElementById(p2).hidden = (p2!==pn);
+  });
+  if(pn==='panel-model') redraw();
+}));
 </script>

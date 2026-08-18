@@ -39,12 +39,28 @@ def build() -> dict:
     lam, mu = duals["lambda_budget"], duals["mu"]
 
     d["surplus_pos"] = d["xpts"] - lam * d["price"] - d["position"].map(mu).fillna(0)
-    starters = d["starts60"].fillna(0) >= 0.5
+    # A "starter" must be BOTH likely to start and available. Using last
+    # season's start rate alone counted 42 injured or unavailable players (12%
+    # of the set) as starters projecting exactly 0.00 xPts. That polluted the
+    # overpriced list -- the most "overpriced" players were simply injured --
+    # and dragged the role replacement baseline down by up to 1.1 xPts.
+    available = ~d["status"].isin(["i", "s", "u", "n"])
+    # "Starter" = would plausibly make his club's XI, defined as being among the
+    # top N at his club and position, where N is the slots a typical XI fills.
+    # A flat probability threshold is arbitrary once squad-depth normalisation
+    # has redistributed minutes: five Arsenal defenders sharing four slots all
+    # sit near 0.5, so a 0.5 cut kept or dropped them essentially at random.
+    XI_SLOTS = {"GKP": 1, "DEF": 4, "MID": 4, "FWD": 2}
+    rank_in_club = (d.where(available)
+                     .groupby(["club_code", "position"])["starts60"]
+                     .rank(ascending=False, method="first"))
+    starters = available & (rank_in_club <= d["position"].map(XI_SLOTS).fillna(1))
     base = (d[starters].groupby("role")["surplus_pos"].median()
               .rename("role_base").reset_index())
     d = d.merge(base, on="role", how="left")
     d["role_base"] = d["role_base"].fillna(d.groupby("role")["surplus_pos"].transform("median"))
     d["surplus_role"] = d["surplus_pos"] - d["role_base"]
+    d["available"] = available
     d["fair_price"] = (d["price"] + d["surplus_role"] / max(lam, 1e-6)).clip(3.5, 20.0)
     d["mispricing"] = d["fair_price"] - d["price"]
     d["is_starter"] = starters
@@ -86,7 +102,7 @@ def build() -> dict:
             "mis": round(float(p.mispricing), 1),
             "rank": int(p["role_rank"]), "role_n": int(p["role_n"]),
             "own": float(p.selected_by_percent or 0),
-            "starter": bool(p.is_starter),
+            "starter": bool(p.is_starter), "avail": bool(p.available),
             "hist_pl": bool(p.has_history),
             "fxg": (round(float(p.foreign_xg_share), 4)
                     if pd.notna(p.get("foreign_xg_share")) else None),

@@ -727,3 +727,79 @@ Haaland in a centre-back cluster. Both now join on the stable `code`.
 Related: a carried-over role whose prefix no longer matches the player's current
 position is now discarded and re-derived, because **position is a per-season
 attribute** and FPL reclassifies players between seasons.
+
+---
+
+# Auditing the large deviations
+
+Checking the outliers surfaced three real bugs. All three inflated the extremes,
+which is where they were least likely to be noticed and most likely to be acted on.
+
+## 1. Injured players were counted as starters
+
+`is_starter` used last season's start rate alone and ignored availability, so 42
+of 359 "starters" (12%) were injured or unavailable, projecting exactly 0.00
+xPts. Consequences:
+
+* The **most-overpriced list was simply a list of injured players** — J. Timber,
+  Ekitike and Kroupi Jr all appeared at the floor price purely because they are out.
+* Role replacement baselines were dragged down by up to 1.1 xPts, which inflated
+  every *other* player's surplus in those roles.
+
+## 2. Start rates were computed over appearances, not games available
+
+`starts60` was the fraction of a player's *appearances* that reached 60 minutes.
+For goalkeepers that is almost always 1.0, so **a reserve keeper with a single
+90-minute outing scored 1.00**. Arrizabalaga (n90 = 1.0) came out at p60 = 0.997.
+
+Result: **all 20 clubs projected two or more goalkeepers as near-certain
+starters**, and Arsenal projected three. Only one keeper can play.
+
+Fixed by dividing by the club's games rather than the player's appearances.
+
+## 3. Nothing enforced squad competition
+
+Even with the right denominator, per-player priors are independent and ignore
+competition for places. Added a squad-depth constraint: within each club and
+position, start probabilities are allocated across the slots a typical XI fills
+(1 GKP / 4 DEF / 4 MID / 2 FWD), in proportion to `p^3`.
+
+The exponent matters. Straight proportional scaling punished the genuine first
+choice for his backups' inflated priors — Raya fell to 0.57 while obviously being
+Arsenal's starter. Sharpening concentrates minutes on the established player:
+
+| | before | proportional | sharpened |
+|---|---|---|---|
+| Raya | 0.99 | 0.57 | **0.90** |
+| Arrizabalaga | 0.997 | 0.21 | **0.04** |
+| Meslier | 0.997 | 0.22 | **0.05** |
+
+Clubs projecting more than one starting keeper: **20 → 0**.
+
+"Starter" is now also defined structurally — top N at his club and position —
+rather than by a probability threshold, which had become arbitrary once depth
+normalisation compressed everyone toward 0.5. That yields **218 starters, 10–11
+per club**, against 20 × 11 = 220 expected.
+
+## What the surviving outliers actually rest on
+
+The important check, given that DefCon is the worst-calibrated component and its
+reliability collapses above p = 0.5:
+
+| | share of projection from DefCon |
+|---|---|
+| the 8 largest mispricings | **9%** |
+| all 218 starters | 10% |
+
+**The headline deviations are not built on the unreliable component.** They are
+cheap, nailed starters at defensively sound clubs — Shaw, Milenkovic and O'Brien
+draw ~1.2 points of clean sheet each; Raya 2.14. That is a real and well-known
+FPL edge rather than an artefact.
+
+## A limit worth stating plainly
+
+Fair price extrapolates linearly through lambda, which is the **marginal** rate
+at the optimum, not a global price curve. It orders players sensibly and becomes
+misleading at the extremes: a "fair price" of £17m is not a price FPL would ever
+set — it is a large surplus expressed in price units. This is now stated on the
+methodology tab rather than left for the reader to infer.

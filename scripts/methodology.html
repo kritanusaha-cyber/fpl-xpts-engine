@@ -1,0 +1,185 @@
+<div class="m">
+
+<h3>What this is</h3>
+<p>A Monte Carlo model of Fantasy Premier League scoring. Every player's projection is
+20,000 simulated fixtures rather than a formula, because most of the scoring rules are
+thresholds &mdash; a clean sheet, a DefCon hit, the <code>&minus;1 per 2 conceded</code>
+step &mdash; and the mean of a threshold is not the threshold of the mean.</p>
+<div class="caveat"><b>Read this first.</b> The 2026/27 season has no completed gameweeks, so
+every projection here runs on priors alone. Nothing has been validated against this season
+because there is nothing to validate against yet. The out-of-sample results below come from
+2016/17&ndash;2025/26.</div>
+
+<h3>The scoring engine is proven, not assumed</h3>
+<p>The point values are generated from the live API's <code>game_config.scoring</code> rather
+than transcribed, then verified by reconstructing history from raw action counts:</p>
+<table><tr><th>Seasons</th><th>Player-matches</th><th>Exact reconstruction</th></tr>
+<tr><td>2016/17&ndash;2025/26</td><td class="n">109,681</td><td class="n">100.00%</td></tr></table>
+<p>The single mismatch in 109,681 rows was Alisson's goal in 2020/21 GW36 &mdash; goalkeeper
+goals were worth 6 points then and 10 now. The engine detected a real rule change from data.</p>
+
+<h4>DefCon was derived, not looked up</h4>
+<p>Position-dependent, and exact on all 26,330 rows of 2025/26:</p>
+<table><tr><th>Position</th><th>Qualifying actions</th><th>Threshold</th></tr>
+<tr><td>DEF</td><td>tackles + CBI <em>(excludes recoveries)</em></td><td class="n">10</td></tr>
+<tr><td>MID / FWD</td><td>tackles + CBI + recoveries</td><td class="n">12</td></tr></table>
+<p>Defenders excluding recoveries is easy to get wrong and inflates defender DefCon by roughly
+half if missed.</p>
+
+<h3>Component models</h3>
+
+<h4>Minutes &mdash; chained binary logits</h4>
+<p>Two models, <code>P(appear)</code> then <code>P(&ge;60 | appear)</code>, rather than one
+ordered logit: selection and in-match usage have different drivers. Walk-forward over three
+seasons, 86,755 predictions:</p>
+<table><tr><th>Model</th><th>Brier</th><th>Skill vs base rate</th></tr>
+<tr><td>chained logits</td><td class="n">0.0881</td><td class="n">55.4%</td></tr>
+<tr><td>EWMA start rate</td><td class="n">0.1124</td><td class="n">43.1%</td></tr>
+<tr><td>last-match persistence</td><td class="n">0.1208</td><td class="n">38.8%</td></tr></table>
+<p>Beating the base rate proves nothing &mdash; a decayed average already gets 43%. The model is
+<b>21.6% better in Brier than the best single-feature baseline</b>, which is where the edge is.
+Calibration sits within &plusmn;0.04 across every decile.</p>
+
+<h4>Team goals &mdash; Dixon-Coles bivariate Poisson</h4>
+<div class="eq">lambda = exp(attack_h - defence_a + home)      tau(0,0) = 1 - lambda*mu*rho
+mu     = exp(attack_a - defence_h)             tau(1,1) = 1 - rho</div>
+<p>Time decay <code>exp(-xi * days)</code> with xi tuned on out-of-sample 1X2 log-loss; the
+optimum is a clean minimum at <b>xi = 0.003/day</b>. Fitting on xG beats fitting on goals
+(log-loss 0.9978 vs 1.0093).</p>
+<div class="caveat"><b>Negative result, kept honest.</b> Blending the model with de-vigged
+closing odds adds <b>+0.00101 log-loss, t = +0.58, 95% CI [&minus;0.0024, +0.0044]</b> &mdash;
+not significant on 758 fixtures. Dixon-Coles adds no measurable value over the betting market
+for team rates. It earns its place only because bookmakers post no lines six gameweeks out,
+which is the horizon the optimiser needs.</div>
+
+<h4>Attacking returns &mdash; shares, not rates</h4>
+<div class="eq">E[player xG] = projected_team_xG x shrunk_player_share_of_team_xG</div>
+<p>A per-90 rate already embeds the quality of the team the player was in, so multiplying it by
+team strength counts team quality twice. Shares are invariant to it. On the deployable
+comparison (market-projected team goals) this lifts correlation <b>0.3752 &rarr; 0.4622,
++23%</b>, and the gain survives into realised goals within every outfield position
+(MID +13.5%, FWD +13.6%, DEF +8.4%).</p>
+
+<h4>Empirical-Bayes shrinkage</h4>
+<div class="eq">w = n / (n + sigma2_within / sigma2_between)</div>
+<p>The variance ratio is estimated per position from the historical decomposition rather than
+set by hand:</p>
+<table><tr><th>Position</th><th>k = within/between</th><th>Reading</th></tr>
+<tr><td>MID</td><td class="n">6.5</td><td>separate fastest</td></tr>
+<tr><td>DEF</td><td class="n">15.7</td><td>noise dominates far longer</td></tr>
+<tr><td>FWD</td><td class="n">15.7</td><td>noise dominates far longer</td></tr></table>
+<p>Shrinkage contributes more to the attacking result than the share structure itself
+(+0.057 vs +0.030 of correlation).</p>
+
+<h4>DefCon &mdash; hierarchical negative binomial</h4>
+<p>Log-minutes offset, dispersion varying by position. Action counts are overdispersed, so
+Poisson underfits:</p>
+<table><tr><th>Specification</th><th>Brier</th><th>Bias</th></tr>
+<tr><td>negative binomial, projected minutes</td><td class="n">0.0993</td><td class="n">&minus;0.002</td></tr>
+<tr><td>Poisson, projected minutes</td><td class="n">0.1010</td><td class="n">&minus;0.028</td></tr>
+<tr><td>negative binomial, flat 90 minutes</td><td class="n">0.1270</td><td class="n">+0.088</td></tr>
+<tr><td>base rate</td><td class="n">0.1183</td><td class="n">0.000</td></tr></table>
+<p>Evaluating at 90 minutes instead of projected minutes scores <em>worse than the base
+rate</em>. That is why the minutes model is built first.</p>
+<div class="caveat"><b>Weakest component.</b> Calibration collapses above p = 0.5: in the
+0.6&ndash;0.8 predicted band the realised hit rate was <b>0.000</b>. Samples there are small
+(37 rows), but that band is exactly where a DefCon-targeting strategy shops. Treat any DefCon
+probability above 0.5 as unreliable. DefCon contributes ~10% of a typical starter's projection,
+and ~9% of the largest mispricings &mdash; so the headline outliers do not rest on it.</div>
+
+<h4>Bonus &mdash; simulated BPS ranking</h4>
+<p>BPS is computed for all 22 players in each simulated fixture and 3/2/1 awarded on rank, so
+the goal&ndash;bonus correlation falls out structurally. Ranking by <em>true</em> BPS recovers
+<b>100% of bonus winners (760/760 fixtures)</b> &mdash; the award logic is exact.</p>
+<div class="caveat"><b>The inputs are missing.</b> FPL stopped publishing key passes, dribbles,
+crosses, fouls and big chances after 2018/19. On 2016/17, the last season with the full action
+log: R&sup2; <b>0.9893</b> with everything, <b>0.8967</b> with only what the API still provides.
+The model recovers the bonus winner in 69% of fixtures, not 100%. The BPS weights used here are
+reduced-form and are not the official table.</div>
+
+<h3>Valuation</h3>
+<p>Value is a linear-programming reduced cost, not points per million &mdash; which flatters
+cheap players who could never make an XI:</p>
+<div class="eq">surplus = xPts_H  -  lambda*price  -  mu_position  -  replacement_in_role
+fair price = price + surplus / lambda</div>
+<ul>
+<li><b>lambda</b> is the budget shadow price, from the LP relaxation of the squad problem.</li>
+<li><b>mu</b> is the dual on the positional quota. FPL forces a 2/5/5/3 squad, so you never
+choose a forward against the whole market &mdash; only against other forwards.</li>
+<li><b>replacement</b> is the median surplus among players who would make their club's XI at
+that role, so a squad player is not compared against a first choice.</li>
+</ul>
+<p>Omitting mu made the metric structurally unfair: 76% of goalkeepers showed positive value
+against 1% of forwards, which said nothing about the players. With it, every role lands near
+50/50.</p>
+
+<h4>Roles are clustered, not assumed</h4>
+<p>FPL's four positions are a scoring construct. "MID" holds both wingers and holding
+midfielders. Roles are k-means clusters on three axes &mdash; share of team xG, share of team
+xA, defensive actions per 90 &mdash; labelled by their dominant axis. The groups are
+recognisable: <em>MID &middot; high goal threat</em> is the wingers; <em>DEF &middot; high goal
+threat</em> is the set-piece centre-backs.</p>
+<div class="caveat"><b>An earlier version of these labels was wrong.</b> It guessed football
+names from cluster centroids and produced "attacking full-back" for two centre-backs, and put
+Haaland in "support forward". The clusters were real; the names were invented. They are now
+derived mechanically from the dominant axis.</div>
+
+<h3>Cold start for players with no Premier League history</h3>
+<p>187 of 592 players have never played in the league. Two approaches were tested on
+<b>244 genuine debutants</b>:</p>
+<table><tr><th>Prior</th><th>xG share MAE</th><th>Verdict</th></tr>
+<tr><td>position &times; price tier</td><td class="n">0.0297</td><td>baseline</td></tr>
+<tr><td>club-role inheritance</td><td class="n">0.0368</td><td>rejected</td></tr>
+<tr><td>Big-5 output abroad, calibrated</td><td class="n">0.0275 blended</td><td>shipped at w = 0.30</td></tr></table>
+<p><b>Role inheritance failed.</b> The intuition &mdash; a new signing inherits what the man he
+replaces did &mdash; loses to the price tier on every metric, for two reasons: FPL's price
+already encodes the club's judgement of his role, and the role profile is minutes-weighted so it
+inherits the <em>first-choice</em> player's share. A backup striker was picking up the starter's
+0.324.</p>
+<p><b>Foreign output worked, after heavy calibration.</b> Big-5 non-penalty output predicts
+Premier League share at corr <b>+0.656</b>, but:</p>
+<div class="eq">xg_share = 0.400 x (npG90_adj / 1.45) + 0.0254</div>
+<p>A slope of 0.40 means foreign output <b>overstates</b> Premier League share by about 2.5x even
+after a league-strength discount. Covers 55 of 187 signings; Big 5 only.</p>
+
+<h3>Leakage control</h3>
+<p>Every feature function is wrapped in a decorator that filters its input to
+<code>gw &lt; as_of_gw</code> and then <em>audits its output</em> &mdash; a function can join its
+way back to the future, so checking inputs alone is not enough. Backtesting is walk-forward
+only; random k-fold on football panel data leaks the future.</p>
+
+<h3>Errors found and fixed</h3>
+<p>Listed because they shaped the numbers above, and because the same class of bug will recur:</p>
+<ul>
+<li><b>Element ids are reassigned every season.</b> Joining on them across seasons silently
+matched different people. This corrupted the newcomer test set (23 &rarr; 244 genuine debutants
+once fixed, reversing the headline result) and put Haaland in a centre-back cluster.</li>
+<li><b>Position is a per-season attribute.</b> Carried-over roles are discarded when FPL
+reclassifies a player.</li>
+<li><b>Goalkeeper labels differ by season</b> (<code>GK</code> vs <code>GKP</code>, with 2021/22
+containing both). Unnormalised, every keeper silently scored zero.</li>
+<li><b>2022/23 has no xG before GW16</b>, arriving as exactly 0.000 for 272 team-matches and
+being fitted as real goalless expectations.</li>
+<li><b>Start rates were computed over appearances, not games available.</b> A reserve keeper with
+one 90-minute outing scored 1.00, and three Arsenal goalkeepers all projected as near-certain
+starters.</li>
+<li><b>Injured players counted as starters</b> with 0.00 xPts, which made the "most overpriced"
+list simply a list of injured players and dragged role baselines down.</li>
+</ul>
+
+<h3>Known limits</h3>
+<ul>
+<li>Midfielders and forwards carry a measured residual bias of roughly <b>&minus;0.3 xPts per
+match</b>, most likely unmodelled set-piece threat.</li>
+<li>Gameweeks are simulated independently and accumulated: correct for the mean, mildly
+understating variance, since it ignores serial correlation in form and rotation.</li>
+<li><b>Fair price is a linear extrapolation</b> through lambda, which is the <em>marginal</em>
+rate at the optimum rather than a global price curve. It is informative about ordering and
+misleading at the extremes &mdash; a "fair price" of &pound;17m is not a price FPL would ever set,
+it is a large surplus expressed in price units.</li>
+<li>League-strength coefficients for the foreign prior are assumptions, not fitted values.</li>
+<li>DefCon has one season of native data; its joint relationship with clean sheets measures
+~0 correlation, but the doc's specified covariate (possession share) is not in the FPL feed.</li>
+</ul>
+
+</div>

@@ -113,7 +113,8 @@ def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -
     hist = con.execute(f"""
         SELECT p.element, p.position, p.minutes, p.expected_goals xg,
                p.expected_assists xa, p.tackles, p.recoveries,
-               p.clearances_blocks_interceptions cbi, p.saves, t.xg_for team_xg
+               p.clearances_blocks_interceptions cbi, p.saves, t.xg_for team_xg,
+               t.club_code, p.fixture
         FROM player_gw p
         JOIN team_match t ON p.season=t.season AND p.fixture=t.fixture AND p.team_id=t.team_id
         WHERE p.season='{source_season}' AND p.minutes>0 AND t.xg_for IS NOT NULL
@@ -130,11 +131,19 @@ def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -
     hist["dc_n"] = np.where(hist.position == "DEF",
                             hist.tackles.fillna(0) + hist.cbi.fillna(0),
                             hist.tackles.fillna(0) + hist.cbi.fillna(0) + hist.recoveries.fillna(0))
+    # Games the player's CLUB actually played, so a start rate is a share of
+    # available games rather than a share of the games he happened to appear in.
+    # Computing it over appearances only made every backup a near-certain
+    # starter -- a reserve keeper with one 90-minute outing scored 1.00, and
+    # Arsenal ended up with three goalkeepers all projecting p60 = 0.99.
+    team_games = (hist.groupby("club_code")["fixture"].nunique()
+                    if "club_code" in hist.columns else None)
+
     g = hist.groupby("element")
     agg = pd.DataFrame({
         "mins_total": g["minutes"].sum(),
         "apps": g["minutes"].count(),
-        "starts60": g["minutes"].apply(lambda s: (s >= 60).mean()),
+        "starts_n": g["minutes"].apply(lambda s: (s >= 60).sum()),
         "xg_share": g.apply(lambda d: (d.xg.sum() / d.team_xg.sum()) if d.team_xg.sum() > 0 else 0,
                             include_groups=False),
         "xa_share": g.apply(lambda d: (d.xa.sum() / d.team_xg.sum()) if d.team_xg.sum() > 0 else 0,
@@ -145,6 +154,13 @@ def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -
                               include_groups=False),
     }).reset_index()
     agg["n90"] = agg["mins_total"] / 90.0
+
+    # Denominator: how many league games were available to him at his club.
+    club_of = hist.groupby("element")["club_code"].first()
+    agg["club_code"] = agg["element"].map(club_of)
+    agg["team_games"] = agg["club_code"].map(team_games).fillna(38).clip(lower=1)
+    agg["starts60"] = (agg["starts_n"] / agg["team_games"]).clip(0, 1)
+    agg = agg.drop(columns=["starts_n", "club_code", "team_games"])
 
     # element -> stable code, so priors survive the id reshuffle between seasons
     pl = pd.read_parquet(f"data/raw/vaastav/players_raw/season={source_season}.parquet")
@@ -249,6 +265,7 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
         k = d["position"].map(SHRINK_K).fillna(10.0)
         w = d["n90"] / (d["n90"] + k)
         d[col] = w * d[col].fillna(base) + (1 - w) * base
+    d = _normalise_squad_depth(d)
     return d
 
 
@@ -265,3 +282,42 @@ if __name__ == "__main__":
     print("\ntop 8 by prior xG share:")
     print(d.nlargest(8, "xg_share")[["web_name","club_name","position","price","xg_share","n90"]]
             .to_string(index=False))
+
+
+# Slots a typical XI fills at each position. Start probabilities within a club
+# and position cannot exceed these in expectation -- only one keeper plays.
+XI_SLOTS = {"GKP": 1.0, "DEF": 4.0, "MID": 4.0, "FWD": 2.0}
+SHARPEN = 3.0
+
+
+def _normalise_squad_depth(d: pd.DataFrame) -> pd.DataFrame:
+    """Scale start probabilities so a club cannot field more players than it can.
+
+    Independent per-player priors ignore competition for places: three Arsenal
+    goalkeepers each came out at p60 ~ 0.99. Rescaling each club-position group
+    so its probabilities sum to the number of XI slots enforces the constraint
+    the priors are blind to, and it redistributes rather than flattens -- the
+    established starter keeps most of the mass and the backups lose theirs.
+
+    Only ever scales DOWN. A club genuinely short of options should not have its
+    remaining players inflated to fill the quota.
+    """
+    d = d.copy()
+    avail = ~d["status"].isin(["i", "s", "u", "n"])
+    d["_p"] = d["starts60"].fillna(0.0) * avail
+
+    # Allocate the slots in proportion to p^SHARPEN rather than to p directly.
+    # Straight proportional scaling punishes the genuine first choice for his
+    # backups' inflated priors -- Raya fell to 0.57 while being obviously
+    # Arsenal's starter. Sharpening concentrates the available minutes on the
+    # established player and strips them from the reserves, which is how squads
+    # actually behave.
+    w = d["_p"] ** SHARPEN
+    wsum = d.groupby(["club_code", "position"])["_p"].transform(
+        lambda s: (s ** SHARPEN).sum())
+    slots = d["position"].map(XI_SLOTS).fillna(1.0)
+    alloc = slots * w / wsum.replace(0, np.nan)
+    # Never inflate above the standalone prior: this constraint can only remove
+    # minutes, never invent them.
+    d["starts60"] = np.minimum(alloc.fillna(0.0), d["_p"]).clip(0, 0.97)
+    return d.drop(columns=["_p"])

@@ -10,6 +10,8 @@ OUT = ROOT / "dashboard.html"
 
 def main() -> None:
     tpl = TPL.read_text(encoding="utf-8")
+    method = (ROOT / "scripts" / "methodology.html").read_text(encoding="utf-8")
+    tpl = tpl.replace("__METHOD__", method)
     data = json.dumps(json.loads(DATA.read_text(encoding="utf-8")), ensure_ascii=True)
     out = tpl.replace("__DATA__", data)
     assert "__DATA__" not in out
