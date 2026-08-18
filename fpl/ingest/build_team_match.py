@@ -69,9 +69,12 @@ def build(db_path: Path = Path("data/fpl.duckdb")) -> pd.DataFrame:
         columns={"team_id": "opponent_id", "xg_for": "xg_against"})
     agg = agg.merge(opp, on=["season", "fixture", "opponent_id"], how="left")
 
-    # xG is only published from 2022/23. Zero-sum rows are absence, not a goalless
-    # expectation, so mark them NULL rather than letting the model fit them as 0.
-    no_xg = agg["season"] < "2022-23"
+    # xG is only published from 2022/23 -- and within 2022/23 only from GW16, when
+    # FPL began publishing it at the World Cup break. Those 272 rows come through
+    # as exactly 0.000, which is absence, not a goalless expectation: the smallest
+    # genuine team xG observed anywhere is 0.02. Left as zeros they enter the fit
+    # as real observations and corrupt every share computed from them.
+    no_xg = (agg["season"] < "2022-23") | (agg["xg_for"] == 0) | (agg["xg_against"] == 0)
     agg.loc[no_xg, ["xg_for", "xg_against"]] = np.nan
 
     # FPL reassigns team_id every season (alphabetical), so it cannot be used to

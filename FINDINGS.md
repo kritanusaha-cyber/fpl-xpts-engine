@@ -207,3 +207,69 @@ doc's predicted 40–80 manual overrides, consistent with the Phase 0 finding.
 Implied goal expectations are recovered by inverting P(total > 2.5) under a
 Poisson total, then solving for the supremacy that reproduces the market's
 home-win probability. Two markets, two constraints, exactly identified.
+
+---
+
+# Phase 3 — attacking returns
+
+Predicting a player's xG in an unseen match, 21,485 player-matches over
+2024/25–2025/26. Actual minutes are used so that Phase 1 error does not
+contaminate the structural comparison.
+
+## Shares beat rates — the doc's central claim holds
+
+| method | MAE | RMSE | corr |
+|---|---|---|---|
+| rate (per-90 EWMA) | 0.1061 | 0.2110 | 0.3752 |
+| share × team xG (oracle) | 0.0985 | 0.1963 | 0.5012 |
+| **shrunk share × team xG (oracle)** | **0.0932** | **0.1750** | **0.5717** |
+| share × market goals | 0.1074 | 0.2070 | 0.4050 |
+| **shrunk share × market goals** (usable) | **0.1028** | **0.1903** | **0.4622** |
+
+The oracle rows use realised team xG and isolate the structural question; the
+market rows are what you can actually deploy. On the deployable comparison the
+share structure plus shrinkage lifts correlation **0.3752 → 0.4622, +23%**.
+
+Empirical-Bayes shrinkage is doing real work, not decoration: it adds more
+(0.4050 → 0.4622) than the share structure alone does (0.3752 → 0.4050).
+
+## It holds on the metric that is actually the decision
+
+The doc is right that within-position rank is the real decision. Spearman ρ
+within position, half-life 5:
+
+| | target = xG | | | target = realised goals | | |
+|---|---|---|---|---|---|---|
+| **pos** | rate | share | lift | rate | share | lift |
+| DEF | 0.2276 | 0.2695 | +18.4% | 0.0743 | 0.0805 | +8.4% |
+| MID | 0.4268 | 0.4864 | +14.0% | 0.2074 | 0.2355 | +13.5% |
+| FWD | 0.4518 | 0.5287 | +17.0% | 0.2714 | 0.3083 | +13.6% |
+
+The improvement survives the step from xG to realised goals, which is the step
+that pays points. **GKP is excluded** — keepers essentially never score, the
+correlation base is ~0, and the apparent "+248%" there is noise on nothing.
+
+## Half-life 5 beats 10 and 20
+
+| half-life | 5 | 10 | 20 |
+|---|---|---|---|
+| Spearman | **0.5364** | 0.5262 | 0.5084 |
+| MAE | **0.1001** | 0.1028 | 0.1074 |
+
+Attacking shares move faster than the decay used for team strength (ξ = 0.003/day
+≈ half-life 230 days). Role changes within a squad are quicker than team-quality
+drift, which is what you would expect.
+
+## Known gap: penalties are not separated
+
+FPL's `expected_goals` **includes penalty xG**, and splitting npxG from penalty
+xG needs Understat's penalty-tagged shots, which is not yet ingested. Until it
+is, a designated taker's share is inflated and his open-play threat overstated.
+The doc puts this at 0.15–0.20 pts/90 for a taker; it is the largest known gap
+in this phase.
+
+Partial mitigation already available: the live API exposes `penalties_order`
+(populated for 65 players), plus `corners_and_indirect_freekicks_order` and
+`direct_freekicks_order`. That is official set-piece duty, better than inferring
+it, and it removes most of the doc's §5 manual-override burden — but it is
+current-season only, so it helps live prediction and not the historical fit.
