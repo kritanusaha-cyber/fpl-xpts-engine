@@ -80,6 +80,8 @@ def build(proj_path: str = "data/features/gw1_projection.parquet") -> dict:
                 "opp_goals": round(float(p.opp_lam), 2),
                 "n90": round(float(p.n90), 1),
                 "hist": bool(p.has_history),
+                "fxg": (round(float(p.foreign_xg_share), 4)
+                        if pd.notna(p.get("foreign_xg_share")) else None),
                 "pen": int(p.penalties_order) if pd.notna(p.penalties_order) else 0,
             },
             "squad": bool(p.in_squad), "xi": bool(p.in_xi), "capt": bool(p.is_captain),

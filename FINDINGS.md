@@ -557,3 +557,81 @@ likely cause is that bench players contribute zero to the objective while the
 spread across viable starters is narrow, so the optimiser has little to buy with
 the last few million. Worth attacking directly rather than assuming better
 projections will fix it.
+
+---
+
+# Cold start for new signings
+
+Two ideas for players with no Premier League history, both tested on **244
+genuine PL debutants** across 2023/24-2025/26.
+
+## First, a bug that had been faking the test set
+
+`newcomers()` originally compared `element` ids across seasons. **FPL reassigns
+element ids every season**, so every returning player looked like a debutant.
+The "new signings" test set was mostly established professionals, for whom club
+role profiles trivially matched — because they *were* the role. Resolving through
+the stable `code` grew the set from 23 to 244 and **reversed the headline
+result**. Any conclusion drawn before that fix was measuring the bug.
+
+## Role inheritance: measured, and rejected
+
+The idea — Vuskovic inherits what Van Hecke did, because the role outlives the
+player — is intuitive and does not survive contact with the data:
+
+| target | tier only | blend 0.25 | role only |
+|---|---|---|---|
+| xg_share MAE | **0.0297** | 0.0303 | 0.0368 |
+| xa_share MAE | **0.0209** | 0.0213 | 0.0243 |
+| starts60 MAE | **0.1774** | 0.1788 | 0.1965 |
+
+The price tier wins on every metric. Role adds a little *rank* information for
+xg_share (corr 0.734 → 0.748 at w=0.25) while being worse on level.
+
+Two concrete reasons it fails:
+
+1. **FPL's price already encodes the role.** The club prices a signing knowing
+   whether he starts, so the tier prior has absorbed the information the role
+   profile would add.
+2. **The role profile is minutes-weighted, so it is the FIRST-CHOICE player.**
+   Applied to a squad player it inherits the starter's share — a £5.5m backup
+   striker at Aston Villa was picking up 0.324, which is Watkins's number. That
+   inflates precisely the cheap enablers the optimiser then buys.
+
+Set to weight 0. Reviving it needs role-*within-depth* (first choice vs
+rotation), which the current data does not distinguish.
+
+## Foreign-league output: validated and shipped
+
+Non-penalty output in the Big 5, discounted for league strength, genuinely
+predicts Premier League share — **corr +0.656** on 39 matched debutants.
+
+But it needs hard calibration:
+
+    xg_share = 0.400 x (npG90_adj / 1.45) + 0.0254
+
+**A slope of 0.40 means foreign output overstates PL share by ~2.5x even after
+the league-strength discount.** Raw MAE 0.0611 → 0.0365 calibrated. Blended
+against the tier prior, the optimum is **w_foreign = 0.30** (MAE 0.0286 →
+0.0275).
+
+Coverage is the real limit: soccerdata's FBref backend serves the Big 5 only, so
+**55 of 187 new signings (29%)** get a foreign prior. Arrivals from the
+Eredivisie, Primeira Liga, the Championship or outside Europe fall back to the
+tier prior. FBref also leaves `league` blank for all 18 Bundesliga clubs (~500
+players), who would silently take the unknown-league discount if not patched.
+
+League-strength coefficients (La Liga/Serie A/Bundesliga 0.85, Ligue 1 0.80) are
+**assumptions, not fitted values** — there is no matched-move dataset in the
+warehouse yet. They are the first thing to validate as arrivals accumulate.
+
+### Effect
+
+Vuskovic (Brighton, £5.0m, no PL history): xG share prior **0.029 → 0.041**, on
+the strength of 0.180 npG/90 over 2,442 minutes at Hamburg. The dashboard now
+states each player's prior provenance — PL record, calibrated Big 5, or bare
+price tier — rather than presenting all three as equivalent.
+
+**The budget constraint now binds**: optimal spend went £97.0m → **£100.0m**, and
+Haaland enters the XI. Better differentiation among new signings was part of what
+the flat budget curve had been missing.

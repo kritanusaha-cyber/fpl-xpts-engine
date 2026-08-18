@@ -240,13 +240,22 @@ function detail(p){
     ['Team goals expected', d.team_goals.toFixed(2)],
     ['Opponent goals expected', d.opp_goals.toFixed(2)],
     ['Penalty duty', d.pen===1?'first taker':(d.pen===2?'backup':'none')],
-    ['Prior sample (90s)', d.hist? d.n90.toFixed(0) : 'none &mdash; league prior'],
+    ['Prior sample (90s)', d.hist? d.n90.toFixed(0)
+        : (d.fxg!=null ? 'no PL history' : 'none &mdash; league prior')],
+    ['Prior source', d.hist ? 'Premier League record'
+        : (d.fxg!=null ? 'Big 5 abroad, calibrated' : 'position \u00D7 price tier')],
     ['Value before quota adj.', (p.surplus_naive>=0?'+':'')+p.surplus_naive.toFixed(2)],
     ['Quota charge (\u03BC)', '\u2212'+D.mu[p.pos].toFixed(2)],
     ['Rank among ' + p.pos, p.pos_rank + ' of ' + p.pos_n]
   ].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
   const warn = !d.hist
-    ? `<div class="warn"><span>&#9650;</span><span>No 2025/26 history. Projection rests entirely on the position &times; price-tier prior.</span></div>` : '';
+    ? (d.fxg!=null
+        ? `<div class="warn"><span>&#9650;</span><span>No Premier League history. Attacking prior comes from
+             calibrated Big&nbsp;5 output abroad (raw share ${d.fxg.toFixed(3)}), blended 30% with the
+             position &times; price tier.</span></div>`
+        : `<div class="warn"><span>&#9650;</span><span>No Premier League history and no Big&nbsp;5 record.
+             Projection rests entirely on the position &times; price-tier prior.</span></div>`)
+    : '';
   return `<div class="dbox">
     <div>
       <div class="dh">What makes up ${p.xpts.toFixed(2)} xPts</div>

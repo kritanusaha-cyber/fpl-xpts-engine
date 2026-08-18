@@ -148,6 +148,58 @@ def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -
     return agg.drop(columns=["element"])
 
 
+def _priors_cfg(path: Path = Path("config/transfer_priors.yaml")) -> dict:
+    import yaml
+    return yaml.safe_load(path.read_text())
+
+
+def _attach_foreign(d: pd.DataFrame) -> pd.DataFrame:
+    """Calibrated Big-5 output for players the Premier League has never seen."""
+    cfg = _priors_cfg()["foreign"]
+    d["foreign_xg_share"] = np.nan
+    d["foreign_starts60"] = np.nan
+    path = sorted(Path("data/raw/fbref").glob("big5_*.parquet"))
+    if not path:
+        return d
+    fo = pd.concat([pd.read_parquet(p) for p in path], ignore_index=True)
+    fo = fo[fo["minutes"].fillna(0) >= cfg["min_minutes"]]
+    if fo.empty:
+        return d
+    fo = fo.sort_values("minutes").drop_duplicates("norm", keep="last")
+
+    from fpl.ingest.fbref_foreign import normalise
+    pl = pd.read_parquet("data/raw/vaastav/players_raw/season=2025-26.parquet")
+    names = pd.read_parquet("data/features/coldstart_names.parquet") \
+        if Path("data/features/coldstart_names.parquet").exists() else None
+    if names is None:
+        return d
+    d = d.merge(names, on="code", how="left")
+    d["norm"] = d["full_name"].map(normalise)
+    d = d.merge(fo[["norm", "npg_per90_adj", "start_rate"]], on="norm", how="left")
+
+    raw = d["npg_per90_adj"] / cfg["league_team_goals"]
+    d["foreign_xg_share"] = (cfg["slope"] * raw + cfg["intercept"]).where(raw.notna())
+    d["foreign_starts60"] = d["start_rate"]
+    return d
+
+
+def _attach_role(d: pd.DataFrame) -> pd.DataFrame:
+    """Club x position role profile -- what the man he replaces actually did."""
+    d["role_xg_share"] = np.nan
+    try:
+        from fpl.models.transfers import club_role_profiles
+        prof = club_role_profiles()
+    except Exception:
+        return d
+    if prof.empty:
+        return d
+    d = d.merge(prof[["club_code", "position", "xg_share"]]
+                  .rename(columns={"xg_share": "role_xg_share_"}),
+                on=["club_code", "position"], how="left")
+    d["role_xg_share"] = d["role_xg_share_"]
+    return d.drop(columns=["role_xg_share_"])
+
+
 def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
     squad = current_squad()
     priors = player_priors(db)
@@ -161,12 +213,32 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
                    .transform(lambda s: pd.qcut(s.rank(method="first"), 4,
                                                 labels=False, duplicates="drop")))
     d["group"] = d["position"] + "_" + d["tier"].astype(str)
+    d = _attach_foreign(d)
+    d = _attach_role(d)
+    cfg = _priors_cfg()
     for col in ["xg_share", "xa_share", "dc_per90", "starts60", "save_per90"]:
         grp_mean = d.groupby("group")[col].transform("mean")
         d[f"{col}_prior"] = grp_mean
+
+        # For a player with no PL history the tier mean is not the only thing
+        # known about him. Blend in what he actually did abroad (validated) and,
+        # for xg_share only, the role he is stepping into (weak but non-zero).
+        base = grp_mean.copy()
+        if col == "xg_share":
+            fw = cfg["foreign"]["weight"]
+            has_f = d["foreign_xg_share"].notna()
+            base = base.where(~has_f, (1 - fw) * grp_mean + fw * d["foreign_xg_share"])
+            rw = cfg["role"]["weight_xg_share"]
+            has_r = d["role_xg_share"].notna()
+            base = base.where(~has_r, (1 - rw) * base + rw * d["role_xg_share"])
+        elif col == "starts60":
+            fw = cfg["foreign"]["weight"]
+            has_f = d["foreign_starts60"].notna()
+            base = base.where(~has_f, (1 - fw) * grp_mean + fw * d["foreign_starts60"])
+
         # Empirical-Bayes weight: few 90s -> sit near the prior.
         w = d["n90"] / (d["n90"] + 8.0)
-        d[col] = w * d[col].fillna(grp_mean) + (1 - w) * grp_mean
+        d[col] = w * d[col].fillna(base) + (1 - w) * base
     return d
 
 

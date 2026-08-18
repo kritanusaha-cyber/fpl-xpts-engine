@@ -1,0 +1,36 @@
+# Cold-start priors for players with no Premier League history.
+# Every number here was fitted out of sample -- see fpl/backtest/eval_transfers.py.
+
+foreign:
+  # Realised non-penalty output abroad, discounted for league strength, then
+  # calibrated onto Premier League share space:
+  #     xg_share ~= slope * (npG90_adj / league_team_goals) + intercept
+  # slope 0.40 means foreign output OVERSTATES PL share by ~2.5x even after the
+  # league-strength discount -- new arrivals do not carry their scoring rate over.
+  slope: 0.400
+  intercept: 0.0254
+  league_team_goals: 1.45
+  # Weight on the calibrated foreign prior vs the position x price-tier prior.
+  # Fitted on 39 matched 2025/26 debutants: MAE 0.0286 -> 0.0275 at w = 0.3.
+  weight: 0.30
+  min_minutes: 450
+
+role:
+  # Club x position role inheritance ("Vuskovic replaces Van Hecke").
+  # MEASURED AND REJECTED as a replacement for the price tier: on 244 genuine
+  # PL debutants the tier prior won on MAE for every metric. FPL's own price
+  # already encodes the club's judgement of the incoming player's role, so the
+  # role profile is largely redundant with it.
+  # Set to ZERO after inspection showed the failure mechanism: the role profile
+  # is minutes-weighted, so it is dominated by whoever actually plays. Applying
+  # it to a squad player inherits the FIRST-CHOICE player's share -- a 5.5m
+  # backup striker at Aston Villa was inheriting 0.324, which is Watkins's
+  # number. That inflates exactly the cheap enablers the optimiser then buys.
+  #
+  # The idea is sound in principle and fails here for a concrete reason: FPL's
+  # own price already encodes the club's judgement of the incoming player's
+  # role, so the tier prior has the information and the role profile mostly adds
+  # noise. To revive this it would need to be role-WITHIN-depth (first choice vs
+  # rotation), which the data does not currently distinguish.
+  weight_xg_share: 0.0
+  weight_other: 0.0

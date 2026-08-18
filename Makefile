@@ -66,3 +66,9 @@ fbref:             ## pull penalty attempts from FBref (via soccerdata)
 dashboard:         ## export projection JSON and build the dashboard page
 	$(PY) fpl/export_dashboard.py
 	$(PY) scripts/build_dashboard.py
+
+foreign:           ## pull Big 5 output for incoming transfers
+	$(PY) fpl/ingest/fbref_foreign.py
+
+transfers:         ## backtest cold-start priors for new signings
+	$(PY) fpl/backtest/eval_transfers.py
