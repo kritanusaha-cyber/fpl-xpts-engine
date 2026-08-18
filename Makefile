@@ -86,3 +86,11 @@ PORT ?= 8733
 serve:             ## serve the dashboards at http://localhost:$(PORT)
 	@echo "serving $(CURDIR) at http://localhost:$(PORT)   (ctrl-C to stop)"
 	@python3 -m http.server $(PORT) --bind 127.0.0.1 --directory $(CURDIR)
+
+dist:              ## collect the static site into dist/ for any static host
+	@rm -rf dist && mkdir -p dist
+	@cp index.html dashboard.html simulation.html dist/
+	@echo "dist/ ready ($$(du -sh dist | cut -f1)) -- self-contained, no server needed"
+
+refresh:           ## full weekly refresh: data -> models -> dashboard
+	$(MAKE) snapshot facts team-match horizon dashboard dist

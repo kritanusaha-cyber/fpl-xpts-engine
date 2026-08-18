@@ -1,0 +1,7 @@
+# FBref ingest only. Kept separate because soccerdata pulls seleniumbase and a
+# full Chrome driver (~450MB) to get past Cloudflare -- plain HTTP gets a 403.
+#
+# This is the reason the pipeline does not belong in cloud CI: GitHub Actions and
+# most serverless runners either lack a usable browser or are themselves blocked.
+# Everything except `make fbref` / `make foreign` runs fine without this file.
+soccerdata==1.9.1
