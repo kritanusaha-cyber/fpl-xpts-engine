@@ -1,0 +1,7 @@
+.venv/
+data/raw/
+data/interim/
+data/features/
+*.duckdb
+__pycache__/
+*.pyc
