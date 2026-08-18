@@ -1,0 +1,14 @@
+# FBref player name -> FPL player `code`, for players the automatic resolver
+# cannot match. Kept explicit because a wrong penalty attribution moves xG share
+# for two players at once, so an unmatched player is safer than a bad guess.
+#
+# Lucas Paqueta is the instructive case: FPL stores him as "Lucas Tolentino
+# Coelho de Lima", which shares no surname token with his FBref name. No fuzzy
+# matcher recovers that.
+source,fbref_name,fpl_code,note
+fbref,Igor Thiago,502500,FPL full name "Igor Thiago Nascimento Rodrigues"; web_name "Thiago"
+fbref,Raúl Jiménez,102057,FPL web_name "Raúl"
+fbref,Bruno Fernandes,141746,FPL web_name "B.Fernandes"; disambiguate from M.Fernandes
+fbref,Bruno Guimarães,208706,FPL web_name "Bruno G."
+fbref,Igor Jesus,482973,disambiguate from Igor (code 223434)
+fbref,Lucas Paquetá,224024,FPL full name shares no surname token

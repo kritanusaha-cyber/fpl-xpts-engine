@@ -27,6 +27,7 @@ import json
 import duckdb
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 POSITION_MAP = {1: "GKP", 2: "DEF", 3: "MID", 4: "FWD"}
 
@@ -75,6 +76,33 @@ def promoted_club_prior(db: str = "data/fpl.duckdb") -> dict:
             "defence_ratio": float(d.ga_ratio.mean())}
 
 
+PENALTY_XG = 0.79
+
+
+def _strip_penalty_xg(hist: pd.DataFrame, season: str) -> pd.DataFrame:
+    """Subtract penalty xG from each player's season xG, spread across appearances."""
+    path = Path("data/raw/fbref/penalties_2025_26.parquet")
+    if not path.exists():
+        hist["pen_xg_stripped"] = 0.0
+        return hist
+    pen = pd.read_parquet(path).dropna(subset=["code"])
+    pen = pen[pen.pk_att > 0].groupby("code", as_index=False)["pk_att"].sum()
+
+    pl = pd.read_parquet(f"data/raw/vaastav/players_raw/season={season}.parquet")
+    pen = pen.merge(pl[["id", "code"]], on="code", how="left").dropna(subset=["id"])
+    lut = dict(zip(pen["id"].astype(int), pen["pk_att"]))
+
+    hist = hist.copy()
+    hist["_pk"] = hist["element"].map(lut).fillna(0.0)
+    # Allocate the player's penalties across his appearances in proportion to
+    # minutes, so the subtraction lands where the xG was recorded.
+    mins = hist.groupby("element")["minutes"].transform("sum").clip(lower=1)
+    pen_xg = PENALTY_XG * hist["_pk"] * (hist["minutes"] / mins)
+    hist["pen_xg_stripped"] = pen_xg
+    hist["xg"] = (hist["xg"] - pen_xg).clip(lower=0)
+    return hist.drop(columns=["_pk"])
+
+
 def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -> pd.DataFrame:
     """Per-player priors carried from the most recent completed season."""
     con = duckdb.connect(db)
@@ -87,6 +115,13 @@ def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -
         WHERE p.season='{source_season}' AND p.minutes>0 AND t.xg_for IS NOT NULL
     """).df()
     con.close()
+
+    # Strip penalty xG. FPL's expected_goals INCLUDES penalties, so a designated
+    # taker's share is inflated and his open-play threat overstated. Penalty
+    # attempts come from FBref (see fpl/ingest/fbref.py); a penalty is worth
+    # ~0.79 xG. Penalty value is added back separately at projection time, where
+    # it can be attached to whoever holds the duty NOW rather than last season.
+    hist = _strip_penalty_xg(hist, source_season)
 
     hist["dc_n"] = np.where(hist.position == "DEF",
                             hist.tackles.fillna(0) + hist.cbi.fillna(0),

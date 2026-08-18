@@ -483,3 +483,77 @@ is that **the next unit of effort belongs in Understat ingest, not in more
 optimiser features**. Chip scheduling, transfer planning over an H-gameweek
 horizon and rank-vs-EV objectives are all deferred until attacking returns
 calibrate.
+
+---
+
+# Penalty separation (closing the Phase 3 gap)
+
+## Both of the doc's suggested sources have moved
+
+* **Understat has restructured.** The embedded `playersData` / `shotsData` JSON
+  that the classic scrape and the `understat` package both depend on is gone
+  from the page — only `BASE_URL` and `THEME` remain. That route is dead.
+* **FBref is behind Cloudflare.** Plain HTTP gets a 403 "Just a moment"
+  challenge. `soccerdata` gets through by driving an undetected browser, which
+  is why it is a hard dependency rather than a convenience.
+
+We pull only penalty attempts from FBref — a small, stable column — rather than
+depending on their wider schema. `npxG = FPL_xG − 0.79 × PKatt`.
+
+## Entity resolution needed 6 manual overrides, exactly as the doc predicts
+
+Automatic matching (normalised full name → unique surname → unique first token)
+resolved 33/39 penalty takers. The override table closes the rest: **39/39,
+92/92 penalty attempts covered.**
+
+The instructive case is **Lucas Paquetá**, whom FPL stores as *"Lucas Tolentino
+Coelho de Lima"* — no surname token in common with his FBref name. No fuzzy
+matcher recovers that, which is precisely why the doc insists on a manual
+override file. Six rows, not the predicted 40–80, consistent with earlier phases.
+
+## Penalty xG was materially distorting shares
+
+| player | xG share before | after | change |
+|---|---|---|---|
+| Igor Thiago | 0.317 | 0.245 | **−23%** |
+| Cole Palmer | 0.201 | 0.141 | **−30%** |
+| B. Fernandes | 0.162 | 0.119 | −27% |
+| Haaland | 0.348 | 0.308 | −11% |
+
+Thiago was projecting the **second-highest xG share in the league** largely on
+the back of 9 penalties. Penalty value is now added back as an explicit term
+(P(team penalty) = 92/760 = 0.121 per team-match, conversion 0.79) attached to
+whoever holds the duty **now** via the API's `penalties_order`, rather than to
+whoever took them last season. That is the correct structure and it moved the
+captain pick.
+
+## Correction: the attacker "under-projection" was mostly my own measurement error
+
+Earlier I reported attackers under-projected by ~1.2–1.3 points and attributed it
+to penalties. **That was wrong, and the penalty fix barely moved it** (FWD
+−1.32 → −1.25). The cause was a conditioning mismatch in the diagnostic itself:
+projected xPts is *unconditional* (it includes the probability of not playing),
+while the realised benchmark was conditional on having played 60+ minutes.
+
+Compared like-for-like:
+
+| position | mean p60 | unconditional | ≈conditional | realised | gap |
+|---|---|---|---|---|---|
+| GKP | 0.90 | 3.14 | 3.42 | 3.38 | **+0.04** |
+| DEF | 0.76 | 3.01 | 3.78 | 3.70 | **+0.07** |
+| MID | 0.70 | 2.75 | 3.63 | 3.97 | −0.34 |
+| FWD | 0.68 | 2.86 | 3.89 | 4.11 | −0.22 |
+
+Keepers and defenders are **well calibrated**. The genuine residual bias is
+−0.34 for midfielders and −0.22 for forwards, plausibly the still-unmodelled
+set-piece threat — not the 1.2+ previously claimed.
+
+## What remains genuinely unresolved
+
+The budget still does not bind in the meaningful range — the objective is flat
+from £98m to £100m — and price vs xPts correlation is 0.355. That is a real
+finding and it is **not** explained by the conditioning artifact above. The
+likely cause is that bench players contribute zero to the objective while the
+spread across viable starters is narrow, so the optimiser has little to buy with
+the last few million. Worth attacking directly rather than assuming better
+projections will fix it.

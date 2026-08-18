@@ -87,6 +87,10 @@ def main() -> None:
         side["dc_rate"] = side["dc_per90"].fillna(2.0)
         side["dc_alpha"] = side["position"].map(DEFAULT_ALPHA)
         side["save_per90"] = side["save_per90"].fillna(0.0)
+        # Official penalty duty from the live API: order 1 is the designated
+        # taker, 2 the backup. Better than inferring duty from last season.
+        order = pd.to_numeric(side["penalties_order"], errors="coerce")
+        side["pen_duty"] = np.where(order == 1, 1.0, np.where(order == 2, 0.15, 0.0))
         unavailable = side["status"].isin(["i", "s", "u"]) | (
             side["chance_of_playing_next_round"].fillna(100) < 25)
         side.loc[unavailable, ["p_60", "p_cameo"]] = 0.0

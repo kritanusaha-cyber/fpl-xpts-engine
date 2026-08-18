@@ -12,6 +12,7 @@ Run at 22:45 UTC, ahead of the 23:00 price-change deadlines that
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,6 +41,40 @@ def fetch(url: str) -> dict | list:
     r = requests.get(url, timeout=60)
     r.raise_for_status()
     return r.json()
+
+
+def check_gap(out_dir: Path = Path("data/raw/snapshots"), max_days: int = 1) -> dict:
+    """Warn if the snapshot series has a hole in it.
+
+    Silent snapshot loss is the one failure here with no recovery path -- no
+    upstream source backfills price or ownership. A failure that goes unnoticed
+    for a week costs a week of history permanently, so the check runs on every
+    invocation and shouts rather than logging quietly.
+    """
+    pq_dir = out_dir / "elements_volatile"
+    files = sorted(pq_dir.glob("*.parquet")) if pq_dir.exists() else []
+    if not files:
+        return {"ok": False, "reason": "no snapshots on disk", "gap_days": None}
+
+    stamps = []
+    for f in files:
+        try:
+            stamps.append(datetime.strptime(f.stem, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc))
+        except ValueError:
+            continue
+    stamps.sort()
+    now = datetime.now(timezone.utc)
+    since_last = (now - stamps[-1]).total_seconds() / 86400.0
+
+    # Interior holes matter as much as staleness: a run that died for three days
+    # and recovered still lost three days.
+    holes = [(a.date().isoformat(), b.date().isoformat())
+             for a, b in zip(stamps, stamps[1:])
+             if (b - a).total_seconds() / 86400.0 > max_days + 0.25]
+
+    ok = since_last <= max_days + 0.25 and not holes
+    return {"ok": ok, "n_snapshots": len(stamps), "gap_days": round(since_last, 2),
+            "last": stamps[-1].isoformat(), "holes": holes}
 
 
 def snapshot(out_dir: Path = Path("data/raw/snapshots")) -> dict:
@@ -86,6 +121,13 @@ def snapshot(out_dir: Path = Path("data/raw/snapshots")) -> dict:
 
 if __name__ == "__main__":
     r = snapshot()
+    gap = check_gap()
+    if not gap["ok"]:
+        print(f"!! SNAPSHOT GAP: last {gap.get('last')} "
+              f"({gap.get('gap_days')}d ago), holes={gap.get('holes')}", file=sys.stderr)
+    else:
+        print(f"  gap check ok: {gap['n_snapshots']} snapshots, "
+              f"newest {gap['gap_days']}d old")
     print(f"snapshot {r['timestamp']}")
     print(f"  elements: {r['elements']}  fixtures: {r['fixtures']}  next_gw: {r['next_gw']}")
     for f in r["files"]:

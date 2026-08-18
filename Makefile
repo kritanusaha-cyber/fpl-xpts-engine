@@ -59,3 +59,6 @@ install-snapshot:  ## install the daily snapshotter as a LaunchAgent
 uninstall-snapshot:
 	launchctl unload ~/Library/LaunchAgents/com.fpl.snapshot.plist 2>/dev/null || true
 	rm -f ~/Library/LaunchAgents/com.fpl.snapshot.plist
+
+fbref:             ## pull penalty attempts from FBref (via soccerdata)
+	$(PY) fpl/ingest/fbref.py

@@ -18,6 +18,9 @@ import pandas as pd
 
 from fpl.models.defcon import THRESHOLDS
 
+P_TEAM_PENALTY = 0.121      # 92 penalties / (380 fixtures x 2 teams), 2025/26
+PENALTY_CONVERSION = 0.79   # standard penalty conversion / xG value
+
 GOAL_PTS = {"GKP": 10, "DEF": 6, "MID": 5, "FWD": 4}
 CS_PTS = {"GKP": 4, "DEF": 4, "MID": 1, "FWD": 0}
 DC_PTS = {"GKP": 0, "DEF": 2, "MID": 2, "FWD": 2}
@@ -51,6 +54,16 @@ def _play_side(side: pd.DataFrame, team_goals, conceded, n_sims, rng):
     share_a = np.clip(side["xa_share"].to_numpy()[:, None] * mfrac, 0, 1)
     goals = rng.binomial(tg, share_g)
     assists = rng.binomial(tg, share_a)
+
+    # Penalties, modelled separately from open play. xg_share is now non-penalty
+    # (penalty xG is stripped in coldstart), so the taker's penalty value has to
+    # be added back explicitly -- and it attaches to whoever holds the duty NOW,
+    # from the API's penalties_order, not to whoever took them last season.
+    #   P(team wins a penalty) = 92 / (380*2) = 0.121 per team-match
+    p_pen = P_TEAM_PENALTY * side["pen_duty"].to_numpy()[:, None] * (minutes > 0)
+    pen_won = rng.random((n, n_sims)) < p_pen
+    pen_scored = pen_won & (rng.random((n, n_sims)) < PENALTY_CONVERSION)
+    goals = goals + pen_scored.astype(int)
 
     conc_on = rng.binomial(np.broadcast_to(conceded[None, :], (n, n_sims)), mfrac)
     cs = (conc_on == 0) & played_60
