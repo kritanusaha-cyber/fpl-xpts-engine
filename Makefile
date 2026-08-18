@@ -63,9 +63,9 @@ uninstall-snapshot:
 fbref:             ## pull penalty attempts from FBref (via soccerdata)
 	$(PY) fpl/ingest/fbref.py
 
-dashboard:         ## export projection JSON and build the dashboard page
-	$(PY) fpl/export_dashboard.py
-	$(PY) scripts/build_dashboard.py
+dashboard:         ## export combined JSON and build the dashboard
+	$(PY) fpl/export_combined.py
+	$(PY) scripts/build_combined.py
 
 foreign:           ## pull Big 5 output for incoming transfers
 	$(PY) fpl/ingest/fbref_foreign.py
@@ -76,6 +76,8 @@ transfers:         ## backtest cold-start priors for new signings
 horizon:           ## multi-gameweek simulation (H=6)
 	$(PY) fpl/predict_horizon.py
 
-simulation:        ## export simulation JSON and build the graphs dashboard
+# The standalone simulation page is superseded by `dashboard`, which merges the
+# charts and the value table into one payload. Kept for regenerating it alone.
+simulation:        ## (superseded) standalone simulation page
 	$(PY) fpl/export_simulation.py
 	$(PY) scripts/build_simulation.py
