@@ -2,14 +2,21 @@
 
 'Implied value' is the LP reduced cost, not points-per-million:
 
-    surplus = xPts - lambda * price
+    surplus = xPts - lambda_budget * price - mu_position
 
-where lambda is the budget shadow price recovered from the optimiser. This is
-the doc's argument made concrete -- the correct price weighting is *derived*
-from the budget constraint rather than assumed, and it moves week to week. A
-positive surplus means the player earns his price at the current shadow price;
-points-per-million, by contrast, systematically flatters cheap players who can
-never actually make the starting XI.
+Both duals matter. lambda prices the budget; mu prices the positional quota,
+because FPL forces a 2/5/5/3 squad and you are therefore never choosing a
+forward against the whole market -- only against the other forwards you are
+compelled to field.
+
+Using lambda alone (as this first did) makes the metric structurally unfair
+between positions: it charged forwards the budget cost of their price without
+crediting that a forward slot must be filled. The result was 76% of goalkeepers
+showing positive value against 1% of forwards, which said nothing about the
+players and everything about the missing term.
+
+Points-per-million has the opposite failure -- it flatters cheap players who
+could never make the XI.
 """
 
 from __future__ import annotations
@@ -20,7 +27,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from fpl.optimize.squad import optimise, load_rules, budget_shadow_price
+from fpl.optimize.squad import optimise, load_rules
+from fpl.optimize.duals import squad_duals
 
 COMPONENTS = ["minutes", "goals", "assists", "clean_sheet", "defcon",
               "bonus", "saves", "conceded", "cards"]
@@ -30,14 +38,17 @@ def build(proj_path: str = "data/features/gw1_projection.parquet") -> dict:
     d = pd.read_parquet(proj_path)
     cfg = load_rules()
 
-    lam = budget_shadow_price(d, cfg)
+    duals = squad_duals(d, cfg)
+    lam = duals["lambda_budget"]
+    mu = duals["mu"]
     r = optimise(d, cfg)
     picked = set(r["squad"].element)
     xi = set(r["squad"][r["squad"].in_xi].element)
     capt = set(r["squad"][r["squad"].is_captain].element)
 
     d = d.copy()
-    d["surplus"] = d["xpts"] - lam * d["price"]
+    d["surplus_naive"] = d["xpts"] - lam * d["price"]
+    d["surplus"] = d["surplus_naive"] - d["position"].map(mu).fillna(0.0)
     d["ppm"] = d["xpts"] / d["price"]
     d["in_squad"] = d.element.isin(picked)
     d["in_xi"] = d.element.isin(xi)
@@ -54,6 +65,7 @@ def build(proj_path: str = "data/features/gw1_projection.parquet") -> dict:
             "xpts": round(float(p.xpts), 3),
             "sd": round(float(p.sd), 2),
             "surplus": round(float(p.surplus), 3),
+            "surplus_naive": round(float(p.surplus_naive), 3),
             "ppm": round(float(p.ppm), 3),
             "haul": round(float(p.p_haul), 3),
             "blank": round(float(p.p_blank), 3),
@@ -74,11 +86,20 @@ def build(proj_path: str = "data/features/gw1_projection.parquet") -> dict:
             "status": p.status,
         })
 
+    # Rank within position, since that is the actual comparison being made:
+    # you replace a defender with a defender, never with a forward.
+    for pos in d["position"].unique():
+        sub = [row for row in rows if row["pos"] == pos]
+        for i, row in enumerate(sorted(sub, key=lambda x: -x["surplus"]), 1):
+            row["pos_rank"] = i
+            row["pos_n"] = len(sub)
+
     rows.sort(key=lambda x: -x["xpts"])
     return {
         "generated": pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
         "gameweek": 1, "season": "2026/27",
         "shadow_price": round(lam, 3),
+        "mu": {k: round(v, 3) for k, v in mu.items()},
         "squad_xpts": round(r["objective"], 2),
         "squad_spend": round(r["spend"], 1),
         "n_players": len(rows),
@@ -93,6 +114,10 @@ if __name__ == "__main__":
     print(f"exported {data['n_players']} players")
     print(f"  shadow price λ = {data['shadow_price']} xPts per £1.0m")
     print(f"  optimal squad: £{data['squad_spend']}m, {data['squad_xpts']} xPts")
-    top = data["players"][:3]
-    for p in top:
-        print(f"  {p['name']:<14} xPts {p['xpts']:>5.2f}  surplus {p['surplus']:>+6.2f}")
+    print(f"  positional duals: {data['mu']}")
+    import collections
+    pos_pct = collections.defaultdict(list)
+    for p in data["players"]:
+        pos_pct[p["pos"]].append(p["surplus"] > 0)
+    for k, v in pos_pct.items():
+        print(f"  {k}: {sum(v)}/{len(v)} positive ({sum(v)/len(v):.0%})")

@@ -48,6 +48,7 @@ h1{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.01em;
 .stat .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:3px;
   font-variant-numeric:tabular-nums}
 .stat .n{font-size:11.5px;color:var(--muted);margin-top:1px}
+.stat.mu .v{font-size:12.5px;line-height:1.55;letter-spacing:-.01em}
 .stat.hero .v{color:var(--accent)}
 .note{font-size:12.5px;color:var(--muted);margin:14px 0 20px;max-width:66ch}
 .note b{color:var(--ink-2);font-weight:600}
@@ -70,7 +71,7 @@ input[type=search]:focus-visible,.seg button:focus-visible,th:focus-visible,
 
 /* ---- table ---- */
 .tw{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:680px}
+table{border-collapse:collapse;width:100%;min-width:740px}
 thead th{position:sticky;top:0;background:var(--surface-2);z-index:2;
   font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
   font-weight:600;text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);
@@ -137,10 +138,14 @@ footer{margin-top:26px;font-size:11.5px;color:var(--muted);max-width:70ch}
   <div class="summary" id="summary"></div>
 
   <p class="note">
-    <b>Implied value</b> is the LP reduced cost &mdash; <code>xPts &minus; &lambda; &times; price</code>, where
-    &lambda; is the budget shadow price recovered from the optimiser. Positive means the player
-    earns his price at the current &lambda;. It is <b>not</b> points-per-million, which flatters
-    cheap players who could never make the XI. Click any row for the component breakdown.
+    <b>Value vs position</b> is the LP reduced cost &mdash;
+    <code>xPts &minus; &lambda;&middot;price &minus; &mu;<sub>pos</sub></code>. Both duals matter.
+    &lambda; prices the budget; <b>&mu; prices the positional quota</b>, because FPL forces a
+    2/5/5/3 squad, so you never choose a forward against the whole market &mdash; only against
+    the other forwards you are compelled to field. Using &lambda; alone made the metric
+    structurally unfair between positions (76% of keepers positive against 1% of forwards,
+    which said nothing about the players, since you replace a defender with a defender,
+    never with a forward). Click any row for the breakdown.
   </p>
 
   <div class="controls">
@@ -173,7 +178,8 @@ const COMP = [
 ];
 const COLS = [
   ['name','Player','l'], ['pos','Pos','l'], ['price','&pound;m',''], ['xpts','xPts',''],
-  ['sd','SD',''], ['surplus','Implied value',''], ['haul','P(haul)',''],
+  ['sd','SD',''], ['surplus','Value vs position',''], ['pos_rank','Rank in pos',''],
+  ['haul','P(haul)',''],
   ['own','Own %','']
 ];
 let sortKey='xpts', sortDir=-1, pos='ALL', set='ALL', q='', open=new Set();
@@ -182,13 +188,14 @@ const maxAbsSur = Math.max(...D.players.map(p=>Math.abs(p.surplus)));
 document.getElementById('sub').textContent =
   `Gameweek ${D.gameweek} \u00B7 ${D.season} \u00B7 ${D.n_players} players \u00B7 generated ${D.generated}`;
 
+const muTxt = ['GKP','DEF','MID','FWD'].map(p=>p+' '+D.mu[p].toFixed(2)).join('  ');
 document.getElementById('summary').innerHTML = [
-  ['Budget shadow price', '\u03BB = '+D.shadow_price.toFixed(3), 'xPts per extra &pound;1.0m', true],
-  ['Optimal squad', D.squad_xpts.toFixed(1), 'XI + captain xPts', false],
-  ['Squad spend', '\u00A3'+D.squad_spend.toFixed(1)+'m', 'of \u00A3100.0m budget', false],
+  ['Budget shadow price', '\u03BB = '+D.shadow_price.toFixed(3), 'xPts per extra \u00A31.0m', true],
+  ['Positional duals (\u03BC)', muTxt, 'value of the marginal slot', false, 'mu'],
+  ['Optimal squad', D.squad_xpts.toFixed(1)+' xPts', '\u00A3'+D.squad_spend.toFixed(1)+'m of \u00A3100.0m', false],
   ['Players priced', String(D.n_players), 'full FPL universe', false]
-].map(([k,v,n,hero])=>
-  `<div class="stat${hero?' hero':''}"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`
+].map(([k,v,n,hero,cls])=>
+  `<div class="stat${hero?' hero':''}${cls?' '+cls:''}"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`
 ).join('');
 
 function seg(id, opts, cur, cb){
@@ -204,7 +211,7 @@ function head(){
 }
 const fmt = {
   price:v=>v.toFixed(1), xpts:v=>v.toFixed(2), sd:v=>v.toFixed(2),
-  haul:v=>(v*100).toFixed(0)+'%', own:v=>v.toFixed(1)
+  haul:v=>(v*100).toFixed(0)+'%', own:v=>v.toFixed(1), pos_rank:v=>String(v)
 };
 function surCell(v){
   const w = Math.abs(v)/maxAbsSur*50;
@@ -233,7 +240,10 @@ function detail(p){
     ['Team goals expected', d.team_goals.toFixed(2)],
     ['Opponent goals expected', d.opp_goals.toFixed(2)],
     ['Penalty duty', d.pen===1?'first taker':(d.pen===2?'backup':'none')],
-    ['Prior sample (90s)', d.hist? d.n90.toFixed(0) : 'none &mdash; league prior']
+    ['Prior sample (90s)', d.hist? d.n90.toFixed(0) : 'none &mdash; league prior'],
+    ['Value before quota adj.', (p.surplus_naive>=0?'+':'')+p.surplus_naive.toFixed(2)],
+    ['Quota charge (\u03BC)', '\u2212'+D.mu[p.pos].toFixed(2)],
+    ['Rank among ' + p.pos, p.pos_rank + ' of ' + p.pos_n]
   ].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
   const warn = !d.hist
     ? `<div class="warn"><span>&#9650;</span><span>No 2025/26 history. Projection rests entirely on the position &times; price-tier prior.</span></div>` : '';
