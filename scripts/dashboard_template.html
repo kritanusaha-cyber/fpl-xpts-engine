@@ -1,0 +1,312 @@
+<title>Shadow Price</title>
+<style>
+:root{
+  --ground:#F6F7F3; --surface:#FFFFFF; --surface-2:#FBFCF9;
+  --ink:#171A13; --ink-2:#3D4436; --muted:#6C7364; --line:#E2E5DC; --line-2:#EDEFE9;
+  --accent:#9A6A11; --accent-soft:#F0E4CA;
+  --pos:#2E7A5E; --neg:#A8452E;
+  --c-minutes:#8A9180; --c-goals:#B37A16; --c-assists:#D0A75A;
+  --c-cs:#3C7E68; --c-defcon:#5E8FA3; --c-bonus:#7C6A93;
+  --c-saves:#96A2AC; --c-conceded:#B4705C; --c-cards:#8E5A4A;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --r:3px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#121410; --surface:#191C15; --surface-2:#1E221A;
+    --ink:#E7EAE0; --ink-2:#BFC5B5; --muted:#8A9180; --line:#2B3025; --line-2:#232720;
+    --accent:#D9A33A; --accent-soft:#3A2F17;
+    --pos:#59AC8C; --neg:#CE7054;
+    --c-minutes:#6F7666; --c-goals:#D9A33A; --c-assists:#B08A45;
+    --c-cs:#4C9B80; --c-defcon:#6E9FB4; --c-bonus:#8E7BA6;
+    --c-saves:#7C8792; --c-conceded:#C07A63; --c-cards:#9C6553;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121410; --surface:#191C15; --surface-2:#1E221A;
+  --ink:#E7EAE0; --ink-2:#BFC5B5; --muted:#8A9180; --line:#2B3025; --line-2:#232720;
+  --accent:#D9A33A; --accent-soft:#3A2F17;
+  --pos:#59AC8C; --neg:#CE7054;
+  --c-minutes:#6F7666; --c-goals:#D9A33A; --c-assists:#B08A45;
+  --c-cs:#4C9B80; --c-defcon:#6E9FB4; --c-bonus:#8E7BA6;
+  --c-saves:#7C8792; --c-conceded:#C07A63; --c-cards:#9C6553;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+h1{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---- summary ---- */
+.summary{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--r);margin:22px 0 8px;overflow:hidden}
+.stat{background:var(--surface);padding:11px 15px;flex:1 1 150px;min-width:0}
+.stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.stat .n{font-size:11.5px;color:var(--muted);margin-top:1px}
+.stat.hero .v{color:var(--accent)}
+.note{font-size:12.5px;color:var(--muted);margin:14px 0 20px;max-width:66ch}
+.note b{color:var(--ink-2);font-weight:600}
+.note code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:2px;padding:1px 4px}
+
+/* ---- controls ---- */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;
+  position:sticky;top:0;z-index:5;background:var(--ground);padding:8px 0}
+input[type=search]{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);border-radius:var(--r);min-width:180px}
+input[type=search]:focus-visible,.seg button:focus-visible,th:focus-visible,
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{font:inherit;font-size:12px;padding:6px 11px;border:0;cursor:pointer;
+  background:var(--surface);color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.count{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ---- table ---- */
+.tw{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:680px}
+thead th{position:sticky;top:0;background:var(--surface-2);z-index:2;
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  font-weight:600;text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);
+  cursor:pointer;white-space:nowrap;user-select:none}
+thead th.l{text-align:left}
+thead th[aria-sort]{color:var(--ink)}
+thead th .ar{opacity:.45;font-size:9px;margin-left:2px}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--line-2);text-align:right;
+  font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
+.row{cursor:pointer}
+.row:hover{background:var(--surface-2)}
+.row.open{background:var(--surface-2)}
+.nm{font-weight:600}
+.club{color:var(--muted);font-size:11.5px;margin-left:6px}
+.pos{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;
+  padding:1px 5px;border-radius:2px;border:1px solid var(--line);color:var(--muted);
+  min-width:34px;text-align:center}
+.tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;
+  padding:1px 4px;border-radius:2px;margin-left:5px;vertical-align:1px}
+.tag.xi{background:var(--accent-soft);color:var(--accent)}
+.tag.c{background:var(--accent);color:var(--surface)}
+.tag.out{background:transparent;color:var(--neg);border:1px solid var(--neg)}
+/* diverging surplus bar, centred at zero */
+.sur{position:relative;width:110px;height:15px;display:inline-block;vertical-align:middle}
+.sur i{position:absolute;top:2px;bottom:2px;display:block;border-radius:1px}
+.sur .mid{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line);
+  transform:translateX(-.5px)}
+.sv{display:inline-block;min-width:46px;text-align:right;margin-right:7px}
+.sv.p{color:var(--pos)} .sv.n{color:var(--neg)}
+
+/* ---- detail ---- */
+.detail td{padding:0;border-bottom:1px solid var(--line)}
+/* The table can be wider than its scroll container, so pin the detail panel to
+   the left edge of the viewport rather than letting it sit off-screen at the
+   table's full width -- otherwise the drivers column hides behind a scrollbar. */
+.dbox{padding:16px 14px 18px;background:var(--ground);
+  position:sticky;left:0;width:min(100%,calc(100vw - 56px));
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px}
+@media (max-width:820px){.dbox{grid-template-columns:1fr;gap:16px}}
+.dh{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+  margin-bottom:9px}
+.bar{display:flex;height:26px;border-radius:2px;overflow:hidden;border:1px solid var(--line)}
+.bar span{display:block;min-width:0}
+.negbar{display:flex;height:8px;margin-top:4px;border-radius:2px;overflow:hidden}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:11px}
+.leg div{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-2);
+  font-variant-numeric:tabular-nums}
+.sw{width:9px;height:9px;border-radius:1px;flex:none}
+.leg b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.drv{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:12px}
+.drv dt{color:var(--muted)}
+.drv dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.warn{margin-top:11px;font-size:11.5px;color:var(--neg);display:flex;gap:6px;align-items:flex-start}
+.empty{padding:34px;text-align:center;color:var(--muted);font-size:13px}
+footer{margin-top:26px;font-size:11.5px;color:var(--muted);max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <h1>Shadow Price</h1>
+  <div class="sub" id="sub"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <p class="note">
+    <b>Implied value</b> is the LP reduced cost &mdash; <code>xPts &minus; &lambda; &times; price</code>, where
+    &lambda; is the budget shadow price recovered from the optimiser. Positive means the player
+    earns his price at the current &lambda;. It is <b>not</b> points-per-million, which flatters
+    cheap players who could never make the XI. Click any row for the component breakdown.
+  </p>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search player or club&hellip;" aria-label="Search players">
+    <div class="seg" id="posf" role="group" aria-label="Filter by position"></div>
+    <div class="seg" id="setf" role="group" aria-label="Filter by squad"></div>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr id="hd"></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No players match those filters.</div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script id="payload" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('payload').textContent);
+const COMP = [
+  ['minutes','Minutes','--c-minutes'], ['goals','Goals','--c-goals'],
+  ['assists','Assists','--c-assists'], ['clean_sheet','Clean sheet','--c-cs'],
+  ['defcon','DefCon','--c-defcon'], ['bonus','Bonus','--c-bonus'],
+  ['saves','Saves','--c-saves'], ['conceded','Conceded','--c-conceded'],
+  ['cards','Cards','--c-cards']
+];
+const COLS = [
+  ['name','Player','l'], ['pos','Pos','l'], ['price','&pound;m',''], ['xpts','xPts',''],
+  ['sd','SD',''], ['surplus','Implied value',''], ['haul','P(haul)',''],
+  ['own','Own %','']
+];
+let sortKey='xpts', sortDir=-1, pos='ALL', set='ALL', q='', open=new Set();
+const maxAbsSur = Math.max(...D.players.map(p=>Math.abs(p.surplus)));
+
+document.getElementById('sub').textContent =
+  `Gameweek ${D.gameweek} \u00B7 ${D.season} \u00B7 ${D.n_players} players \u00B7 generated ${D.generated}`;
+
+document.getElementById('summary').innerHTML = [
+  ['Budget shadow price', '\u03BB = '+D.shadow_price.toFixed(3), 'xPts per extra &pound;1.0m', true],
+  ['Optimal squad', D.squad_xpts.toFixed(1), 'XI + captain xPts', false],
+  ['Squad spend', '\u00A3'+D.squad_spend.toFixed(1)+'m', 'of \u00A3100.0m budget', false],
+  ['Players priced', String(D.n_players), 'full FPL universe', false]
+].map(([k,v,n,hero])=>
+  `<div class="stat${hero?' hero':''}"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`
+).join('');
+
+function seg(id, opts, cur, cb){
+  const el=document.getElementById(id);
+  el.innerHTML=opts.map(o=>`<button type="button" data-v="${o}" aria-pressed="${o===cur}">${o}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('button'); if(b) cb(b.dataset.v);};
+}
+function head(){
+  document.getElementById('hd').innerHTML = COLS.map(([k,l,c])=>{
+    const on = k===sortKey;
+    return `<th class="${c}" data-k="${k}" tabindex="0" ${on?`aria-sort="${sortDir<0?'descending':'ascending'}"`:''}>${l}<span class="ar">${on?(sortDir<0?'&#9660;':'&#9650;'):''}</span></th>`;
+  }).join('');
+}
+const fmt = {
+  price:v=>v.toFixed(1), xpts:v=>v.toFixed(2), sd:v=>v.toFixed(2),
+  haul:v=>(v*100).toFixed(0)+'%', own:v=>v.toFixed(1)
+};
+function surCell(v){
+  const w = Math.abs(v)/maxAbsSur*50;
+  const col = v>=0?'var(--pos)':'var(--neg)';
+  const style = v>=0 ? `left:50%;width:${w}%` : `right:50%;width:${w}%`;
+  return `<span class="sv ${v>=0?'p':'n'}">${v>=0?'+':''}${v.toFixed(2)}</span>`+
+         `<span class="sur"><span class="mid"></span><i style="${style};background:${col}"></i></span>`;
+}
+function detail(p){
+  const pos_ = COMP.filter(([k])=>p.comp[k]>0), neg_ = COMP.filter(([k])=>p.comp[k]<0);
+  const tot = pos_.reduce((s,[k])=>s+p.comp[k],0) || 1;
+  const negTot = neg_.reduce((s,[k])=>s+Math.abs(p.comp[k]),0);
+  const bar = pos_.map(([k,l,c])=>
+    `<span style="flex:${p.comp[k]};background:var(${c})" title="${l}: ${p.comp[k].toFixed(2)}"></span>`).join('');
+  const nbar = negTot>0 ? `<div class="negbar">`+neg_.map(([k,l,c])=>
+    `<span style="flex:${Math.abs(p.comp[k])};background:var(${c})" title="${l}: ${p.comp[k].toFixed(2)}"></span>`).join('')+
+    `<span style="flex:${Math.max(tot-negTot,0.0001)};background:transparent"></span></div>` : '';
+  const leg = COMP.filter(([k])=>Math.abs(p.comp[k])>0.001).map(([k,l,c])=>
+    `<div><span class="sw" style="background:var(${c})"></span>${l} <b>${p.comp[k]>0?'+':''}${p.comp[k].toFixed(2)}</b></div>`).join('');
+  const d=p.drv;
+  const rows = [
+    ['P(plays 60+)', (d.p60*100).toFixed(0)+'%'],
+    ['Share of team xG', (d.xg_share*100).toFixed(1)+'%'],
+    ['Share of team xA', (d.xa_share*100).toFixed(1)+'%'],
+    ['DefCon actions / 90', d.dc90.toFixed(1)],
+    ['Team goals expected', d.team_goals.toFixed(2)],
+    ['Opponent goals expected', d.opp_goals.toFixed(2)],
+    ['Penalty duty', d.pen===1?'first taker':(d.pen===2?'backup':'none')],
+    ['Prior sample (90s)', d.hist? d.n90.toFixed(0) : 'none &mdash; league prior']
+  ].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+  const warn = !d.hist
+    ? `<div class="warn"><span>&#9650;</span><span>No 2025/26 history. Projection rests entirely on the position &times; price-tier prior.</span></div>` : '';
+  return `<div class="dbox">
+    <div>
+      <div class="dh">What makes up ${p.xpts.toFixed(2)} xPts</div>
+      <div class="bar">${bar}</div>${nbar}
+      <div class="leg">${leg}</div>
+    </div>
+    <div>
+      <div class="dh">Drivers</div>
+      <dl class="drv">${rows}</dl>${warn}
+    </div>
+  </div>`;
+}
+function render(){
+  head();
+  let rows = D.players.filter(p=>{
+    if(pos!=='ALL' && p.pos!==pos) return false;
+    if(set==='Squad' && !p.squad) return false;
+    if(set==='XI' && !p.xi) return false;
+    if(q && !(p.name+' '+p.club).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    const x=a[sortKey], y=b[sortKey];
+    if(typeof x==='string') return sortDir*x.localeCompare(y);
+    return sortDir*(x-y);
+  });
+  document.getElementById('count').textContent = `${rows.length} shown`;
+  document.getElementById('empty').hidden = rows.length>0;
+  document.getElementById('tb').innerHTML = rows.map(p=>{
+    const tags = (p.capt?'<span class="tag c">C</span>':'')
+      + (p.xi&&!p.capt?'<span class="tag xi">XI</span>':'')
+      + (p.status!=='a'?'<span class="tag out">'+p.status.toUpperCase()+'</span>':'');
+    const cells = COLS.map(([k,,c])=>{
+      if(k==='name') return `<td class="l"><span class="nm">${p.name}</span><span class="club">${p.club}</span>${tags}</td>`;
+      if(k==='pos') return `<td class="l"><span class="pos">${p.pos}</span></td>`;
+      if(k==='surplus') return `<td>${surCell(p.surplus)}</td>`;
+      return `<td>${fmt[k](p[k])}</td>`;
+    }).join('');
+    const isOpen = open.has(p.id);
+    return `<tr class="row${isOpen?' open':''}" data-id="${p.id}" tabindex="0" aria-expanded="${isOpen}">${cells}</tr>`
+      + (isOpen?`<tr class="detail"><td colspan="${COLS.length}">${detail(p)}</td></tr>`:'');
+  }).join('');
+}
+function toggle(id){ open.has(id)?open.delete(id):open.add(id); render(); }
+document.getElementById('tb').addEventListener('click', e=>{
+  const r=e.target.closest('.row'); if(r) toggle(+r.dataset.id);
+});
+document.getElementById('tb').addEventListener('keydown', e=>{
+  if(e.key!=='Enter'&&e.key!==' ') return;
+  const r=e.target.closest('.row'); if(r){ e.preventDefault(); toggle(+r.dataset.id); }
+});
+document.getElementById('hd').addEventListener('click', e=>{
+  const th=e.target.closest('th'); if(!th) return;
+  const k=th.dataset.k;
+  if(k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = k==='name'?1:-1; }
+  render();
+});
+document.getElementById('hd').addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.target.closest('th')?.click(); }
+});
+document.getElementById('q').addEventListener('input', e=>{ q=e.target.value.toLowerCase().trim(); render(); });
+document.getElementById('foot').innerHTML =
+  `Projections run on priors alone &mdash; 2026/27 has no completed gameweeks, so every blend weight sits at 1.0 on last season. `+
+  `Midfielders and forwards carry a known residual bias of roughly &minus;0.3 xPts from unmodelled set-piece threat. `+
+  `Penalty xG is separated out and re-attached to the current designated taker.`;
+
+// re-bind segmented controls cleanly
+function mount(){
+  seg('posf', ['ALL','GKP','DEF','MID','FWD'], pos, v=>{ pos=v; mount(); render(); });
+  seg('setf', ['ALL','Squad','XI'], set, v=>{ set=v; mount(); render(); });
+}
+mount(); render();
+</script>

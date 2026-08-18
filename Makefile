@@ -62,3 +62,7 @@ uninstall-snapshot:
 
 fbref:             ## pull penalty attempts from FBref (via soccerdata)
 	$(PY) fpl/ingest/fbref.py
+
+dashboard:         ## export projection JSON and build the dashboard page
+	$(PY) fpl/export_dashboard.py
+	$(PY) scripts/build_dashboard.py

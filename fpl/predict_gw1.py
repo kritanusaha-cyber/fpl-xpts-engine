@@ -103,11 +103,12 @@ def main() -> None:
         h, a = prep(f.home_code), prep(f.away_code)
         if not len(h) or not len(a):
             continue
-        ph, pa = simulate(h, a, m, N_SIMS, rng)
-        for side, pts, own, opp in [(h, ph, lam, mu), (a, pa, mu, lam)]:
+        ph, pa, comps = simulate(h, a, m, N_SIMS, rng, return_components=True)
+        for side, pts, own, opp, key in [(h, ph, lam, mu, "home"), (a, pa, mu, lam, "away")]:
             s = summarise(pts)
             s.index = side.index
-            res = pd.concat([side, s], axis=1)
+            cdf = pd.DataFrame({f"c_{k}": v for k, v in comps[key].items()}, index=side.index)
+            res = pd.concat([side, s, cdf], axis=1)
             res["fixture_lam"], res["opp_lam"] = own, opp
             out.append(res)
 

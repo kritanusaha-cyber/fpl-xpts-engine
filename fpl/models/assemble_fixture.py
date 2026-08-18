@@ -102,23 +102,35 @@ def _bps(d) -> np.ndarray:
             + d["yellow"] * BPS_W["yellow"])
 
 
-def _points(d) -> np.ndarray:
+def _components(d) -> dict:
+    """Points broken out by source, so a projection can be explained rather than
+    just asserted. Every component is an (n_players, n_sims) array; they sum
+    exactly to the total."""
     pos = d["pos"]
     gp = np.array([GOAL_PTS[x] for x in pos])[:, None]
     csp = np.array([CS_PTS[x] for x in pos])[:, None]
     dcp = np.array([DC_PTS[x] for x in pos])[:, None]
     is_def_gk = np.isin(pos, ["GKP", "DEF"])[:, None]
-    return (np.where(d["played_60"], 2.0, np.where(d["cameo"], 1.0, 0.0))
-            + d["goals"] * gp + d["assists"] * 3
-            + d["cs"] * csp
-            + np.where(is_def_gk & d["appeared"], -(d["conc_on"] // 2), 0)
-            + np.where(pos[:, None] == "GKP", d["saves"] // 3, 0)
-            + d["dc_hit"] * dcp
-            + d["yellow"] * -1)
+    is_gk = (pos[:, None] == "GKP")
+    return {
+        "minutes": np.where(d["played_60"], 2.0, np.where(d["cameo"], 1.0, 0.0)),
+        "goals": d["goals"] * gp,
+        "assists": d["assists"] * 3.0,
+        "clean_sheet": d["cs"] * csp,
+        "conceded": np.where(is_def_gk & d["appeared"], -(d["conc_on"] // 2), 0).astype(float),
+        "saves": np.where(is_gk, d["saves"] // 3, 0).astype(float),
+        "defcon": (d["dc_hit"] * dcp).astype(float),
+        "cards": d["yellow"] * -1.0,
+    }
+
+
+def _points(d) -> np.ndarray:
+    return sum(_components(d).values())
 
 
 def simulate(home: pd.DataFrame, away: pd.DataFrame, score_matrix: np.ndarray,
-             n_sims: int, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+             n_sims: int, rng: np.random.Generator,
+             return_components: bool = False):
     """Returns (home_points, away_points), each (n_players, n_sims), bonus included."""
     flat = score_matrix.ravel() / score_matrix.sum()
     idx = rng.choice(len(flat), size=n_sims, p=flat)
@@ -137,4 +149,12 @@ def simulate(home: pd.DataFrame, away: pd.DataFrame, score_matrix: np.ndarray,
         bonus[order[slot], rows] = pts
 
     nh = len(home)
-    return pts_h + bonus[:nh], pts_a + bonus[nh:]
+    if not return_components:
+        return pts_h + bonus[:nh], pts_a + bonus[nh:]
+
+    comps = {}
+    for side_name, dd, off, n in [("home", dh, 0, nh), ("away", da, nh, len(away))]:
+        c = _components(dd)
+        c["bonus"] = bonus[off:off + n]
+        comps[side_name] = {k: v.mean(axis=1) for k, v in c.items()}
+    return pts_h + bonus[:nh], pts_a + bonus[nh:], comps
