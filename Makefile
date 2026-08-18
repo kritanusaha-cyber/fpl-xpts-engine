@@ -95,3 +95,9 @@ dist:              ## collect the static site into dist/ for any static host
 
 refresh:           ## full weekly refresh: data -> models -> dashboard
 	$(MAKE) snapshot facts team-match horizon dashboard dist
+
+deploy:            ## rebuild the dashboard and publish to GitHub Pages
+	$(MAKE) dashboard
+	@git add -A && git commit -q -m "Refresh projections" || echo "  (nothing changed)"
+	@git push -q origin main && echo "pushed -- Pages rebuilds in ~30s"
+	@echo "https://kritanusaha-cyber.github.io/fpl-xpts-engine/"
