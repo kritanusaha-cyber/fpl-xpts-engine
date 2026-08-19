@@ -18,6 +18,7 @@ import pandas as pd
 
 from fpl.models.defcon import THRESHOLDS
 
+DEFCON_TAIL_CAP = 0.40      # see fpl/models/defcon_calibration.py
 P_TEAM_PENALTY = 0.121      # 92 penalties / (380 fixtures x 2 teams), 2025/26
 PENALTY_CONVERSION = 0.79   # standard penalty conversion / xG value
 
@@ -98,6 +99,16 @@ def _play_side(side: pd.DataFrame, team_goals, conceded, n_sims, rng):
     dc_n = rng.negative_binomial(np.broadcast_to(r, (n, n_sims)), np.clip(p, 1e-6, 1 - 1e-9))
     thr = np.array([THRESHOLDS.get(x) or 999 for x in pos])[:, None]
     dc_hit = (dc_n >= thr) & appeared
+
+    # Cap the realised hit RATE, not just the reported probability. The negative
+    # binomial over-predicts the DefCon tail (0.606 predicted vs 0.188 realised
+    # above p = 0.5), so a player the count model thinks is near-certain has his
+    # excess hits thinned back to the level the data supports. Without this the
+    # simulator bakes the overconfidence straight into xPts.
+    rate = dc_hit.mean(axis=1, keepdims=True)
+    excess = np.where(rate > DEFCON_TAIL_CAP, DEFCON_TAIL_CAP / np.clip(rate, 1e-6, None), 1.0)
+    keep = rng.random(dc_hit.shape) < excess
+    dc_hit = dc_hit & keep
 
     yellow = (rng.random((n, n_sims)) < (0.11 * mfrac)).astype(int)
 
