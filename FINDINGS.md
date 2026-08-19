@@ -803,3 +803,74 @@ at the optimum, not a global price curve. It orders players sensibly and becomes
 misleading at the extremes: a "fair price" of £17m is not a price FPL would ever
 set — it is a large surplus expressed in price units. This is now stated on the
 methodology tab rather than left for the reader to infer.
+
+---
+
+# Fair price was measured against the wrong denominator
+
+Luke Shaw came out with a £13.3m fair price against a £4.5m listing. The
+projection was fine — 20.7 xPts over six gameweeks, 3.45 per gameweek for a
+nailed cheap defender, which is realistic. **The price mapping was wrong.**
+
+## Lambda is not the price of output
+
+Fair price was `price + surplus / lambda`, with lambda the budget shadow price
+from the optimiser. Lambda is the **marginal rate at a constrained optimum** —
+what one more pound buys you *at the margin of a full squad* — not what the
+market charges for output.
+
+| | xPts per £1m over 6 GW |
+|---|---|
+| lambda (LP shadow price) | **1.11** |
+| realised market gradient, DEF | **~3.2** |
+
+Dividing by a number roughly three times too small tripled every price gap. That
+error is invisible in the middle of the distribution and enormous at the edges,
+which is exactly where a reader looks.
+
+## FPL prices have diminishing returns; a linear map cannot
+
+Realised points per 90 by price band, 2022/23–2025/26:
+
+| band | DEF | MID | FWD |
+|---|---|---|---|
+| ≤£4.5m | 2.86 | 3.23 | 4.42 |
+| £5.5–6.5m | 4.34 | 4.54 | 4.90 |
+| £8–10m | 5.10 | 5.44 | 5.86 |
+
+The curve flattens: premium players are charged for attacking ceiling, which is
+itself capped. A constant points-per-pound is therefore the wrong functional
+form regardless of the constant chosen.
+
+Replaced with a per-position curve fitted on players with 900+ minutes, on
+**points per team-gameweek** — matching the basis the model projects on, since
+xPts already includes the probability of not playing:
+
+    points_per_gameweek = a + b·log(price)     →     fair = exp((points − a) / b)
+
+| | £4.5m buys | £9.0m buys | shape |
+|---|---|---|---|
+| DEF | 1.86 | 4.73 | steepest — cheap defenders genuinely poor |
+| MID | 1.67 | 4.16 | steep |
+| FWD | 1.75 | 3.82 | flattest — cheap forwards still score |
+
+## Effect
+
+| player | listed | old fair | **new fair** |
+|---|---|---|---|
+| Shaw | £4.5m | £13.3m | **£6.6m** (+2.1) |
+| Anderson | £6.5m | £17.1m | **£9.1m** (+2.6) |
+| Gabriel | £8.0m | £10.3m | **£7.8m** (−0.2) |
+| Haaland | £15.5m | £20.0m | **£11.8m** (−3.7) |
+
+Mispricing now spans p5 −1.8 to p95 +1.6, against actual FPL prices of £4.0–15.5.
+Every number is a price FPL could plausibly set, which is the minimum bar for the
+metric to mean anything.
+
+The R² of the price curve is only 0.23–0.35. That is not a defect — price is a
+weak predictor of points, which is *why* mispricing exists. But it does mean fair
+price is a central tendency and not a target.
+
+**One honest asymmetry**: the model's highest fair price is £11.8m while FPL
+charges up to £15.5m. Some of that gap is the known −0.3 xPts/match bias on
+midfielders and forwards, not market error, and it is now stated on the page.

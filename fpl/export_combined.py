@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from fpl.optimize.duals import squad_duals
+from fpl.models.price_curve import fit as fit_price_curve
 from fpl.optimize.squad import optimise, load_rules
 
 COMPONENTS = ["minutes", "goals", "assists", "clean_sheet", "defcon",
@@ -31,6 +32,7 @@ def build() -> dict:
     gw1 = pd.read_parquet("data/features/gw1_projection.parquet")
     hz = pd.read_parquet("data/features/horizon_roles.parquet")
     runs_df = pd.read_parquet("data/features/horizon_by_gw.parquet")
+    horizon_n = int(runs_df.gw.nunique())
     cfg = load_rules()
 
     # Horizon drives valuation: one gameweek cannot separate players.
@@ -61,7 +63,18 @@ def build() -> dict:
     d["role_base"] = d["role_base"].fillna(d.groupby("role")["surplus_pos"].transform("median"))
     d["surplus_role"] = d["surplus_pos"] - d["role_base"]
     d["available"] = available
-    d["fair_price"] = (d["price"] + d["surplus_role"] / max(lam, 1e-6)).clip(3.5, 20.0)
+
+    # Fair price comes from the fitted market curve, NOT from surplus/lambda.
+    # lambda is the marginal rate at a constrained optimum (1.11 xPts per GBP1m
+    # over six gameweeks); the market's realised gradient for defenders is ~3.2.
+    # Dividing by a number three times too small inflated every gap threefold and
+    # gave a GBP4.5m defender a GBP13.3m fair price. The curve answers the
+    # market question directly: at what price has FPL historically delivered this
+    # rate of output, for this position?
+    curve = fit_price_curve()
+    d["ppg_proj"] = d["xpts"] / max(horizon_n, 1)
+    d["fair_price"] = [curve.price_for(pos, v)
+                       for pos, v in zip(d["position"], d["ppg_proj"])]
     d["mispricing"] = d["fair_price"] - d["price"]
     d["is_starter"] = starters
     d["role_rank"] = (d.where(starters).groupby("role")["surplus_role"]
@@ -98,7 +111,7 @@ def build() -> dict:
             "q": [round(float(p[f"q{q}"]), 1) for q in (5, 25, 50, 75, 95)],
             "hist": [int(x) for x in p["hist"]],
             "surplus": round(float(p.surplus_role), 2),
-            "fair": round(float(p.fair_price), 1),
+            "fair": round(float(p.fair_price), 1), "ppg": round(float(p.ppg_proj), 2),
             "mis": round(float(p.mispricing), 1),
             "rank": int(p["role_rank"]), "role_n": int(p["role_n"]),
             "own": float(p.selected_by_percent or 0),
