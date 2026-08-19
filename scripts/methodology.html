@@ -316,12 +316,35 @@ these findable: any input error shows up as a residual rather than as a plausibl
 The one mismatch it ever produced was a real rule change &mdash; goalkeeper goals were worth 6
 points in 2020/21 and are worth 10 now.</p>
 
+<h4>The success criterion, tested</h4>
+<p>The build plan sets one bar: beat the template &mdash; what a manager gets by following the
+crowd &mdash; or the project is a hobby rather than an edge. Walk-forward over 2025/26, GW8&ndash;38,
+9,196 player-gameweeks, every component refitted on gameweeks already played:</p>
+<table><tr><th>Model</th><th>MAE</th><th>Spearman in position</th><th>Top-20 precision</th></tr>
+<tr><td><b>full engine</b></td><td class="n"><b>1.991</b></td><td class="n"><b>0.282</b></td><td class="n">0.123</td></tr>
+<tr><td>price heuristic</td><td class="n">2.045</td><td class="n">0.164</td><td class="n">0.165</td></tr>
+<tr><td>points per appearance to date</td><td class="n">2.067</td><td class="n">0.251</td><td class="n">0.160</td></tr>
+<tr><td>FPL "form" (last 4 GW)</td><td class="n">2.253</td><td class="n">0.241</td><td class="n">0.132</td></tr>
+<tr><td>template (crowd ownership)</td><td class="n">2.895</td><td class="n">0.193</td><td class="n">0.150</td></tr></table>
+<p><b>Against the template: 31.2% better on MAE, 46.1% better on Spearman.</b> The engine also
+beats a plain to-date average, which is the benchmark that quietly defeats most projection
+models.</p>
+<div class="caveat"><b>Where it loses.</b> The engine is next-to-last on top-20 precision
+(0.123 against 0.165 for a price heuristic). That is the shrinkage working as intended: it
+regresses extreme projections toward what the evidence supports, which buys accuracy and ordering
+at the cost of guessing which single player explodes this weekend. For a squad held over several
+gameweeks that is the right trade; for a one-week captain differential it is not.</div>
+<p>The plan's second criterion &mdash; <b>simulated final rank</b> &mdash; is not yet measured.
+That needs a full-season squad simulation with transfers, hits and chips. Per-gameweek accuracy is
+passed; final rank remains an open claim.</p>
+
 <h3>Known limits</h3>
 <ul>
-<li>Midfielders and forwards carry a measured residual bias of about <b>&minus;0.3 xPts per
-match</b>, most likely unmodelled set-piece threat. Premium attackers are therefore somewhat
-understated, and the model's top fair price (&pound;11.8m) sits below what FPL charges for elite
-forwards &mdash; some of that gap is this bias, not market error.</li>
+<li>Measured bias, from the walk-forward backtest on identical rows: <b>forwards
+&minus;0.30</b> and midfielders &minus;0.18 points per gameweek; <b>defenders are essentially
+unbiased (&minus;0.00)</b> and the model overall runs &minus;0.12, about 10% of the mean. Premium
+attackers are therefore somewhat understated, which is part of why the model's top fair price
+(&pound;11.8m) sits below what FPL charges for elite forwards.</li>
 <li>Gameweeks are simulated independently and accumulated: right for the mean, mildly
 understating variance, since it ignores serial correlation in form and rotation.</li>
 <li>DefCon has one season of native data. Its joint relationship with clean sheets measures

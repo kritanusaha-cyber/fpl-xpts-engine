@@ -990,3 +990,60 @@ The plan's second criterion — **simulated final rank** — is not measured her
 That needs a full-season squad simulation with weekly transfers, hits and chip
 usage, which is a larger piece of work than the per-gameweek accuracy test. Per-GW
 MAE and Spearman are passed; final rank remains an open claim.
+
+---
+
+# The attacker bias, measured properly
+
+This number has been quoted three times in this file with three different values,
+because the first two measurements were confounded. The clean version, taken from
+the walk-forward backtest where projection and outcome sit on identical rows:
+
+| position | projected | realised | bias |
+|---|---|---|---|
+| DEF | 1.21 | 1.21 | **−0.00** |
+| GKP | 0.66 | 0.73 | −0.07 |
+| MID | 0.96 | 1.15 | −0.18 |
+| FWD | 1.00 | 1.30 | **−0.30** |
+| all | 1.01 | 1.14 | −0.12 |
+
+**Defenders are essentially unbiased.** Forwards are under-projected by 0.30
+points per gameweek, midfielders by 0.18, and the model overall by 0.12 — about
+10% of the mean. That is a real but modest bias, and smaller than the −0.83 the
+filtered comparison implied.
+
+## The confound, stated plainly so it stops recurring
+
+`xpts` is an **unconditional** expectation: it already includes the probability
+that the player does not feature. Comparing it against outcomes **conditional on
+having played** compares two different quantities and manufactures a large fake
+bias:
+
+    filtered to players who featured:   2.16 projected vs 3.00 realised  (−0.83)
+    all rows, the correct comparison:   1.01 projected vs 1.14 realised  (−0.12)
+
+Seven times out of ten the model is projecting a player who may not play at all.
+Dropping those rows from the denominator but not the expectation is what produced
+the earlier numbers.
+
+## What is not a bias
+
+The error decomposes sharply by outcome:
+
+| realised | n | mean error |
+|---|---|---|
+| 0 (incl. did not play) | 15,485 | +0.36 |
+| 1–2 | 5,347 | +0.58 |
+| 3–5 | 1,726 | −1.39 |
+| 6–9 | 1,227 | −4.47 |
+| 10+ | 419 | −9.55 |
+
+This looks alarming and is not a defect. **An expectation must over-predict low
+outcomes and under-predict high ones** whenever outcomes are dispersed — a player
+projected at 3.0 who blanks contributes +3.0 of error and the same player hauling
+15 contributes −12.0, and both are correct behaviour for E[X]. The distribution
+is what the simulation is for; the mean is not supposed to track the tail.
+
+The right test of bias is whether the mean is unbiased overall, which it nearly
+is. The right test of the tail is calibration of the distribution, which is what
+the per-player outcome histograms show.
