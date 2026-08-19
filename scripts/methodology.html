@@ -334,9 +334,29 @@ models.</p>
 regresses extreme projections toward what the evidence supports, which buys accuracy and ordering
 at the cost of guessing which single player explodes this weekend. For a squad held over several
 gameweeks that is the right trade; for a one-week captain differential it is not.</div>
-<p>The plan's second criterion &mdash; <b>simulated final rank</b> &mdash; is not yet measured.
-That needs a full-season squad simulation with transfers, hits and chips. Per-gameweek accuracy is
-passed; final rank remains an open claim.</p>
+<h4>The second criterion: playing the season out</h4>
+<p>Accuracy is not the same claim as finishing well, so the season was simulated under the real
+constraints &mdash; budget, one free transfer a week, &minus;4 for the second. Four managers,
+identical information, GW8&ndash;38:</p>
+<table><tr><th>Manager</th><th>Total</th><th>Per GW</th><th>vs template</th></tr>
+<tr><td><b>engine</b></td><td class="n"><b>1,549</b></td><td class="n">49.97</td><td class="n"><b>+69</b></td></tr>
+<tr><td>points to date</td><td class="n">1,498</td><td class="n">48.32</td><td class="n">+18</td></tr>
+<tr><td>template (crowd)</td><td class="n">1,480</td><td class="n">47.74</td><td class="n">&mdash;</td></tr>
+<tr><td>form (last 4 GW)</td><td class="n">1,311</td><td class="n">42.29</td><td class="n">&minus;169</td></tr></table>
+<p>The engine wins, beats the template in 19 of 31 gameweeks, and projects to about
+<b>+85 points over a full season</b>.</p>
+<div class="caveat"><b>It is not statistically significant.</b> The weekly margin is +2.23 points
+with a standard deviation of 15.18 &mdash; a 95% interval of [&minus;3.12, +7.57], straddling zero,
+and a paired t-test of p = 0.42. Resolving an edge this size would take roughly <b>365 gameweeks,
+about 9.6 seasons</b>.
+<br><br>Both criteria are answered, and they answer differently. Projection accuracy passed
+decisively on 9,196 observations. Season points won by the right margin in the right direction but
+cannot be distinguished from luck in one season. Anyone claiming a proven rank edge from a
+single-season backtest is reading noise.</div>
+<p>The gap between those two results is itself informative: squad constraints are a coarse filter.
+Fifteen players, three per club and a fixed budget push every manager toward overlapping squads, so
+a large edge in projection quality compresses into a small edge in points. Better projections are
+necessary and nowhere near sufficient.</p>
 
 <h3>Known limits</h3>
 <ul>

@@ -1047,3 +1047,57 @@ is what the simulation is for; the mean is not supposed to track the tail.
 The right test of bias is whether the mean is unbiased overall, which it nearly
 is. The right test of the tail is calibration of the distribution, which is what
 the per-player outcome histograms show.
+
+---
+
+# The second criterion: playing the season out
+
+Per-gameweek accuracy is not the same claim as finishing well. A season is a
+sequence of constrained decisions — a fixed budget, one free transfer a week, −4
+for the second, and a squad that must be carried through blanks. So the season
+was played out: at each gameweek the manager sees only what had happened,
+re-optimises under the real constraints, and is scored on what his XI returned.
+
+Four managers, identical information, GW8–38:
+
+| manager | total | per GW | vs template |
+|---|---|---|---|
+| **engine** | **1,549** | **49.97** | **+69** |
+| points to date | 1,498 | 48.32 | +18 |
+| template (crowd) | 1,480 | 47.74 | — |
+| form (last 4 GW) | 1,311 | 42.29 | −169 |
+
+The engine wins, beats the template in **19 of 31 gameweeks**, and projects to
+about **+85 points over a full 38-gameweek season**.
+
+## But it is not statistically significant, and that matters
+
+| | |
+|---|---|
+| weekly margin over template | **+2.23** points |
+| standard deviation of that margin | 15.18 |
+| 95% CI | **[−3.12, +7.57]** — straddles zero |
+| paired t-test | t = +0.82, **p = 0.42** |
+| effect size (Cohen's d) | 0.147 |
+| gameweeks needed for 80% power | **~365, or 9.6 seasons** |
+
+So the two criteria give genuinely different verdicts, and both are true:
+
+* **Projection accuracy: passed decisively.** MAE 31% better than the template,
+  Spearman 46% better, measured on 9,196 player-gameweeks. That is a large
+  sample and the result is not in doubt.
+* **Season points: won, but unproven.** +69 points is a real margin and it is
+  the right sign, but weekly FPL variance is so large (sd 15.2 on the margin
+  alone) that a single season cannot distinguish it from luck.
+
+**This is the honest state of the project.** The model demonstrably knows more
+than the crowd about what a player will score. Whether that knowledge converts
+into a rank you could not have got by following the template is not something
+one season can answer — and anyone claiming otherwise from a single season's
+backtest is reading noise.
+
+The gap between the two results is itself the finding: squad constraints are a
+coarse filter. Fifteen players, three per club and a hundred-million budget push
+every manager toward overlapping squads, so a large edge in projection quality
+compresses into a small edge in points. Better projections are necessary and
+nowhere near sufficient.
