@@ -50,9 +50,26 @@ def _play_side(side: pd.DataFrame, team_goals, conceded, n_sims, rng):
     mfrac = np.clip(minutes / 90.0, 0, 1)
 
     tg = np.broadcast_to(team_goals[None, :], (n, n_sims))
+
     share_g = np.clip(side["xg_share"].to_numpy()[:, None] * mfrac, 0, 1)
     share_a = np.clip(side["xa_share"].to_numpy()[:, None] * mfrac, 0, 1)
-    goals = rng.binomial(tg, share_g)
+    # Split the player's threat into open play and set pieces, and draw them
+    # separately. Open-play goals are allocated out of the drawn scoreline, which
+    # ties them to how the match actually went. Set-piece goals are drawn from
+    # the player's own rate instead: a side held to one goal still wins corners,
+    # so a specialist's threat should not collapse with the scoreline.
+    #
+    # An earlier attempt folded this into the binomial's n by blending the drawn
+    # goals toward the league mean and rounding -- which quietly discarded the
+    # fractional part and biased every player carrying a set-piece share.
+    sp = (side["sp_share"].to_numpy()[:, None]
+          if "sp_share" in side.columns else np.zeros((n, 1)))
+    tg_mean = float(np.mean(team_goals)) or 1.0
+
+    goals_op = rng.binomial(tg, np.clip(share_g * (1.0 - sp), 0, 1))
+    sp_rate = np.clip(share_g * sp * tg_mean, 0, 3)
+    goals_sp = rng.poisson(sp_rate)
+    goals = goals_op + goals_sp
     assists = rng.binomial(tg, share_a)
 
     # Penalties, modelled separately from open play. xg_share is now non-penalty

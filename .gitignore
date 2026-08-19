@@ -5,3 +5,4 @@ data/features/
 *.duckdb
 __pycache__/
 *.pyc
+data/raw/fotmob/shotmaps/

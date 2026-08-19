@@ -101,3 +101,10 @@ deploy:            ## rebuild the dashboard and publish to GitHub Pages
 	@git add -A && git commit -q -m "Refresh projections" || echo "  (nothing changed)"
 	@git push -q origin main && echo "pushed -- Pages rebuilds in ~30s"
 	@echo "https://kritanusaha-cyber.github.io/fpl-xpts-engine/"
+
+fotmob:            ## ingest FotMob shotmaps (xGOT, penalty + set-piece tags)
+	$(PY) fpl/ingest/fotmob.py
+
+xgot:              ## test whether xGOT predicts anything before using it
+	$(PY) -c "import pandas as pd; from fpl.backtest.eval_xgot import evaluate, evaluate_keepers; \
+	s=pd.read_parquet('data/raw/fotmob/shots_2025_2026.parquet'); evaluate(s); print(); evaluate_keepers(s)"

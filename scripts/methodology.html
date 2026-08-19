@@ -123,6 +123,49 @@ crosses, fouls and big chances after 2018/19.</p>
 <p>The bonus winner is recovered in 69% of fixtures, not 100%. Bonus is also worth less than
 commonly claimed: <b>11.3%</b> of an elite player's season, not 15&ndash;20%.</p>
 
+<h4>xGOT: tested, and rejected</h4>
+<p>xGOT (expected goals on target) recomputes a shot's value <em>after</em> it is struck, from
+where in the goal it ended up. The difference from xG is placement quality, and it is the
+natural candidate for a finishing-skill term. FotMob publishes it per shot; 9,543 shots from
+2025/26 were ingested to test it.</p>
+<p>Three claims, tested separately on a within-season split (so both halves share the same squad,
+role and manager):</p>
+<table><tr><th>Signal</th><th>r, first half &rarr; second</th><th>t</th></tr>
+<tr><td>npxG per shot <em>(control)</em></td><td class="n">+0.742</td><td class="n">9.05</td></tr>
+<tr><td>finishing per shot (goals &minus; xG)</td><td class="n">&minus;0.065</td><td class="n">&minus;0.54</td></tr>
+<tr><td>placement per shot on target (xGOT &minus; xG)</td><td class="n">&minus;0.007</td><td class="n">&minus;0.06</td></tr>
+<tr><td>goalkeeper saves above expected</td><td class="n">+0.039</td><td class="n">+0.16</td></tr></table>
+<p>The control is the important row: <b>shot quality persists strongly</b>, which proves the test
+can detect persistence when it exists. Finishing, placement and shot-stopping do not persist at
+all, and neither adds anything once xG is already known (extra R&sup2; &asymp; 0.003).</p>
+<div class="caveat"><b>So xGOT is not used.</b> The prior expectation &mdash; that placement would
+persist better than raw finishing, because it divides out the goalkeeper &mdash; is false in
+this data. A player's shot <em>selection</em> is a skill; what he does to the ball after that is
+close to noise at Premier League sample sizes. This is exactly what the build plan predicted, and
+the plan was right.</div>
+
+<h4>What the same data did give: set pieces</h4>
+<p>The FotMob shotmap tags every shot's <code>situation</code>, and set pieces turn out to be
+<b>26.8% of all league xG</b> &mdash; the largest single component the model had been treating as
+undifferentiated open play. Unlike finishing, set-piece involvement is a strongly persistent
+trait:</p>
+<table><tr><th>Signal</th><th>r</th><th>t</th></tr>
+<tr><td>set-piece <b>shot share</b></td><td class="n">+0.780</td><td class="n">12.15</td></tr>
+<tr><td>open-play xG per shot <em>(control)</em></td><td class="n">+0.723</td><td class="n">10.21</td></tr>
+<tr><td>set-piece xG per shot</td><td class="n">+0.543</td><td class="n">6.31</td></tr></table>
+<p>The football reason it matters: the multiplicative model scales a player's whole threat by
+projected team xG, but <b>a hard fixture suppresses open play far more than it suppresses
+corners</b>. A side held to one goal still wins set pieces. So open-play goals are now allocated
+out of the drawn scoreline while set-piece goals are drawn from the player's own rate.</p>
+<p>This is the aerial centre-back archetype made measurable: Malick Thiaw and Virgil van Dijk take
+<b>93%</b> of their shots from set pieces. Their threat should not collapse against a strong
+opponent, and previously it did.</p>
+<div class="caveat"><b>Not yet proven to fix the attacker bias.</b> The obvious test &mdash;
+whether this closes the measured &minus;0.3 xPts/match gap &mdash; is currently confounded: the
+definition of "starter" changed between measurements (from a probability threshold to top-N per
+club and position), which moves the benchmark. The persistence result above stands on its own;
+the bias improvement does not yet, and is not claimed.</div>
+
 <h3>Pricing: what the market charges for output</h3>
 <p>Fair price was originally <code>price + surplus / lambda</code>, using the budget shadow price
 from the optimiser. <b>That was wrong</b>, and it is the error that produced a &pound;13.3m fair

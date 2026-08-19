@@ -168,6 +168,39 @@ def player_priors(db: str = "data/fpl.duckdb", source_season: str = "2025-26") -
     return agg.drop(columns=["element"])
 
 
+def _attach_setpiece(d: pd.DataFrame) -> pd.DataFrame:
+    """Split a player's threat into open-play and set-piece components.
+
+    The multiplicative model scales a player's whole xG share by projected team
+    xG. That is right for open play and wrong for set pieces: a hard fixture
+    suppresses open-play chances far more than it suppresses corners. A
+    set-piece specialist therefore keeps more of his threat in bad fixtures than
+    the model was giving him, which is part of why attackers -- and aerial
+    centre-backs -- were being under-projected.
+
+    Set-piece SHOT share is the input because it is the part that persists
+    (r = 0.78 half-to-half, against r = -0.01 for xGOT placement) and because it
+    is a role, which survives a transfer better than a raw volume would.
+    """
+    d = d.copy()
+    d["sp_share"] = 0.0
+    path = Path("data/raw/fotmob/setpiece_priors.parquet")
+    if not path.exists():
+        return d
+    sp = pd.read_parquet(path)
+    sp = sp[sp["shots"] >= 8]          # below this the share is noise
+    lut = dict(zip(sp["code"], sp["sp_xg_share_of_own"]))
+    d["sp_share"] = d["code"].map(lut).fillna(0.0).clip(0, 0.95)
+
+    # Shrink toward the position mean on shot count, same logic as everywhere
+    # else: a player with nine shots has not established a set-piece role.
+    n = d["code"].map(dict(zip(sp["code"], sp["shots"]))).fillna(0.0)
+    pos_mean = d.groupby("position")["sp_share"].transform("mean")
+    w = n / (n + 15.0)
+    d["sp_share"] = w * d["sp_share"] + (1 - w) * pos_mean
+    return d
+
+
 def _priors_cfg(path: Path = Path("config/transfer_priors.yaml")) -> dict:
     import yaml
     return yaml.safe_load(path.read_text())
@@ -235,6 +268,7 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
     d["group"] = d["position"] + "_" + d["tier"].astype(str)
     d = _attach_foreign(d)
     d = _attach_role(d)
+    d = _attach_setpiece(d)
     cfg = _priors_cfg()
     for col in ["xg_share", "xa_share", "dc_per90", "starts60", "save_per90"]:
         grp_mean = d.groupby("group")[col].transform("mean")
