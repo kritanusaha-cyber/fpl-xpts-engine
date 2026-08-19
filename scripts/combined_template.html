@@ -165,6 +165,9 @@ tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
 .zgstat{display:flex;gap:13px;flex-wrap:wrap;margin-top:5px;font-size:11.5px;color:var(--muted)}
 .zgstat b{font-family:var(--mono);color:var(--ink)}
 .zgn{margin-left:auto;font-family:var(--mono)}
+.gkhead{display:flex;align-items:center;gap:11px;margin:8px 0 6px}
+.gkbig{font-family:var(--mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+.gklab{font-size:11.5px;color:var(--ink-2);line-height:1.35}
 .zwrap{margin-top:9px}
 .zrow{display:grid;grid-template-columns:1fr 78px 42px 34px;gap:7px;align-items:center;
   font-size:11.5px;margin-top:6px}
@@ -408,6 +411,35 @@ function detail(p){
 }
 
 
+
+/* ---------------- goalkeeper shot-stopping ---------------- */
+function keeperPanel(p){
+  const g=p.gk; if(!g) return '';
+  // Goals prevented is the headline: PsxG faced minus goals conceded. Positive
+  // means he saved more than an average keeper would have from those shots.
+  const prevented=g.prevented, col=prevented>=0?'var(--pos)':'var(--neg)';
+  const w=Math.min(100, Math.abs(prevented)/8*100);
+  const rows=[
+    ['Shots on target faced', g.faced, ''],
+    ['PsxG faced', g.psxg.toFixed(1), 'what an average keeper concedes from those shots'],
+    ['Goals conceded', g.conceded, ''],
+    ['Save % over expected', (g.save_oe*100>=0?'+':'')+(g.save_oe*100).toFixed(1)+'%', ''],
+  ].map(([k,v,why])=>`<div class="zrow"><span class="zlab">${k}</span>
+     <span></span><span class="zval">${v}</span><span></span></div>
+     ${why?`<div class="zwhy">${why}</div>`:''}`).join('');
+  return `<div class="dh" style="margin-top:14px">Shot-stopping (non-penalty, ${g.matches} matches)</div>
+    <div class="gkhead">
+      <span class="gkbig" style="color:${col}">${prevented>=0?'+':''}${prevented.toFixed(2)}</span>
+      <span class="gklab">goals prevented<br><span class="zwhy">PsxG faced &minus; goals conceded</span></span>
+    </div>
+    <div class="zbar" style="height:9px"><i style="width:${w}%;background:${col}"></i></div>
+    <div class="zwrap">${rows}</div>
+    <div class="warn" style="color:var(--muted)"><span>&#9650;</span><span>Descriptive only.
+      Shot-stopping does not persist measurably within one season &mdash; even the control
+      (difficulty faced) fails at this sample size &mdash; so this is <b>not</b> used in the
+      projection.</span></div>`;
+}
+
 /* ---------------- Athletic-style shot-zone grid ---------------- */
 // Attacking half, halfway line on the left, goal on the right. Six columns by
 // five rows, coloured three ways against the positional baseline -- the same
@@ -503,6 +535,9 @@ function zonalPanel(p){
   const grid = p.grid
     ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
+  const gk = keeperPanel(p);
+  if (gk) return `${gk}<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
+    <div class="zwrap">${rows}</div>`;
   return `${grid}<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
     <div class="zwrap">${rows}</div>`;
 }

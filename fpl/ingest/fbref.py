@@ -103,7 +103,7 @@ def manual_overrides(path: Path = Path("config/manual_overrides.csv")) -> dict:
     if not path.exists():
         return {}
     ov = pd.read_csv(path, comment="#")
-    ov = ov[ov["source"] == "fbref"]
+    ov = ov[ov["source"].isin(["fbref", "fotmob_gk"])]
     return dict(zip(ov["fbref_name"], ov["fpl_code"]))
 
 

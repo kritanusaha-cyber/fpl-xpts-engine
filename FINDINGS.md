@@ -1253,3 +1253,88 @@ not whether a parameter generalises across seasons — and it showed a spike at
 k = 0.05 that reverted by k = 0.10, which is an overfitting signature rather than
 a dose-response. Leave-one-season-out is the test that answers the question, and
 it downgraded the result substantially.
+
+---
+
+# Goalkeeping, rebuilt on post-shot expected goals
+
+PsxG and xGOT are the same quantity: a shot's value recomputed *after* it is
+struck, conditioning on where it crossed the goal line. For a keeper it is the
+right denominator, because it asks the only fair question — **given the shots he
+actually faced, how many would an average keeper concede?**
+
+    goals prevented = SUM PsxG(on-target shots faced) − goals conceded
+
+Save percentage cannot answer that. A keeper behind a poor defence faces better
+chances and posts a worse save rate while playing better; PsxG divides that out.
+
+## Attribution fixed
+
+Shots are now attributed to the goalkeeper via `keeperId` from the cached
+shotmaps — no new requests. An earlier version aggregated by defending *team*,
+which merged two keepers at any club that rotated or lost someone to injury and
+produced a null on 20 data points. **27 keepers, 3,144 on-target shots, all 27
+resolved to FPL** (four needed manual aliases: Raya, Sánchez, Bayındır, José Sá).
+
+| keeper | faced | PsxG | conceded | goals prevented |
+|---|---|---|---|---|
+| Lammens | 111 | 40.1 | 33 | **+7.05** |
+| Verbruggen | 140 | 42.6 | 37 | +5.59 |
+| Donnarumma | 104 | 34.0 | 29 | +5.04 |
+| … | | | | |
+| Alisson | 83 | 26.0 | 29 | −3.05 |
+| Vicario | 132 | 42.9 | 48 | **−5.07** |
+
+## Goal-mouth placement behaves exactly as football says it should
+
+`goalCrossedY` / `goalCrossedZ` give the crossing point, so shots split by area:
+
+| area | shots | conversion |
+|---|---|---|
+| high-left | 90 | **50.0%** |
+| high-right | 107 | 43.9% |
+| low-left | 454 | 39.9% |
+| low-centre | 544 | 18.8% |
+| mid-centre | 423 | **16.3%** |
+
+Corners convert at two to three times the rate of central shots. That is the
+whole of goalkeeping in one table, and it validates the coordinate parsing.
+
+## But it is descriptive, not predictive — and the control proves the test is weak
+
+| | r (first half → second) | t |
+|---|---|---|
+| goals prevented per shot | −0.203 | −0.95 |
+| save % over expected | −0.203 | −0.95 |
+| raw save % | −0.409 | −2.06 |
+| **PsxG faced per shot (control)** | **−0.116** | −0.53 |
+
+**The control fails.** Difficulty faced is defensive quality and must persist;
+it does not, at 23 keepers with roughly 65 shots each per half. So this test
+cannot detect persistence in anything, and the honest statement is *not* "keeper
+shot-stopping doesn't persist" but "**one season cannot measure it**". The
+literature puts stabilisation at two to three seasons, which matches.
+
+Raw save % showing significant *negative* persistence (−0.409, t = −2.06) is
+straightforward mean reversion, and is the reason not to use it.
+
+## PsxG faced is a keeper metric, not a defence metric
+
+Tested as a clean-sheet input, past goals conceded beats it:
+
+| predictor of next-half goals conceded | r |
+|---|---|
+| past goals conceded | **+0.657** |
+| past PsxG faced | +0.503 |
+
+Counterintuitive until you notice PsxG counts **only shots on target**. Off-target
+and blocked shots carry real defensive information that it discards. For team
+defence the right input is xGA over all shots, which the Dixon-Coles model
+already uses. PsxG belongs to the keeper, not the back four.
+
+## Shipped as
+
+A goalkeeper panel on 22 players: goals prevented as the headline, PsxG faced,
+conceded, and save % over expected — **explicitly marked descriptive and excluded
+from the projection**, the same treatment given to xGOT for outfielders and
+six-yard-box share for strikers. Good scouting information; not a forecast.

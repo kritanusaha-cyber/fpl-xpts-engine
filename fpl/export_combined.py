@@ -103,6 +103,26 @@ def build() -> dict:
                 "wing": round(float(r["wing_share"]), 3),
             }
 
+    # Goalkeeper shot-stopping, keyed by element via the stable code.
+    keepers = {}
+    kp = Path("data/features/keeper_stats.parquet")
+    if kp.exists():
+        kk = pd.read_parquet(kp)
+        c2e = dict(zip(d["code"], d["element"]))
+        for _, r in kk.iterrows():
+            el = c2e.get(int(r["code"]))
+            if el is None:
+                continue
+            keepers[int(el)] = {
+                "faced": int(r["faced_np"]),
+                "psxg": round(float(r["psxg_np"]), 1),
+                "conceded": int(r["conceded_np"]),
+                "prevented": round(float(r["goals_prevented"]), 2),
+                "save_oe": round(float(r["save_pct_oe"]), 3),
+                "save_pct": round(float(r["save_pct"]), 3),
+                "matches": int(r["matches"]),
+            }
+
     # GW1 component breakdown, keyed by element
     g1 = gw1.set_index("element")
     comp = {int(e): {c: round(float(g1.loc[e].get(f"c_{c}", 0.0)), 2) for c in COMPONENTS}
@@ -146,6 +166,7 @@ def build() -> dict:
             "comp": comp.get(e, {}),
             "runs": runs.get(e, []),
             "grid": grids.get(int(p.element)),
+            "gk": keepers.get(int(p.element)),
             "zon": ({
                 "six": round(float(p.six_yard_share), 3) if pd.notna(p.get("six_yard_share")) else None,
                 "box_t": round(float(p.box_touches_p90), 2) if pd.notna(p.get("box_touches_p90")) else None,

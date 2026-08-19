@@ -12,3 +12,7 @@ fbref,Bruno Fernandes,141746,FPL web_name "B.Fernandes"; disambiguate from M.Fer
 fbref,Bruno Guimarães,208706,FPL web_name "Bruno G."
 fbref,Igor Jesus,482973,disambiguate from Igor (code 223434)
 fbref,Lucas Paquetá,224024,FPL full name shares no surname token
+fotmob_gk,David Raya,154561,FPL stores "David Raya Martín"; FotMob drops the second surname
+fotmob_gk,Robert Sánchez,215059,FPL stores "Robert Lynch Sánchez"
+fotmob_gk,Altay Bayindir,451302,accent differs: FPL has "Bayındır" with a dotless i
+fotmob_gk,José Sá,149065,FPL stores "José Malheiro de Sá"
