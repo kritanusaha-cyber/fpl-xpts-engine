@@ -81,6 +81,28 @@ def build() -> dict:
                         .rank(ascending=False, method="min")).fillna(0).astype(int)
     d["role_n"] = d.groupby("role")["is_starter"].transform("sum").astype(int)
 
+    # Shot-zone grids, keyed by FPL element via the stable code.
+    grids = {}
+    gp = Path("data/features/pitch_grids.parquet")
+    if gp.exists():
+        from fpl.ingest.fotmob import resolve_to_fpl as _res
+        g = _res(pd.read_parquet(gp)).dropna(subset=["code"])
+        g["code"] = g["code"].astype(int)
+        code_to_el = dict(zip(d["code"], d["element"]))
+        for _, r in g.drop_duplicates("code").iterrows():
+            el = code_to_el.get(int(r["code"]))
+            if el is None:
+                continue
+            grids[int(el)] = {
+                "tier": [int(v) for v in r["grid_tier"]],
+                "shots": int(r["shots"]),
+                "z14": round(float(r["zone14_share"]), 3),
+                "box": round(float(r["box_share"]), 3),
+                "centre": round(float(r["centre_share"]), 3),
+                "half": round(float(r["halfspace_share"]), 3),
+                "wing": round(float(r["wing_share"]), 3),
+            }
+
     # GW1 component breakdown, keyed by element
     g1 = gw1.set_index("element")
     comp = {int(e): {c: round(float(g1.loc[e].get(f"c_{c}", 0.0)), 2) for c in COMPONENTS}
@@ -123,6 +145,7 @@ def build() -> dict:
             "squad": e in picked, "xi": e in xi, "capt": e in capt,
             "comp": comp.get(e, {}),
             "runs": runs.get(e, []),
+            "grid": grids.get(int(p.element)),
             "zon": ({
                 "six": round(float(p.six_yard_share), 3) if pd.notna(p.get("six_yard_share")) else None,
                 "box_t": round(float(p.box_touches_p90), 2) if pd.notna(p.get("box_touches_p90")) else None,

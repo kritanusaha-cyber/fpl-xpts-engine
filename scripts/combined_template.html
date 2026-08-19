@@ -158,6 +158,13 @@ tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
 .drv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:12px}
 .drv dt{color:var(--muted)} .drv dd{margin:0;font-family:var(--mono);text-align:right;
   font-variant-numeric:tabular-nums}
+:root{--zg-hi:#C8442F;--zg-mid:#E0A32B;--zg-lo:#2C6FA8;--zg-line:rgba(255,255,255,.85)}
+.zgleg{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:11px;color:var(--ink-2)}
+.zgleg span{display:flex;align-items:center;gap:5px}
+.zgleg i{width:10px;height:10px;border-radius:1px;display:inline-block}
+.zgstat{display:flex;gap:13px;flex-wrap:wrap;margin-top:5px;font-size:11.5px;color:var(--muted)}
+.zgstat b{font-family:var(--mono);color:var(--ink)}
+.zgn{margin-left:auto;font-family:var(--mono)}
 .zwrap{margin-top:9px}
 .zrow{display:grid;grid-template-columns:1fr 78px 42px 34px;gap:7px;align-items:center;
   font-size:11.5px;margin-top:6px}
@@ -400,6 +407,62 @@ function detail(p){
   </div>`;
 }
 
+
+/* ---------------- Athletic-style shot-zone grid ---------------- */
+// Attacking half, halfway line on the left, goal on the right. Six columns by
+// five rows, coloured three ways against the positional baseline -- the same
+// dominant / contested / below encoding The Athletic uses for team territory.
+const CHANNELS=['Right wing','Right half-space','Centre','Left half-space','Left wing'];
+const BANDS=['Halfway','Middle','Approach','Zone 14','Box edge','Six-yard'];
+function zoneGrid(p){
+  const g=p.grid; if(!g) return '';
+  const W=330,H=210, PAD=8, gw=(W-PAD*2), gh=(H-PAD*2), cw=gw/6, ch=gh/5;
+  const col=t=>t===1?'var(--zg-hi)':(t===0?'var(--zg-mid)':'var(--zg-lo)');
+  let cells='';
+  for(let r=0;r<5;r++) for(let c=0;c<6;c++){
+    const t=g.tier[r*6+c];
+    const isZ14=(r===2&&c===3);
+    cells+=`<rect x="${PAD+c*cw}" y="${PAD+r*ch}" width="${cw}" height="${ch}"
+      fill="${col(t)}" stroke="rgba(0,0,0,.35)" stroke-width="1">
+      <title>${CHANNELS[r]} &middot; ${BANDS[c]}${isZ14?' (Zone 14)':''}: ${
+        t===1?'above positional baseline':(t===0?'typical':'below')}</title></rect>`;
+  }
+  // Pitch furniture drawn over the grid: penalty area, six-yard box, goal,
+  // halfway arc. Without it the grid is just a heat table, not a pitch.
+  const boxH=gh*0.62, boxY=PAD+(gh-boxH)/2, boxW=cw*2;
+  const sixH=gh*0.30, sixY=PAD+(gh-sixH)/2, sixW=cw*0.75;
+  const gx=PAD+gw;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Shot zones across the attacking half">
+    ${cells}
+    <g fill="none" stroke="var(--zg-line)" stroke-width="1.6">
+      <rect x="${PAD}" y="${PAD}" width="${gw}" height="${gh}"/>
+      <rect x="${gx-boxW}" y="${boxY}" width="${boxW}" height="${boxH}"/>
+      <rect x="${gx-sixW}" y="${sixY}" width="${sixW}" height="${sixH}"/>
+      <path d="M ${PAD} ${PAD+gh/2-26} A 26 26 0 0 1 ${PAD} ${PAD+gh/2+26}"/>
+      <line x1="${gx}" y1="${boxY+boxH*0.34}" x2="${gx+4}" y2="${boxY+boxH*0.34}"/>
+      <line x1="${gx}" y1="${boxY+boxH*0.66}" x2="${gx+4}" y2="${boxY+boxH*0.66}"/>
+    </g>
+    <text x="${PAD+2}" y="${H-1}" class="tk" fill="var(--muted)">halfway</text>
+    <text x="${gx-2}" y="${H-1}" class="tk" text-anchor="end" fill="var(--muted)">goal \u2192</text>
+  </svg>`;
+}
+function zoneLegend(p){
+  const g=p.grid; if(!g) return '';
+  return `<div class="zgleg">
+      <span><i style="background:var(--zg-hi)"></i>above baseline</span>
+      <span><i style="background:var(--zg-mid)"></i>typical</span>
+      <span><i style="background:var(--zg-lo)"></i>below</span>
+    </div>
+    <div class="zgstat">
+      <span>Zone 14 <b>${(g.z14*100).toFixed(0)}%</b></span>
+      <span>in box <b>${(g.box*100).toFixed(0)}%</b></span>
+      <span>central <b>${(g.centre*100).toFixed(0)}%</b></span>
+      <span>half-spaces <b>${(g.half*100).toFixed(0)}%</b></span>
+      <span class="zgn">${g.shots} shots</span>
+    </div>`;
+}
+
 /* ---------------- zonal / territory panel ---------------- */
 function pitchSvg(p){
   // Half-pitch, attacking right. Shading shows where this player's threat comes
@@ -437,8 +500,11 @@ function zonalPanel(p){
       <span class="zpct">${q==null?'':(w+'%')}</span></div>
       <div class="zwhy">${why}</div>`;
   }).join('');
-  return `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
-    ${pitchSvg(p)}<div class="zwrap">${rows}</div>`;
+  const grid = p.grid
+    ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
+       ${zoneGrid(p)}${zoneLegend(p)}` : '';
+  return `${grid}<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
+    <div class="zwrap">${rows}</div>`;
 }
 
 /* ---------------- table ---------------- */

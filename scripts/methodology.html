@@ -179,6 +179,35 @@ access to, plus pitch coordinates for every shot.</p>
 <p>Box touches persist <b>more strongly than xG per shot itself</b>. Where a player operates is a
 more stable trait than how good his chances are.</p>
 
+<h4>The zone grid, and why these zones</h4>
+<p>Each player panel carries a six-by-five zone grid over the attacking half, coloured three ways
+against the baseline for his own position &mdash; above, typical, below. The three-way encoding is
+borrowed from The Athletic's territory charts for a practical reason: the eye reads categories
+across thirty cells far faster than it reads a continuous shading ramp.</p>
+<p>The axes use standard football-analysis terminology rather than invented labels:</p>
+<table><tr><th>Vertical channels</th><th>Horizontal bands</th></tr>
+<tr><td>Left wing</td><td>Halfway</td></tr>
+<tr><td><b>Left half-space</b></td><td>Middle</td></tr>
+<tr><td>Centre</td><td>Approach</td></tr>
+<tr><td><b>Right half-space</b></td><td><b>Zone 14</b></td></tr>
+<tr><td>Right wing</td><td>Box edge / Six-yard</td></tr></table>
+<p>The <b>half-spaces</b> are the channels between centre and touchline. They matter because a
+player receiving there can face goal, shoot, and play a cutback without the touchline compressing
+his options &mdash; which is why modern sides deliberately overload them.</p>
+<p><b>Zone 14</b> is the central zone immediately outside the penalty area. It is the most
+productive creative area in open play: possession there yields more shots and assists per touch
+than anywhere else outside the box. A midfielder who lives in Zone 14 is a chance creator almost
+by definition.</p>
+<p>The grid spans the attacking half rather than the full pitch, because it is built from shots
+and a full-pitch version would be two-thirds empty &mdash; wasting resolution exactly where it
+matters. Reads come out as they should: Saka is 70% half-spaces and 27% central (a winger cutting
+in from the right), Van Dijk 93% central and 90% in the box (a centre-back attacking crosses),
+Haaland 90% box with only 7% in Zone 14 (a pure penalty-box striker).</p>
+<div class="caveat"><b>These are shot locations, not possession.</b> The Athletic chart shows
+touch territory for whole teams; this shows where a player shoots from. True per-player touch
+heatmaps need coordinate-level event data &mdash; SofaScore publishes it, and a partial collection
+(154 players, 7,382 coordinates) exists, but a full season was not gathered.</div>
+
 <h4>What each one is actually measuring</h4>
 <p><b>Midfielders &mdash; arriving is not the same as supplying.</b> Box touches predict
 second-half chances created with <b>extra R&sup2; = 0.258 beyond final-third passes</b>
