@@ -166,6 +166,45 @@ definition of "starter" changed between measurements (from a probability thresho
 club and position), which moves the benchmark. The persistence result above stands on its own;
 the bias improvement does not yet, and is not claimed.</div>
 
+<h4>Zonal analysis: territory as a leading indicator</h4>
+<p>Output is what we predict; territory is what generates it, and it stabilises far faster.
+FotMob's per-match player data gives three territorial measures the model otherwise has no
+access to, plus pitch coordinates for every shot.</p>
+<table><tr><th>Signal</th><th>persistence r</th><th>t</th></tr>
+<tr><td>touches in opposition box, per 90</td><td class="n">+0.894</td><td class="n">33.67</td></tr>
+<tr><td>passes into final third, per 90</td><td class="n">+0.814</td><td class="n">23.73</td></tr>
+<tr><td>accurate crosses, per 90</td><td class="n">+0.765</td><td class="n">20.08</td></tr>
+<tr><td>six-yard-box shot share</td><td class="n">+0.376</td><td class="n">6.42</td></tr>
+<tr><td>xG per shot <em>(control)</em></td><td class="n">+0.369</td><td class="n">6.27</td></tr></table>
+<p>Box touches persist <b>more strongly than xG per shot itself</b>. Where a player operates is a
+more stable trait than how good his chances are.</p>
+
+<h4>What each one is actually measuring</h4>
+<p><b>Midfielders &mdash; arriving is not the same as supplying.</b> Box touches predict
+second-half chances created with <b>extra R&sup2; = 0.258 beyond final-third passes</b>
+(t = 8.67). The two are separable skills: a high-final-third-pass midfielder is a supplier, a
+high-box-touch one is an arriving runner, and the arriving runner creates and scores more than
+his passing implies. Saka reads 98th percentile for box touches but 16th for final-third passes
+&mdash; a player who gets there rather than one who builds.</p>
+<p><b>Full-backs &mdash; the mechanism is crossing, not box presence.</b> The natural hypothesis
+is that an advanced full-back assists because he gets high. Measured on defenders, predicting
+next-half xA:</p>
+<table><tr><th>Predictor</th><th>r</th><th>t</th></tr>
+<tr><td>accurate crosses per 90</td><td class="n">+0.539</td><td class="n">6.40</td></tr>
+<tr><td>touches in opposition box per 90</td><td class="n">+0.174</td><td class="n">1.76</td></tr></table>
+<p>A full-back assists <b>from wide, not from the area</b>. Arriving in the box is a winger's
+pattern; for a defender it is mostly noise. So crossing drives the creativity term for defenders
+and box touches drives it for everyone else.</p>
+<p><b>Attackers &mdash; six-yard-box share describes, it does not predict.</b> The intuition is
+sound: a striker living in the six-yard box is getting on the end of service rather than shooting
+from range. But the share persists only weakly (r = 0.376) and adds nothing to goals beyond xG,
+which already encodes shot location. It is <b>shown on the player panel and excluded from the
+projection</b> &mdash; a description of style, not a forecast input.</p>
+<div class="caveat ok"><b>Why this passed where xGOT failed.</b> Same bar, opposite outcome.
+xGOT measured what a player did to the ball after striking it, which is close to noise. These
+measure where he spends the match, which is a role &mdash; and roles are stable, transfer with
+the player, and lead output rather than lagging it.</div>
+
 <h3>Pricing: what the market charges for output</h3>
 <p>Fair price was originally <code>price + surplus / lambda</code>, using the budget shadow price
 from the optimiser. <b>That was wrong</b>, and it is the error that produced a &pound;13.3m fair

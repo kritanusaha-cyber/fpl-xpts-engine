@@ -123,6 +123,13 @@ def build() -> dict:
             "squad": e in picked, "xi": e in xi, "capt": e in capt,
             "comp": comp.get(e, {}),
             "runs": runs.get(e, []),
+            "zon": ({
+                "six": round(float(p.six_yard_share), 3) if pd.notna(p.get("six_yard_share")) else None,
+                "box_t": round(float(p.box_touches_p90), 2) if pd.notna(p.get("box_touches_p90")) else None,
+                "cross": round(float(p.crosses_p90), 2) if pd.notna(p.get("crosses_p90")) else None,
+                "ft": round(float(p.passes_ft_p90), 2) if pd.notna(p.get("passes_ft_p90")) else None,
+                "sp": round(float(p.sp_share), 3) if pd.notna(p.get("sp_share")) else None,
+            } if pd.notna(p.get("box_touches_p90")) else None),
             "drv": {
                 "p60": round(float(p.starts60), 3),
                 "xg_share": round(float(p.xg_share), 4),
@@ -132,6 +139,20 @@ def build() -> dict:
                 "pen": int(p.penalties_order) if pd.notna(p.penalties_order) else 0,
             },
         })
+    # Percentile ranks within position, so a zonal bar reads as "high for a
+    # defender" rather than as a raw number the reader must calibrate himself.
+    zon_cols = ["six_yard_share", "box_touches_p90", "crosses_p90", "passes_ft_p90"]
+    pct = {}
+    for c in zon_cols:
+        if c in d.columns:
+            pct[c] = d.groupby("position")[c].rank(pct=True)
+    for row in players:
+        i = d.index[d["element"] == row["id"]]
+        if row.get("zon") and len(i):
+            row["zon"]["pct"] = {k: (round(float(v.loc[i[0]]), 2)
+                                     if pd.notna(v.loc[i[0]]) else None)
+                                 for k, v in pct.items()}
+
     players.sort(key=lambda x: -x["xpts"])
 
     return {

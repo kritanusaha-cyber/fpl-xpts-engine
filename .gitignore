@@ -6,3 +6,4 @@ data/features/
 __pycache__/
 *.pyc
 data/raw/fotmob/shotmaps/
+data/raw/fotmob/detail/

@@ -201,6 +201,60 @@ def _attach_setpiece(d: pd.DataFrame) -> pd.DataFrame:
     return d
 
 
+def _attach_zonal(d: pd.DataFrame) -> pd.DataFrame:
+    """Territorial features, kept only where they were shown to predict.
+
+    Validated on a within-season split (fpl/backtest/eval_zonal.py):
+
+      box_touches_p90   persists at r = 0.894 -- more stable than xG per shot --
+                        and adds extra R2 = 0.258 to predicting chances created
+                        beyond final-third passes (t = 8.67). This is the
+                        arriving-runner signal: a midfielder who gets into the
+                        box creates and scores more than his passing suggests.
+
+      crosses_p90       for DEFENDERS this is the assist mechanism, not box
+                        presence: crosses predict next-half xA at r = 0.539
+                        (t = 6.40) against r = 0.174 for box touches. A full-back
+                        assists from wide, not by arriving in the area.
+
+      six_yard_share    persists only weakly (r = 0.376) and adds nothing to
+                        goals beyond xG, which already encodes shot location.
+                        Carried for display, NOT used in projections.
+    """
+    d = d.copy()
+    for c in ("box_touches_p90", "crosses_p90", "passes_ft_p90", "six_yard_share",
+              "box_touch_share"):
+        d[c] = np.nan
+    path = Path("data/features/zonal.parquet")
+    if not path.exists():
+        return d
+    z = pd.read_parquet(path)
+
+    from fpl.ingest.fotmob import resolve_to_fpl
+    z = resolve_to_fpl(z.rename(columns={"player_name": "player_name"}))
+    z = z.dropna(subset=["code"])
+    z["code"] = z["code"].astype(int)
+    z = z[z["minutes"] >= 450].drop_duplicates("code")
+
+    for c in ("box_touches_p90", "crosses_p90", "passes_ft_p90", "six_yard_share",
+              "box_touch_share"):
+        if c in z.columns:
+            d[c] = d["code"].map(dict(zip(z["code"], z[c])))
+
+    # Creativity uplift. Applied to the xA share, which is what chances created
+    # feed, and shrunk toward the positional mean so a small sample cannot move a
+    # projection far. Deliberately modest: this improves the ranking of creators,
+    # it does not license a large level change.
+    pos_med = d.groupby("position")["box_touches_p90"].transform("median")
+    lift = ((d["box_touches_p90"] - pos_med) / pos_med.clip(lower=0.5)).clip(-0.5, 0.5)
+    is_def = d["position"].eq("DEF")
+    cross_med = d.groupby("position")["crosses_p90"].transform("median")
+    cross_lift = ((d["crosses_p90"] - cross_med) / cross_med.clip(lower=0.2)).clip(-0.5, 0.5)
+    lift = np.where(is_def, cross_lift, lift)
+    d["xa_share"] = d["xa_share"] * (1.0 + 0.25 * pd.Series(lift, index=d.index).fillna(0.0))
+    return d
+
+
 def _priors_cfg(path: Path = Path("config/transfer_priors.yaml")) -> dict:
     import yaml
     return yaml.safe_load(path.read_text())
@@ -269,6 +323,7 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
     d = _attach_foreign(d)
     d = _attach_role(d)
     d = _attach_setpiece(d)
+    d = _attach_zonal(d)
     cfg = _priors_cfg()
     for col in ["xg_share", "xa_share", "dc_per90", "starts60", "save_per90"]:
         grp_mean = d.groupby("group")[col].transform("mean")

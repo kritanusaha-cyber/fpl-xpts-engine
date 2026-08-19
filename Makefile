@@ -108,3 +108,11 @@ fotmob:            ## ingest FotMob shotmaps (xGOT, penalty + set-piece tags)
 xgot:              ## test whether xGOT predicts anything before using it
 	$(PY) -c "import pandas as pd; from fpl.backtest.eval_xgot import evaluate, evaluate_keepers; \
 	s=pd.read_parquet('data/raw/fotmob/shots_2025_2026.parquet'); evaluate(s); print(); evaluate_keepers(s)"
+
+zonal:             ## ingest FotMob per-match player stats + shot coordinates
+	$(PY) fpl/ingest/fotmob_zonal.py
+
+eval-zonal:        ## test whether territorial features predict
+	$(PY) -c "import pandas as pd; from fpl.backtest.eval_zonal import evaluate; \
+	evaluate(pd.read_parquet('data/raw/fotmob/player_match_stats.parquet'), \
+	         pd.read_parquet('data/raw/fotmob/shots_zoned.parquet'))"
