@@ -1101,3 +1101,77 @@ coarse filter. Fifteen players, three per club and a hundred-million budget push
 every manager toward overlapping squads, so a large edge in projection quality
 compresses into a small edge in points. Better projections are necessary and
 nowhere near sufficient.
+
+---
+
+# Four seasons: the projection edge is real, the points edge is not
+
+The single-season result reported earlier (+69 points over the template) was one
+draw from a distribution centred on zero. Running all four seasons with xG
+coverage settles it, and the two halves of the plan's criterion come apart
+completely.
+
+## Accuracy holds everywhere
+
+| season | engine MAE | template MAE | to-date MAE | engine ρ | template ρ |
+|---|---|---|---|---|---|
+| 2022-23 | **1.885** | 2.730 | 1.975 | **0.291** | 0.229 |
+| 2023-24 | **1.935** | 2.694 | 1.976 | **0.273** | 0.219 |
+| 2024-25 | **1.863** | 2.636 | 1.922 | **0.272** | 0.244 |
+| 2025-26 | **1.991** | 2.895 | 2.067 | **0.282** | 0.193 |
+
+**4 of 4 seasons against the template on MAE. 4 of 4 against a to-date average.
+4 of 4 on Spearman.** Roughly 95,000 player-gameweeks. The model knows more about
+what a player will score than either benchmark, and it is not a fluke of one
+season.
+
+## Season points do not follow
+
+| season | engine | template | diff |
+|---|---|---|---|
+| 2022-23 | 1,349 | 1,376 | **−27** |
+| 2023-24 | 1,495 | 1,572 | **−77** |
+| 2024-25 | 1,592 | 1,546 | +46 |
+| 2025-26 | 1,549 | 1,480 | +69 |
+
+**2 seasons of 4. Mean +2.8 points per season (sd 67). Pooled across 124
+gameweeks: mean weekly margin +0.089, 95% CI [−3.15, +3.33], p = 0.96.**
+
+There is no detectable season-points edge over the template.
+
+## What this actually means
+
+The plan's line was "if you can't beat the template, you have a hobby, not an
+edge." The honest answer is that both halves are true at once:
+
+* **On knowledge, the engine wins consistently.** Better MAE and better ranking
+  in every season tested, against every benchmark.
+* **On points, it does not.** The advantage disappears into squad constraints and
+  weekly variance.
+
+The mechanism is not mysterious. Fifteen players, three per club, a fixed budget
+and eleven starters force every manager toward overlapping squads — and the
+template is not a weak benchmark, it is the aggregated judgement of millions of
+managers, which is already close to the ceiling that the constraints allow. A 30%
+edge in projection error compresses into a margin smaller than one week's noise.
+
+**This is the correct conclusion to draw and it was not the expected one.**
+Earlier entries in this file reported the single-season +69 as though it settled
+the second criterion. It did not. Four seasons show it was noise, and reporting
+it as an edge would have been wrong.
+
+## What would change the answer
+
+Not better projections — those are already winning 4/4 and the points still do
+not move. The binding constraints are structural, so the levers are structural:
+
+* **Rank optimisation rather than expected points.** The plan flags this as a
+  decision to take before Phase 7 and it was never taken. Against a field that
+  mostly owns the template, effective ownership makes variance an asset; the
+  max-EV squad is explicitly not the rank-optimal one. This is the single largest
+  untried idea in the project.
+* **Chips and transfer timing**, which the simulation handles crudely and which
+  are worth real points.
+* **Differential selection** — deliberately diverging from the template where the
+  model's disagreement is largest, rather than picking the highest xPts squad
+  that happens to overlap it heavily.

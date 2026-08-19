@@ -23,10 +23,34 @@ the mean of a threshold is not the threshold of the mean.
 | Minutes model | Brier 0.0881 — **21.6%** better than the best single-feature baseline |
 | Attacking returns | share structure lifts correlation 0.3752 → **0.4622** |
 | Bonus award logic | **100%** of bonus winners recovered from true BPS |
+| Projection accuracy | beats the template on MAE and ranking in **4 of 4 seasons** |
+| **Season points** | **2 of 4 seasons, p = 0.96 — no detectable edge** |
 
-Two findings worth stating because they are negative: blending Dixon-Coles with
-bookmaker odds adds nothing significant (t = +0.58), and club-role inheritance
-for new signings loses to a plain price-tier prior.
+## The honest headline
+
+The build plan sets one bar: beat the template, or it is a hobby rather than an
+edge. Four seasons say **both halves are true at once**.
+
+On *knowledge* the engine wins consistently — better MAE and better within-position
+ranking than the template, a to-date average and FPL's own form field, in every
+season tested, across ~95,000 player-gameweeks.
+
+On *points* it does not. Simulated under real constraints the engine won two
+seasons of four, averaging +2.8 points a season (p = 0.96). Squad rules — fifteen
+players, three per club, a fixed budget — force every manager toward overlapping
+squads, and the template is the aggregated judgement of millions of managers,
+already near the ceiling those constraints allow. A 30% edge in projection error
+compresses into less than one week's noise.
+
+The untried lever is structural, not statistical: **rank optimisation rather than
+expected points**. Against a field that mostly owns the template, variance is an
+asset and the max-EV squad is explicitly not rank-optimal.
+
+Other negative results kept on the record: blending Dixon-Coles with bookmaker
+odds adds nothing significant (t = +0.58); club-role inheritance for new signings
+loses to a plain price-tier prior; and xGOT fails to predict anything at all
+(finishing r = −0.065, placement r = −0.007, against a control that persists at
+r = +0.742).
 
 Full methodology, every statistical test, and all six bugs found during the
 build are in [FINDINGS.md](FINDINGS.md) and on the dashboard's Methodology tab.

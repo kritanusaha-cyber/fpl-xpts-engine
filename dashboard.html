@@ -577,29 +577,37 @@ models.</p>
 regresses extreme projections toward what the evidence supports, which buys accuracy and ordering
 at the cost of guessing which single player explodes this weekend. For a squad held over several
 gameweeks that is the right trade; for a one-week captain differential it is not.</div>
-<h4>The second criterion: playing the season out</h4>
+<h4>The second criterion: four seasons, and a negative result</h4>
 <p>Accuracy is not the same claim as finishing well, so the season was simulated under the real
-constraints &mdash; budget, one free transfer a week, &minus;4 for the second. Four managers,
-identical information, GW8&ndash;38:</p>
-<table><tr><th>Manager</th><th>Total</th><th>Per GW</th><th>vs template</th></tr>
-<tr><td><b>engine</b></td><td class="n"><b>1,549</b></td><td class="n">49.97</td><td class="n"><b>+69</b></td></tr>
-<tr><td>points to date</td><td class="n">1,498</td><td class="n">48.32</td><td class="n">+18</td></tr>
-<tr><td>template (crowd)</td><td class="n">1,480</td><td class="n">47.74</td><td class="n">&mdash;</td></tr>
-<tr><td>form (last 4 GW)</td><td class="n">1,311</td><td class="n">42.29</td><td class="n">&minus;169</td></tr></table>
-<p>The engine wins, beats the template in 19 of 31 gameweeks, and projects to about
-<b>+85 points over a full season</b>.</p>
-<div class="caveat"><b>It is not statistically significant.</b> The weekly margin is +2.23 points
-with a standard deviation of 15.18 &mdash; a 95% interval of [&minus;3.12, +7.57], straddling zero,
-and a paired t-test of p = 0.42. Resolving an edge this size would take roughly <b>365 gameweeks,
-about 9.6 seasons</b>.
-<br><br>Both criteria are answered, and they answer differently. Projection accuracy passed
-decisively on 9,196 observations. Season points won by the right margin in the right direction but
-cannot be distinguished from luck in one season. Anyone claiming a proven rank edge from a
-single-season backtest is reading noise.</div>
-<p>The gap between those two results is itself informative: squad constraints are a coarse filter.
-Fifteen players, three per club and a fixed budget push every manager toward overlapping squads, so
-a large edge in projection quality compresses into a small edge in points. Better projections are
-necessary and nowhere near sufficient.</p>
+constraints &mdash; budget, one free transfer, &minus;4 for the second &mdash; across all four
+seasons with xG coverage.</p>
+<p><b>The projection edge holds everywhere.</b> The engine beats the template on MAE in 4 of 4
+seasons, beats a to-date average in 4 of 4, and beats the template on within-position Spearman in
+4 of 4, over roughly 95,000 player-gameweeks.</p>
+<table><tr><th>Season</th><th>Engine MAE</th><th>Template MAE</th><th>Engine &rho;</th><th>Template &rho;</th></tr>
+<tr><td>2022-23</td><td class="n">1.885</td><td class="n">2.730</td><td class="n">0.291</td><td class="n">0.229</td></tr>
+<tr><td>2023-24</td><td class="n">1.935</td><td class="n">2.694</td><td class="n">0.273</td><td class="n">0.219</td></tr>
+<tr><td>2024-25</td><td class="n">1.863</td><td class="n">2.636</td><td class="n">0.272</td><td class="n">0.244</td></tr>
+<tr><td>2025-26</td><td class="n">1.991</td><td class="n">2.895</td><td class="n">0.282</td><td class="n">0.193</td></tr></table>
+<p><b>The points edge does not.</b></p>
+<table><tr><th>Season</th><th>Engine</th><th>Template</th><th>Difference</th></tr>
+<tr><td>2022-23</td><td class="n">1,349</td><td class="n">1,376</td><td class="n">&minus;27</td></tr>
+<tr><td>2023-24</td><td class="n">1,495</td><td class="n">1,572</td><td class="n">&minus;77</td></tr>
+<tr><td>2024-25</td><td class="n">1,592</td><td class="n">1,546</td><td class="n">+46</td></tr>
+<tr><td>2025-26</td><td class="n">1,549</td><td class="n">1,480</td><td class="n">+69</td></tr></table>
+<div class="caveat"><b>Two seasons of four. Mean +2.8 points per season, p = 0.96.</b> There is no
+detectable season-points edge over the template. An earlier version of this page reported the
+single-season +69 as though it settled the question &mdash; four seasons show that was noise.
+<br><br>Both halves are true at once: on <em>knowledge</em> the engine wins consistently; on
+<em>points</em> it does not. Fifteen players, three per club and a fixed budget force every manager
+toward overlapping squads, and the template is not a weak benchmark &mdash; it is the aggregated
+judgement of millions, already near the ceiling the constraints allow. A 30% edge in projection
+error compresses into a margin smaller than one week's noise.</div>
+<p><b>What would change it is structural, not statistical.</b> Better projections are already
+winning 4/4 without moving the points. The untried lever is <b>rank optimisation instead of
+expected points</b> &mdash; against a field that mostly owns the template, effective ownership
+makes variance an asset and the max-EV squad is explicitly not rank-optimal. The build plan flags
+this as a decision to take before building the optimiser; it was never taken.</p>
 
 <h3>Known limits</h3>
 <ul>

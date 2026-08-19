@@ -40,7 +40,7 @@ def pick_squad(pool: pd.DataFrame, pred: str, budget: float = BUDGET,
     prob = pulp.LpProblem("squad", pulp.LpMaximize)
     x = pulp.LpVariable.dicts("x", idx, cat="Binary")
     s = pulp.LpVariable.dicts("s", idx, cat="Binary")     # starting XI
-    val = P[pred].fillna(0).to_dict()
+    val = pd.to_numeric(P[pred], errors="coerce").fillna(0).to_dict()
 
     prob += pulp.lpSum(s[i] * val[i] for i in idx)
     prob += pulp.lpSum(x[i] for i in idx) == 15
@@ -76,6 +76,10 @@ def score_xi(pool: pd.DataFrame, squad: set, pred: str) -> float:
     s = pool[pool.element.isin(squad)].copy()
     if s.empty:
         return 0.0
+    # A prediction column can be entirely missing for a season (early seasons
+    # have no ownership, so the template forecast is undefined). Fall back to
+    # zero rather than crashing, so one benchmark's gap does not kill the run.
+    s[pred] = pd.to_numeric(s[pred], errors="coerce").fillna(0.0)
     s = s.sort_values(pred, ascending=False)
     xi, counts = [], {k: 0 for k in XI_MAX}
     for _, r in s.iterrows():
@@ -93,6 +97,8 @@ def score_xi(pool: pd.DataFrame, squad: set, pred: str) -> float:
     if not xi:
         return 0.0
     df = pd.DataFrame(xi).head(11)
+    if df[pred].notna().sum() == 0:
+        return float(df.total_points.sum())
     capt = df[pred].idxmax()
     return float(df.total_points.sum() + df.loc[capt, "total_points"])
 

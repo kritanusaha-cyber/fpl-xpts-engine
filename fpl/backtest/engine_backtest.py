@@ -51,8 +51,9 @@ def base_frame(db: str = "data/fpl.duckdb", season: str = "2025-26") -> pd.DataF
     return d
 
 
-def run(min_gw: int = 8, db: str = "data/fpl.duckdb") -> pd.DataFrame:
-    d = base_frame(db)
+def run(min_gw: int = 8, db: str = "data/fpl.duckdb",
+        season: str = "2025-26") -> pd.DataFrame:
+    d = base_frame(db, season)
     feats = build_minutes_features(d.copy())
     out, dc_hist = [], []
 
@@ -133,7 +134,8 @@ def run(min_gw: int = 8, db: str = "data/fpl.duckdb") -> pd.DataFrame:
                        + cur.xa_share.fillna(0) * cur.team_goals * mins_frac * 3
                        + p_cs * csp * cur.p_60.fillna(0)
                        + cur.p_defcon.fillna(0) * dcp)
-        out.append(cur[["gw", "element", "position", "minutes", "total_points",
-                        "xpts", "price" if "price" in cur.columns else "value"]]
-                   .rename(columns={"value": "price"}))
+        keep = ["gw", "element", "position", "minutes", "total_points", "xpts",
+                "club_code"]
+        cur["price"] = cur["value"] / 10.0
+        out.append(cur[keep + ["price"]].assign(season=season))
     return pd.concat(out, ignore_index=True)
