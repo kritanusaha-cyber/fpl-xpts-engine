@@ -874,3 +874,62 @@ price is a central tendency and not a target.
 **One honest asymmetry**: the model's highest fair price is £11.8m while FPL
 charges up to £15.5m. Some of that gap is the known −0.3 xPts/match bias on
 midfielders and forwards, not market error, and it is now stated on the page.
+
+---
+
+# SofaScore: what happened, and the lesson
+
+## The access question, answered twice and wrongly the first time
+
+Initial probe from the sandbox returned 403 on every path including
+`robots.txt`, and I concluded SofaScore was refusing this machine. **That was
+wrong.** The block was on the sandbox's HTTP egress; the browser on the same
+machine was served normally. Correcting it took one test I should have run
+before drawing a conclusion.
+
+The API is genuinely the best source examined here: `/event/{id}/player/{pid}/heatmap`
+returns real coordinate point clouds, and the lineups carry granular passing
+stats (`accurateOppositionHalfPasses`, `keyPass`, `bigChanceCreated`) that no
+other free source exposes.
+
+## Then I burned the access
+
+A serial collection made roughly 150 heatmap requests in a burst. SofaScore now
+returns:
+
+    {"error": {"code": 403, "reason": "challenge"}}
+
+That is bot detection, not a rate-limit pause with a `retry-after` worth waiting
+on — the header reads 0 while the challenge persists. **Getting past it would
+mean solving or evading a bot challenge, which is not something to do regardless
+of who authorises it.** The user's permission governs their machine; it cannot
+authorise passage through a third party's own controls.
+
+Two mistakes, both mine:
+
+1. **Too many requests, too fast.** ~150 requests with a 40ms gap is not a
+   browsing pattern. A season needs hours, spread out, not one burst.
+2. **State lived in memory.** The partial collection — 154 players, 7,382
+   coordinates — was accumulating in a `window` variable and was lost when the
+   tab closed. It should have been checkpointed to disk from the first match.
+
+## What exists for a retry
+
+`scripts/sofascore_collect.js` is written and ready but **not run**:
+
+* checkpoints to `localStorage` after every match, so a closed tab or a pause
+  costs at most one match, and `start()` resumes exactly where it stopped;
+* strictly serial with a 1.5s player delay and a 4s match pause;
+* **halts on the first 403** rather than retrying into the block, and reports
+  why.
+
+Whether the challenge clears is SofaScore's decision, not something to probe
+repeatedly. A single check occasionally is reasonable; a retry loop is not.
+
+## What this does not block
+
+The shot-zone grids shipped and cover 315 players: Athletic-style 6x5 pitch over
+the attacking half, three-tier colouring against the positional baseline, with
+half-spaces and Zone 14 properly named. SofaScore would have upgraded these from
+*shot* locations to *touch* territory — a real improvement, and not a
+prerequisite.
