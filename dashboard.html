@@ -603,11 +603,36 @@ single-season +69 as though it settled the question &mdash; four seasons show th
 toward overlapping squads, and the template is not a weak benchmark &mdash; it is the aggregated
 judgement of millions, already near the ceiling the constraints allow. A 30% edge in projection
 error compresses into a margin smaller than one week's noise.</div>
-<p><b>What would change it is structural, not statistical.</b> Better projections are already
-winning 4/4 without moving the points. The untried lever is <b>rank optimisation instead of
-expected points</b> &mdash; against a field that mostly owns the template, effective ownership
-makes variance an asset and the max-EV squad is explicitly not rank-optimal. The build plan flags
-this as a decision to take before building the optimiser; it was never taken.</p>
+<h4>Rank optimisation: tested, and the strong version is wrong</h4>
+<p>The obvious remaining lever was to optimise for <em>rank</em> rather than points. Start with the
+algebra, because it constrains the answer. Your margin over the field is</p>
+<div class="eq">margin = SUM_i (own_i - EO_i) * points_i</div>
+<p>and the field term does not depend on your choices &mdash; so <b>in expectation, maximising rank
+is mathematically identical to maximising expected points</b>. Any benefit from differentials must
+come from rank being <em>non-linear</em> in margin: a top finish needs a <em>large</em> margin, not
+a positive one, and large margins are bought with variance.</p>
+<p>Tested by tilting player value toward the lightly-owned,
+<code>xpts &times; (1 + k(1 &minus; EO))</code>, and sweeping k over four seasons:</p>
+<table><tr><th>k</th><th>Total vs template, 4 seasons</th><th>Seasons won</th></tr>
+<tr><td>0.00 (pure xPts)</td><td class="n">+11</td><td class="n">2</td></tr>
+<tr><td>0.30</td><td class="n">&minus;524</td><td class="n">0</td></tr>
+<tr><td>0.50</td><td class="n">&minus;579</td><td class="n">0</td></tr>
+<tr><td>1.00</td><td class="n">&minus;856</td><td class="n">0</td></tr></table>
+<p>Monotonic and unambiguous. The mechanism shows in the margin distribution: tilting <em>does</em>
+buy variance (weekly SD 18.4 &rarr; 20.6) but the mean cost is far larger (+0.09 &rarr; &minus;6.9
+per week), so the upper tail never improves. <b>Ownership correlates with quality</b> &mdash;
+heavily-owned players are owned because they are good, and fading them means holding worse ones.</p>
+<div class="caveat"><b>A small tilt is weakly positive, and no more than that.</b>
+Leave-one-season-out selected k = 0.05 in all four folds and lifted seasons-beating-template from
+2/4 to 3/4 &mdash; the criterion set in advance. But the mean gain of +23.8 per season is carried
+almost entirely by one season (+87); the <b>median is +6</b>, and against the template
+p = 0.27. It meets the letter of the criterion and fails its spirit: defensible as a mild default,
+not claimable as an edge.</div>
+<p>A method note, because the first version of this test would have misled. A bootstrap over
+<em>gameweeks</em> made k = 0.05 look strong &mdash; but it measures week-sampling error, not
+whether a parameter generalises across seasons, and it showed a spike at 0.05 that reverted by
+0.10, which is an overfitting signature rather than a dose-response. Leave-one-season-out is what
+answered the question, and it downgraded the result substantially.</p>
 
 <h3>Known limits</h3>
 <ul>
