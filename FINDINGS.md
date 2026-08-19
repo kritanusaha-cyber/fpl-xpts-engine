@@ -1175,3 +1175,81 @@ not move. The binding constraints are structural, so the levers are structural:
 * **Differential selection** — deliberately diverging from the template where the
   model's disagreement is largest, rather than picking the highest xPts squad
   that happens to overlap it heavily.
+
+---
+
+# Build 1: rank optimisation — a qualified, honest result
+
+## The maths first, because it constrains everything
+
+Write your margin over the field as a sum over every player:
+
+    margin = SUM_i (own_i - EO_i) * points_i
+           = SUM_{owned} points_i  -  SUM_all EO_i * points_i
+
+The second term is independent of your choices. **So in expectation, maximising
+rank is identical to maximising expected points.** Any benefit from differentials
+must come from rank being a *non-linear* function of margin: finishing top 1%
+needs a large margin, not a positive one, and large margins need variance.
+
+That is the entire theory of the differential. It is also why a points-based test
+cannot evaluate it — the strategy deliberately trades points for variance.
+
+## Large tilts are clearly harmful
+
+Sweeping `rank_value = xpts * (1 + k*(1 - EO))` over four seasons:
+
+| k | 22-23 | 23-24 | 24-25 | 25-26 | total | seasons won |
+|---|---|---|---|---|---|---|
+| 0.00 | −27 | −77 | +46 | +69 | +11 | 2 |
+| 0.15 | −132 | −46 | +32 | +5 | −141 | 2 |
+| 0.30 | −151 | −228 | −13 | −132 | −524 | 0 |
+| 0.50 | −197 | −233 | −26 | −123 | −579 | 0 |
+| 1.00 | −300 | −325 | −50 | −181 | −856 | 0 |
+
+Monotonic and unambiguous. The mechanism is visible in the margin distribution:
+tilting *does* buy variance (weekly SD 18.4 → 20.6) but the mean cost is far
+larger (+0.09 → −6.9 per week), so the upper tail does **not** improve. Ownership
+correlates with quality — heavily-owned players are owned *because* they are good,
+and systematically avoiding them means systematically holding worse players.
+
+## A small tilt is a different story, but a weak one
+
+Leave-one-season-out — choose k on three seasons, score on the fourth:
+
+| held out | k chosen | vs template at k=0 | vs template at chosen k |
+|---|---|---|---|
+| 2022-23 | 0.05 | −27 | −20 |
+| 2023-24 | 0.05 | −77 | **+10** |
+| 2024-25 | 0.05 | +46 | +51 |
+| 2025-26 | 0.05 | +69 | +65 |
+
+**All four folds independently chose k = 0.05**, which is meaningful — the
+parameter is stable, not fitted to one season. Seasons beating the template goes
+from **2/4 to 3/4**, which is the pre-registered criterion.
+
+But the effect is small and badly distributed. Mean improvement +23.8 per season,
+**median +6**, carried almost entirely by one season (+87 in 2023-24) while the
+other three are +7, +5, −4. Against template: mean +26.5, t = 1.37, **p = 0.27**.
+
+## Verdict
+
+**Meets the letter of the criterion, fails the spirit.** 3 of 4 seasons is what
+was asked for, and it is not significant, and the median season gains six points.
+Shipping k = 0.05 as a mild default is defensible — every fold selects it, and it
+does not hurt. Claiming it as an edge is not.
+
+The larger finding stands: **the strong version of the differential thesis is
+wrong.** Deliberately fading the template costs more in expectation than the
+variance is worth, at every dose above about 0.05. That is a real answer to the
+question the build plan raised and left open, and it is the opposite of the
+received wisdom.
+
+## Method note on a test that would have misled
+
+The bootstrap that first suggested k = 0.05 resamples *gameweeks* from four
+seasons. It produces tight-looking intervals that describe week-sampling error,
+not whether a parameter generalises across seasons — and it showed a spike at
+k = 0.05 that reverted by k = 0.10, which is an overfitting signature rather than
+a dose-response. Leave-one-season-out is the test that answers the question, and
+it downgraded the result substantially.

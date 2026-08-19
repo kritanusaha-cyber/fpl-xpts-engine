@@ -104,7 +104,7 @@ def score_xi(pool: pd.DataFrame, squad: set, pred: str) -> float:
 
 
 def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
-               start_gw: int | None = None) -> pd.DataFrame:
+               start_gw: int | None = None, rank_k: float = 0.0) -> pd.DataFrame:
     """Play the season with one free transfer a week and -4 for extras."""
     gws = sorted(preds.gw.dropna().unique())
     if start_gw:
@@ -115,18 +115,26 @@ def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
         pool = pool.drop_duplicates("element")
         if pool.empty:
             continue
+        # Rank mode: value a player by projection discounted for how much of the
+        # field already holds him. Selection and captaincy both use it; scoring
+        # still uses realised points, so nothing here peeks at the outcome.
+        sel_col = pred_col
+        if rank_k > 0:
+            from fpl.optimize.rank import rank_value
+            pool["_rank_val"] = rank_value(pool, rank_k, pred_col=pred_col)
+            sel_col = "_rank_val"
         if squad is None:
-            squad = pick_squad(pool, pred_col)
+            squad = pick_squad(pool, sel_col)
             hits = 0
         else:
             allowed = min(free_transfers + banked, 3)
-            new = pick_squad(pool, pred_col, locked=squad, max_changes=allowed)
+            new = pick_squad(pool, sel_col, locked=squad, max_changes=allowed)
             if not new:
                 new = squad
             changed = len(squad - new)
             hits = max(0, changed - (free_transfers + banked))
             banked = max(0, min(4, free_transfers + banked - changed))
             squad = new
-        pts = score_xi(pool, squad, pred_col) - hits * HIT_COST
+        pts = score_xi(pool, squad, sel_col) - hits * HIT_COST
         rows.append({"gw": gw, "points": pts, "hits": hits, "squad_size": len(squad)})
     return pd.DataFrame(rows)

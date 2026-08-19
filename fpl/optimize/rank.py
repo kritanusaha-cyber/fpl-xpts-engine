@@ -1,0 +1,86 @@
+"""Rank optimisation: choosing a squad to finish high, not to score most.
+
+THE SUBTLETY THAT DECIDES THE DESIGN
+
+Write your margin over the field as a sum over every player in the game:
+
+    margin = SUM_i (own_i - EO_i) * points_i
+
+where own_i is 1 if you own him and EO_i is his effective ownership -- the
+fraction of the field holding him, counting captaincy twice. Split it:
+
+    margin = SUM_{owned} points_i  -  SUM_all EO_i * points_i
+
+The second term does not depend on your choices. So **in expectation, maximising
+rank is identical to maximising expected points.** Any claim that they differ has
+to come from somewhere else, and it does: rank is a *non-linear* function of
+margin. Finishing top 1% needs a large positive margin, not a positive one.
+
+That is where ownership re-enters. A template squad's margin is pinned near zero
+by construction -- you own what everyone owns, so your score tracks the field.
+Differentials add variance to the margin, and variance is what buys access to the
+upper tail. The cost is symmetric: the same variance can sink you.
+
+So the objective is not "maximise points" and it is not "avoid template players".
+It is: maximise a high quantile of the margin distribution. This module implements
+a linear surrogate of that, tunable by one parameter:
+
+    rank_value_i = xpts_i * (1 + k * (1 - EO_i))
+
+k = 0 recovers pure expected points. k > 0 pays a premium for the same projected
+points held by fewer rivals. k is not assumed -- it is swept on four seasons of
+walk-forward data, and if no k beats the template the honest answer is that the
+template is close to unbeatable under FPL's constraints.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+# A captained player counts twice toward the field's score, so effective
+# ownership is ownership plus the captaincy share. Captaincy is not in the
+# warehouse, so it is approximated from projected points: the field captains the
+# highest-projected players it owns.
+CAPTAIN_CONCENTRATION = 3.0
+
+
+def effective_ownership(gw_pool: pd.DataFrame, own_col: str = "owned",
+                        pred_col: str = "xpts") -> pd.Series:
+    """EO as a fraction of the field, including the captaincy premium."""
+    own = pd.to_numeric(gw_pool[own_col], errors="coerce").fillna(0.0)
+    total = max(own.max(), 1.0)          # the most-owned player approximates the field size
+    base = (own / total).clip(0, 1)
+
+    # Captaincy concentrates on the best projected players. Model the field's
+    # captain choice as a softmax over projection, restricted to what it owns.
+    pred = pd.to_numeric(gw_pool[pred_col], errors="coerce").fillna(0.0)
+    z = (pred - pred.max()) * CAPTAIN_CONCENTRATION
+    w = np.exp(z) * base
+    capt_share = w / max(w.sum(), 1e-9)
+
+    return (base + capt_share).clip(0, 2.0)
+
+
+def rank_value(gw_pool: pd.DataFrame, k: float, pred_col: str = "xpts",
+               own_col: str = "owned") -> pd.Series:
+    """Linear surrogate for a high quantile of the margin distribution.
+
+    k = 0 is expected points. Larger k pays more for scarcity, which is what
+    buys margin variance and therefore upper-tail rank.
+    """
+    eo = effective_ownership(gw_pool, own_col, pred_col)
+    pred = pd.to_numeric(gw_pool[pred_col], errors="coerce").fillna(0.0)
+    return pred * (1.0 + k * (1.0 - eo))
+
+
+def margin_stats(squad_pts: np.ndarray, template_pts: np.ndarray) -> dict:
+    """Distribution of your margin over the template, which is what rank reads."""
+    d = squad_pts - template_pts
+    return {
+        "mean": float(d.mean()),
+        "sd": float(d.std(ddof=1)) if len(d) > 1 else 0.0,
+        "p_beat": float((d > 0).mean()),
+        "q90": float(np.percentile(d, 90)),
+        "q10": float(np.percentile(d, 10)),
+    }
