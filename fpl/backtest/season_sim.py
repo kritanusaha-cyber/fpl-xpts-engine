@@ -138,3 +138,55 @@ def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
         pts = score_xi(pool, squad, sel_col) - hits * HIT_COST
         rows.append({"gw": gw, "points": pts, "hits": hits, "squad_size": len(squad)})
     return pd.DataFrame(rows)
+
+
+def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4.0,
+                       max_hits: int = 0, rank_k: float = 0.0,
+                       start_gw: int | None = None, hit_margin: float = 1.0) -> pd.DataFrame:
+    """Season with real transfer economics: banked FTs, horizon-valued hits,
+    and sell-price path dependency. Compare against run_season, which re-picks
+    greedily each week and cannot represent saving a transfer.
+
+    max_hits defaults to 0 on evidence: across four seasons, taking hits on the
+    naive rule cost 349 points against the same strategy with hits disabled, and
+    the damage only disappears when hits are abandoned entirely. See FINDINGS.md
+    -- the mechanism is the optimiser's curse, not the four-point fee."""
+    from fpl.optimize.transfers import Squad, plan_transfers, MAX_BANKED
+
+    gws = sorted(preds.gw.dropna().unique())
+    if start_gw:
+        gws = [g for g in gws if g >= start_gw]
+    squad, rows = None, []
+
+    for gw in gws:
+        pool = preds[preds.gw == gw].dropna(subset=["price", "position"]).copy()
+        pool = pool.drop_duplicates("element")
+        if pool.empty:
+            continue
+        sel_col = pred_col
+        if rank_k > 0:
+            from fpl.optimize.rank import rank_value
+            pool["_rv"] = rank_value(pool, rank_k, pred_col=pred_col)
+            sel_col = "_rv"
+
+        prices = dict(zip(pool.element, pool.price))
+        hits = 0
+        if squad is None:
+            picked = pick_squad(pool, sel_col)
+            squad = Squad(picked, prices, bank=round(BUDGET - sum(
+                prices.get(e, 0.0) for e in picked), 1))
+        else:
+            out_, in_, hits = plan_transfers(squad, pool, sel_col,
+                                             hold_weeks=hold_weeks, max_hits=max_hits,
+                                             hit_margin=hit_margin)
+            if out_ and not squad.apply(out_, in_, prices):
+                out_, in_, hits = set(), set(), 0
+            used = len(out_)
+            # Banked free transfers: unused ones roll over, capped.
+            squad.free_transfers = int(np.clip(
+                squad.free_transfers - used + 1, 1, MAX_BANKED))
+
+        pts = score_xi(pool, set(squad.players), sel_col) - hits * HIT_COST
+        rows.append({"gw": gw, "points": pts, "hits": hits,
+                     "ft": squad.free_transfers, "bank": squad.bank})
+    return pd.DataFrame(rows)

@@ -1338,3 +1338,67 @@ A goalkeeper panel on 22 players: goals prevented as the headline, PsxG faced,
 conceded, and save % over expected — **explicitly marked descriptive and excluded
 from the projection**, the same treatment given to xGOT for outfielders and
 six-yard-box share for strikers. Good scouting information; not a forecast.
+
+---
+
+# Build 2: transfer economics — and why hits destroy points
+
+The simulation previously re-picked greedily each week. Build 2 adds the three
+rules that actually govern transfers: horizon valuation rather than next-fixture
+valuation, banked free transfers (up to five), and sell price with FPL's 50%
+profit tax, which makes budget path-dependent on what you paid.
+
+## Hits are the story
+
+Testing hit discipline across four seasons, where a hit is taken when
+`weekly_gain × hold_weeks > 4 × margin`:
+
+| hit margin | total vs template | hits taken |
+|---|---|---|
+| 1.0× (the naive rule) | **−300** | 39 |
+| 1.5× | −102 | 22 |
+| 2.0× | −152 | 17 |
+| 3.0× | −71 | 3 |
+| **no hits at all** | **+49** | **0** |
+
+Thirty-nine hits cost 156 points directly but did **349 points** of damage — so
+more than half the loss came from the squads the hits produced, not the fee.
+
+The recovery is monotonic in the margin and is only complete when hits are
+abandoned entirely. That pattern is the signature of the **optimiser's curse**:
+the transfer you pick is the one with the largest *estimated* gain, and the
+largest estimate in a noisy set is biased upward. Paying four points to act on it
+means systematically buying estimation error. No simple threshold fixes it,
+because raising the bar filters on the same noisy estimate that created the
+problem.
+
+This is why "hits rarely pay" is folk wisdom in FPL. It now has a mechanism and a
+number attached.
+
+## The rest of the build is a modest, unproven gain
+
+Best configuration — managed transfers, no hits:
+
+| season | greedy | managed | delta |
+|---|---|---|---|
+| 2022-23 | −27 | −128 | **−101** |
+| 2023-24 | −77 | −45 | +32 |
+| 2024-25 | +46 | +83 | +37 |
+| 2025-26 | +69 | +139 | +70 |
+
+**3 of 4 seasons improved; mean +9.5, median +34.5 per season; p = 0.82.** Against
+the template it lifts the average from +2.8 to +12.2 per season, still on 2 of 4
+seasons and still not significant.
+
+So: transfer discipline is worth something and probably worth having, and one bad
+season (2022-23, −101) is enough to swamp the average. On four seasons it cannot
+be distinguished from noise, which is now the third time that sentence has been
+written in this file. The pattern is consistent — **structural improvements to
+squad management are worth tens of points, and season variance is worth hundreds.**
+
+## Shipped default
+
+`run_season_managed(..., max_hits=0)` — banked transfers and sell-price
+accounting on, hits off. The hit machinery stays in the code with the margin
+parameter, because the finding is about *why* it fails, not that the rule is
+unimplementable.
