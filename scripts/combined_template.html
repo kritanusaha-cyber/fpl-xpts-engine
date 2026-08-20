@@ -556,6 +556,89 @@ function pitchSvg(p){
     <text x="${W/2}" y="${H-8}" class="albl" text-anchor="middle">attacking \u2192</text>
   </svg>`;
 }
+
+/* ---- touch heatmap: where the player actually plays ---- */
+const HEAT_LABEL={
+  six_yard:['Six-yard box','gets on the end of crosses'],
+  danger:['Inside the penalty spot','the highest-value space on the pitch'],
+  box:['Opposition box','plays on the last line'],
+  zone14:['Zone 14','receives and turns outside the box'],
+  half_space:['Half-spaces, final third','finds the channel between full-back and centre-back'],
+  wide_att:['Wide, final third','holds the touchline'],
+  final_third:['Final third','plays high up the pitch'],
+  def_third:['Defensive third','sits deep'],
+  own_box:['Own box','defends his own six-yard line'],
+};
+/* The pitch drawing marks the zones being scored, so the reader can see what
+   "half-space" means rather than having to take the label on trust.
+
+   Zones nest -- the six-yard box sits inside the danger zone sits inside the
+   penalty area -- so translucent fills stacked to an effective alpha of 0.99
+   over the goalmouth and turned the whole box into one solid block. Each
+   region is now painted once, opaque, broadest first, so the most specific
+   zone covering a patch of grass is the one you see. */
+function heatShade(h,k){
+  const v=(h.z[k]||[null,null])[1];
+  if(v==null) return null;
+  return `fill:color-mix(in srgb, var(--zg-hi) ${(12+0.78*v).toFixed(0)}%, var(--zg-lo))`;
+}
+function heatPitch(h,pos){
+  const W=330,H=214,P=8,pw=W-P*2,ph=H-P*2;
+  const X=v=>P+(v/105)*pw, Y=v=>P+(v/68)*ph;
+  const R=(k,x0,y0,x1,y1)=>{const st=heatShade(h,k); return st
+    ? `<rect x="${X(x0)}" y="${Y(y0)}" width="${X(x1)-X(x0)}" height="${Y(y1)-Y(y0)}" style="${st}"/>` : '';};
+  /* broadest first; later rects overwrite, so specific zones win */
+  const paint=[
+    R('def_third',0,0,35,68),
+    R('final_third',70,0,105,68),
+    R('wide_att',70,0,105,13.6), R('wide_att',70,54.4,105,68),
+    R('half_space',70,13.6,105,27.2), R('half_space',70,40.8,105,54.4),
+    R('own_box',0,13.84,16.5,54.16),
+    R('zone14',77.5,24.84,88.5,43.16),
+    R('box',88.5,13.84,105,54.16),
+    R('danger',94,24.84,105,43.16),
+    R('six_yard',99.5,24.84,105,43.16),
+  ].join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Where this player touches the ball">
+    <rect x="${P}" y="${P}" width="${pw}" height="${ph}" fill="var(--zg-lo)"/>
+    ${paint}
+    <g fill="none" stroke="var(--zg-line)" stroke-width="1.5">
+      <rect x="${P}" y="${P}" width="${pw}" height="${ph}"/>
+      <line x1="${X(52.5)}" y1="${P}" x2="${X(52.5)}" y2="${P+ph}"/>
+      <circle cx="${X(52.5)}" cy="${P+ph/2}" r="${(9.15/105)*pw}"/>
+      <rect x="${X(88.5)}" y="${Y(13.84)}" width="${X(105)-X(88.5)}" height="${Y(54.16)-Y(13.84)}"/>
+      <rect x="${X(99.5)}" y="${Y(24.84)}" width="${X(105)-X(99.5)}" height="${Y(43.16)-Y(24.84)}"/>
+      <rect x="${X(0)}" y="${Y(13.84)}" width="${X(16.5)-X(0)}" height="${Y(54.16)-Y(13.84)}"/>
+      <rect x="${X(0)}" y="${Y(24.84)}" width="${X(5.5)-X(0)}" height="${Y(43.16)-Y(24.84)}"/>
+    </g>
+    <line x1="${X(h.x_mean)}" y1="${P}" x2="${X(h.x_mean)}" y2="${P+ph}"
+      stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="4 3"/>
+    <text x="${X(h.x_mean)}" y="${P-1}" class="tk" text-anchor="middle" fill="var(--accent)">average position</text>
+    <text x="${P+2}" y="${H-1}" class="tk" fill="var(--muted)">own goal</text>
+    <text x="${P+pw-2}" y="${H-1}" class="tk" text-anchor="end" fill="var(--muted)">attacking \u2192</text>
+  </svg>`;
+}
+function heatPanel(p){
+  const h=p.heat; if(!h) return '';
+  const rows=Object.entries(h.z).map(([k,[share,pct]])=>{
+    const [lab,why]=HEAT_LABEL[k]||[k,''];
+    const w=pct==null?0:pct;
+    const col=w>=70?'var(--pos)':(w<=30?'var(--neg)':'var(--accent)');
+    return `<div class="zrow"><span class="zlab">${lab}</span>
+      <span class="zbar"><i style="width:${w}%;background:${col}"></i></span>
+      <span class="zval">${share.toFixed(1)}%</span>
+      <span class="zpct">${pct==null?'':(Math.round(pct)+'%')}</span></div>
+      <div class="zwhy">${why}</div>`;
+  }).join('');
+  const thin=h.thin?`<div class="zwhy" style="color:var(--neg)">Thin sample &mdash; ${h.n} touches.</div>`:'';
+  return `<div class="dh" style="margin-top:14px">Where he plays
+      <span style="font-weight:400;color:var(--muted)">&middot; ${h.n.toLocaleString()} touches last season</span></div>
+    ${thin}
+    <div class="zwhy">Share of his own touches, and the percentile among others in his position.</div>
+    ${heatPitch(h,p.pos)}
+    <div class="zwrap">${rows}</div>`;
+}
+
 function zonalPanel(p){
   if(!p.zon) return `<div class="dh" style="margin-top:14px">Territory</div>
     <div class="zwhy">${p.hist_pl
@@ -585,7 +668,7 @@ function zonalPanel(p){
     ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
   const gk = keeperPanel(p);
-  if (gk) return gk;
+  if (gk) return gk + heatPanel(p);
   // With no minutes floor a rate can come off a single substitute appearance,
   // so say how thin the sample is instead of presenting it at full confidence.
   const thin = z.thin
@@ -594,7 +677,7 @@ function zonalPanel(p){
   const terr = rows
     ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>${thin}
        <div class="zwrap">${rows}</div>` : '';
-  return `${grid}${terr}`;
+  return `${heatPanel(p)}${grid}${terr}`;
 }
 
 /* ---------------- table ---------------- */

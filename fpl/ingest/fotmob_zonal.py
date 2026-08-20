@@ -37,6 +37,9 @@ SIX_YARD_X, PEN_X = PITCH_L - 5.5, PITCH_L - 16.5
 SIX_YARD_Y = (PITCH_W / 2 - 9.16, PITCH_W / 2 + 9.16)
 PEN_Y = (PITCH_W / 2 - 20.16, PITCH_W / 2 + 20.16)
 
+# The cache already holds roughly sixty fields per player per match. These are
+# the ones with a use: DefCon components first, since those are modelled rather
+# than displayed, then duels and the keeper set.
 STAT_KEYS = {
     "Touches": "touches",
     "Touches in opposition box": "box_touches",
@@ -47,6 +50,58 @@ STAT_KEYS = {
     "Expected assists (xA)": "xa",
     "Accurate passes": "passes",
     "Minutes played": "minutes",
+    # DefCon components. FotMob's own "Defensive actions" is a rollup whose
+    # definition need not match FPL's, so the parts are kept separately and
+    # summed under FPL's rules rather than trusted wholesale.
+    "Tackles": "tackles",
+    "Interceptions": "interceptions",
+    "Clearances": "clearances",
+    "Blocks": "blocks",
+    "Recoveries": "recoveries",
+    "Defensive actions": "fotmob_def_actions",
+    "Headed clearance": "headed_clearances",
+    "Blocked shots": "blocked_shots",
+    "Dribbled past": "dribbled_past",
+    # Duels and carrying
+    "Ground duels won": "ground_duels_won",
+    "Aerial duels won": "aerial_duels_won",
+    "Duels won": "duels_won",
+    "Duels lost": "duels_lost",
+    "Successful dribbles": "dribbles_won",
+    "Dispossessed": "dispossessed",
+    "Was fouled": "fouled",
+    "Fouls committed": "fouls",
+    # Shooting
+    "Total shots": "shots",
+    "Shots on target": "shots_on_target",
+    "Expected goals (xG)": "xg",
+    "xG Non-penalty": "xg_np",
+    "Expected goals on target (xGOT)": "xgot",
+    "Big chances missed": "big_chances_missed",
+    "Goals": "goals",
+    "Assists": "assists",
+    "Accurate long balls": "long_balls",
+    "Corners": "corners",
+    "Offsides": "offsides",
+    "FotMob rating": "rating",
+    # Keeper
+    "Saves": "saves",
+    "Goals conceded": "conceded",
+    "Saves inside box": "saves_inside_box",
+    "Diving save": "diving_saves",
+    "Punches": "punches",
+    "High claim": "high_claims",
+    "Acted as sweeper": "sweeper_actions",
+    "Throws": "gk_throws",
+    "xGOT faced": "xgot_faced",
+    "Goals prevented": "goals_prevented",
+    # Rare but decisive
+    "Error led to goal": "errors_led_to_goal",
+    "Penalties won": "pens_won",
+    "Conceded penalty": "pens_conceded",
+    "Last man tackle": "last_man_tackles",
+    "Clearance off the line": "line_clearances",
+    "Own goal": "own_goals",
 }
 
 

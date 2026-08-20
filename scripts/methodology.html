@@ -227,6 +227,56 @@ mechanism is crossing:</p>
 pattern. For a defender it is mostly noise. So crossing drives the creativity term for defenders,
 and box touches drive it for everyone else.</p>
 
+<h4>E. Touch heatmaps</h4>
+<p>The counts above say how often a player enters the box. They do not say where he stands once he
+is there. A season touch heatmap answers that: every touch a player took last season, as a
+coordinate. The engine holds 426,596 of them across 383 players.</p>
+
+<p>Shares, not counts. A player who plays more minutes touches the ball more everywhere, so counts
+would rank by playing time. The share of his own touches isolates where he goes when he is on the
+pitch.</p>
+
+<p>The zones are the ones coaches use:</p>
+<div class="tscroll"><table><tr><th>Zone</th><th>Definition</th><th>What it identifies</th></tr>
+<tr><td>Six-yard box</td><td>within 5.5 m of goal, inside the posts</td><td>a poacher who scores from crosses</td></tr>
+<tr><td>Danger zone</td><td>inside the penalty spot, central</td><td>a striker who plays on the last line</td></tr>
+<tr><td>Zone 14</td><td>central, immediately outside the box</td><td>a ten who receives and turns</td></tr>
+<tr><td>Half-spaces</td><td>channels two and four, final third</td><td>a creator who runs between full-back and centre-back</td></tr>
+<tr><td>Wide, final third</td><td>channels one and five, final third</td><td>a winger who holds the touchline</td></tr>
+<tr><td>Own box</td><td>the defending penalty area</td><td>a centre-back, or a keeper who stays home</td></tr></table></div>
+
+<p>The pitch is split into five vertical channels. The half-spaces are the second and fourth: the
+lanes between the width of the penalty area and the touchline. A player receiving there faces goal
+without being crowded in the centre or isolated on the touchline. That is why creative midfielders
+live in them.</p>
+
+<h4>F. The zones separate goal threat from creation</h4>
+<p>Across 250 players with 900 or more minutes:</p>
+<div class="tscroll"><table><tr><th>Share of touches in</th><th>vs xG per 90</th><th>vs xA per 90</th></tr>
+<tr><td>the danger zone</td><td class="n">+0.839</td><td class="n">&minus;0.083</td></tr>
+<tr><td>the six-yard box</td><td class="n">+0.752</td><td class="n">&minus;0.099</td></tr>
+<tr><td>the half-spaces</td><td class="n">+0.772</td><td class="n">+0.523</td></tr>
+<tr><td>Zone 14</td><td class="n">+0.747</td><td class="n">+0.339</td></tr>
+<tr><td>wide areas, final third</td><td class="n">+0.267</td><td class="n">+0.658</td></tr></table></div>
+
+<p><b>The zones behave the way football says they should.</b> Time in the danger zone predicts
+goals and predicts nothing about assists. Time in wide areas inverts it. The half-spaces do both,
+which is the whole argument for playing there.</p>
+
+<h4>G. Position on the pitch is not the same as position in the final third</h4>
+<p>Simply playing high up the pitch explains a lot of goal threat. Knowing where in the final third
+explains far more:</p>
+<div class="tscroll"><table><tr><th>Predicting xG per 90 from</th><th>r</th></tr>
+<tr><td>final-third share alone</td><td class="n">+0.678</td></tr>
+<tr><td>final-third share and danger-zone share</td><td class="n">+0.902</td></tr></table></div>
+<p><b>Two players can spend the same time in the final third and be different players.</b> One
+stands on the last shoulder, the other collects the ball facing his own goal. The heatmap
+distinguishes them; a final-third count cannot.</p>
+
+<p>Percentiles are taken within position. A centre-back takes eight per cent of his touches in the
+final third and a winger sixty. Ranked together, every defender occupies the bottom of the table
+and the number stops saying whether a given defender pushes on more than his peers.</p>
+
 <h3>VIII. Goalkeeping</h3>
 <p>PsxG and xGOT are the same thing: a shot's value recomputed after it leaves the boot, using where
 it crossed the line. For a keeper this is the right denominator. It asks the only fair question

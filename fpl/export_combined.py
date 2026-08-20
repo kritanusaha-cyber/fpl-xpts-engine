@@ -217,6 +217,36 @@ def build() -> dict:
                                      if pd.notna(v.loc[i[0]]) else None)
                                  for k, v in pct.items()}
 
+    # Touch heatmap zones. Attached last because it keys on the stable FPL code
+    # rather than the element id, which is reassigned every season.
+    hm = Path("data/features/heatmap_zones.parquet")
+    if hm.exists():
+        from fpl.ingest.fotmob_heatmap import POSITION_ZONES
+        z = pd.read_parquet(hm)
+        code_of = dict(zip(d["element"], d["code"])) if "code" in d.columns else {}
+        pos_of = dict(zip(d["element"], d["position"]))
+        z["pos"] = z["code"].map({v: pos_of.get(k) for k, v in code_of.items()})
+        zc = [c for c in z.columns if c.startswith("z_")]
+        for c in zc:
+            z["p" + c[1:]] = z.groupby("pos")[c].rank(pct=True)
+        z = z.set_index("code")
+        for row in players:
+            code = code_of.get(row["id"])
+            if code is None or code not in z.index:
+                continue
+            r0 = z.loc[code]
+            if isinstance(r0, pd.DataFrame):
+                r0 = r0.iloc[0]
+            keys = POSITION_ZONES.get(row["pos"], [])
+            row["heat"] = {
+                "n": int(r0["touches"]),
+                "thin": bool(r0["low_sample"]),
+                "x_mean": round(float(r0["x_mean"]), 1),
+                "z": {k: [round(float(r0[f"z_{k}"]) * 100, 1),
+                          (round(float(r0[f"p_{k}"]) * 100) if pd.notna(r0.get(f"p_{k}")) else None)]
+                      for k in keys if f"z_{k}" in r0.index},
+            }
+
     players.sort(key=lambda x: -x["xpts"])
 
     return {
