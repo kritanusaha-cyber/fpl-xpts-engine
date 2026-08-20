@@ -1,6 +1,38 @@
 <div class="m">
+<div class="papernote">
+  This section follows the structure of the project's technical paper, which is written to
+  <b>AIAA conference format</b> &mdash; nomenclature block, Roman-numeral sections, numbered
+  equations, superscript citations. The paper is a condensed formal treatment;
+  <a href="https://claude.ai/code/artifact/774d4f29-29a1-4ea1-9032-eb78a70db86a"
+     target="_blank" rel="noopener">read it here</a>. What follows keeps the football reasoning
+  in full, and is the fuller of the two.
+</div>
 
-<h3>The premise</h3>
+<h3 class="nonum">Nomenclature</h3>
+<div class="nomen">
+  <span class="s">EO</span><span>=</span><span>effective ownership &mdash; fraction of the field holding a player, including captaincy</span>
+  <span class="s">H</span><span>=</span><span>planning horizon, gameweeks</span>
+  <span class="s">k</span><span>=</span><span>rank-tilt coefficient, dimensionless</span>
+  <span class="s">N</span><span>=</span><span>count of qualifying defensive actions in a fixture</span>
+  <span class="s">n90</span><span>=</span><span>accumulated playing time, units of 90 minutes</span>
+  <span class="s">p60</span><span>=</span><span>probability a player completes 60 or more minutes</span>
+  <span class="s">PsxG</span><span>=</span><span>post-shot expected goals &mdash; shot value conditioned on its trajectory</span>
+  <span class="s">s_i</span><span>=</span><span>share of team expected goals attributable to player i</span>
+  <span class="s">w</span><span>=</span><span>empirical-Bayes shrinkage weight, dimensionless</span>
+  <span class="s">xG</span><span>=</span><span>expected goals</span>
+  <span class="s">&lambda;</span><span>=</span><span>expected goals, home side</span>
+  <span class="s">&lambda;<sub>B</sub></span><span>=</span><span>budget shadow price, points per &pound;1.0m</span>
+  <span class="s">&mu;</span><span>=</span><span>expected goals, away side</span>
+  <span class="s">&mu;<sub>P</sub></span><span>=</span><span>dual on the positional quota constraint, points</span>
+  <span class="s">&rho;</span><span>=</span><span>Dixon&ndash;Coles low-score dependence parameter</span>
+  <span class="s">&sigma;&sup2;<sub>w</sub></span><span>=</span><span>within-player variance of an observed share</span>
+  <span class="s">&sigma;&sup2;<sub>b</sub></span><span>=</span><span>between-player variance of true shares</span>
+  <span class="s">&tau;</span><span>=</span><span>Dixon&ndash;Coles low-score correction factor</span>
+  <span class="s">&xi;</span><span>=</span><span>exponential time-decay rate, day<sup>&minus;1</sup></span>
+</div>
+
+
+<h3>I. The premise</h3>
 <p>Most FPL scoring rules are <b>thresholds</b>, not rates. A clean sheet is binary. DefCon pays
 at 10 actions and nothing at 9. Goals conceded dock a point every second goal. The mean of a
 threshold is not the threshold of the mean, so a model that projects averages and then applies
@@ -13,9 +45,9 @@ afterwards is trivial and never in doubt.</p>
 runs on priors alone and none of it has been validated against this season. The out-of-sample
 results below come from 2016/17&ndash;2025/26.</div>
 
-<h3>Getting the inputs right</h3>
+<h3>II. Getting the inputs right</h3>
 
-<h4>DefCon: which actions count, and for whom</h4>
+<h4>A. DefCon: which actions count, and for whom</h4>
 <p>Nobody publishes the definition, so it was recovered from the data &mdash; and it is
 <b>position-dependent in a way that matters tactically</b>:</p>
 <table><tr><th>Position</th><th>Qualifying actions</th><th>Threshold</th></tr>
@@ -31,19 +63,19 @@ and concede territory</b>, not at sides that dominate possession. Brighton's cen
 average 6.9 defensive actions per 90 against a league mean of 7.7 &mdash; a good team, a poor
 DefCon source, because they spend the match with the ball.</p>
 
-<h4>Attacking returns: shares, not rates</h4>
+<h4>B. Attacking returns: shares, not rates</h4>
 <p>The single most important input decision here. A player's goals per 90 already contains the
 quality of the team he played for. Multiply that by a fixture-adjusted team strength and you
 have counted the team <b>twice</b> &mdash; a Manchester City forward gets credited for City's
 chance creation once in his own rate and again in the fixture multiplier.</p>
-<div class="eq">E[player xG] = projected_team_xG  x  shrunk_player_share_of_team_xG</div>
+<div class="eq" data-n="(1)">E[player xG] = projected_team_xG  x  shrunk_player_share_of_team_xG</div>
 <p>A share is approximately invariant to team strength: it says "this player takes 24% of his
 side's chances", which travels when the fixture changes and when he transfers. Measured, the
 share structure lifts correlation with realised output <b>0.3752 &rarr; 0.4622 (+23%)</b>, and
 the gain survives all the way through to realised goals in every outfield position
 (MID +13.5%, FWD +13.6%, DEF +8.4%).</p>
 
-<h4>Penalties are a different event and must be modelled separately</h4>
+<h4>C. Penalties are a different event and must be modelled separately</h4>
 <p>FPL's <code>expected_goals</code> <b>includes penalties</b>. A designated taker therefore
 looks like a better open-play threat than he is, and &mdash; worse &mdash; the inflation follows
 the wrong player when duty changes hands over the summer. Igor Thiago was projecting the
@@ -52,7 +84,7 @@ second-highest xG share in the league, largely on nine penalties.</p>
 attached to whoever holds the duty <b>now</b> via the API's <code>penalties_order</code>. Effect
 on shares: Thiago &minus;23%, Palmer &minus;30%, Fernandes &minus;27%.</p>
 
-<h4>Minutes: selection and substitution are different decisions</h4>
+<h4>D. Minutes: selection and substitution are different decisions</h4>
 <p>Modelled as two chained logits, <code>P(appear)</code> then <code>P(&ge;60 | appear)</code>,
 rather than one ordered model. A manager decides who starts on squad status and fixture; he
 decides who comes off on scoreline and legs. Forcing both through one linear index costs
@@ -64,7 +96,7 @@ calibration on both.</p>
 <p>Beating the base rate proves nothing &mdash; a decayed average already gets 43%. The honest
 number is <b>21.6% better in Brier than the best single-feature baseline</b>.</p>
 
-<h4>Only one goalkeeper plays</h4>
+<h4>E. Only one goalkeeper plays</h4>
 <p>Per-player priors are estimated independently, which means nothing stops a model projecting
 three starting keepers at one club &mdash; and it did. Start probabilities are now allocated
 within each club and position across the slots a real XI fills (1 GKP, 4 DEF, 4 MID, 2 FWD),
@@ -74,10 +106,10 @@ Proportional scaling handed a third of the goalkeeping minutes to backups and dr
 0.57; sharpening concentrates them on the established starter (0.90) and strips the reserves
 (0.04), which is how a manager actually picks a team.</p>
 
-<h4>Low scores are correlated, so the Poisson needs correcting</h4>
+<h4>F. Low scores are correlated, so the Poisson needs correcting</h4>
 <p>Team goals use Dixon-Coles, which is two Poissons plus a correction on the four lowest
 scorelines:</p>
-<div class="eq">tau(0,0) = 1 - lambda*mu*rho     tau(1,1) = 1 - rho</div>
+<div class="eq" data-n="(2)">tau(0,0) = 1 - lambda*mu*rho     tau(1,1) = 1 - rho</div>
 <p>0&ndash;0 and 1&ndash;1 occur more often than independent scoring rates imply, because
 football is not independent: a side that goes ahead closes the game down, and two sides at
 0&ndash;0 late both stop taking risks. Without the correction, clean sheets are systematically
@@ -93,7 +125,7 @@ fixtures. The market already knows what the model knows about team strength. Dix
 its place only because bookmakers post no lines six gameweeks out, which is the horizon
 decisions are made on.</div>
 
-<h4>Defensive actions are overdispersed because roles differ</h4>
+<h4>G. Defensive actions are overdispersed because roles differ</h4>
 <p>DefCon counts are modelled negative binomial, not Poisson. A Poisson assumes variance equals
 mean, which would be true if every player faced the same defensive workload every week. They do
 not: a holding midfielder against a possession side racks up double his own average, and the
@@ -112,7 +144,7 @@ reached by playing, and a substitute never gets there.</p>
 that band is exactly where a DefCon strategy shops. DefCon is ~10% of a typical starter's
 projection and ~9% of the largest mispricings, so the headline outliers do not rest on it.</div>
 
-<h4>Bonus is deterministic &mdash; but the inputs are gone</h4>
+<h4>H. Bonus is deterministic &mdash; but the inputs are gone</h4>
 <p>BPS is a fixed function of the action log, so bonus should be exactly computable. Ranking by
 <em>true</em> BPS recovers <b>100% of bonus winners (760/760 fixtures)</b>, which proves the
 award and tie logic. The problem is upstream: FPL stopped publishing key passes, dribbles,
@@ -123,7 +155,7 @@ crosses, fouls and big chances after 2018/19.</p>
 <p>The bonus winner is recovered in 69% of fixtures, not 100%. Bonus is also worth less than
 commonly claimed: <b>11.3%</b> of an elite player's season, not 15&ndash;20%.</p>
 
-<h4>xGOT: tested, and rejected</h4>
+<h4>I. xGOT: tested, and rejected</h4>
 <p>xGOT (expected goals on target) recomputes a shot's value <em>after</em> it is struck, from
 where in the goal it ended up. The difference from xG is placement quality, and it is the
 natural candidate for a finishing-skill term. FotMob publishes it per shot; 9,543 shots from
@@ -144,7 +176,7 @@ this data. A player's shot <em>selection</em> is a skill; what he does to the ba
 close to noise at Premier League sample sizes. This is exactly what the build plan predicted, and
 the plan was right.</div>
 
-<h4>What the same data did give: set pieces</h4>
+<h4>J. What the same data did give: set pieces</h4>
 <p>The FotMob shotmap tags every shot's <code>situation</code>, and set pieces turn out to be
 <b>26.8% of all league xG</b> &mdash; the largest single component the model had been treating as
 undifferentiated open play. Unlike finishing, set-piece involvement is a strongly persistent
@@ -166,7 +198,7 @@ definition of "starter" changed between measurements (from a probability thresho
 club and position), which moves the benchmark. The persistence result above stands on its own;
 the bias improvement does not yet, and is not claimed.</div>
 
-<h4>Zonal analysis: territory as a leading indicator</h4>
+<h4>K. Zonal analysis: territory as a leading indicator</h4>
 <p>Output is what we predict; territory is what generates it, and it stabilises far faster.
 FotMob's per-match player data gives three territorial measures the model otherwise has no
 access to, plus pitch coordinates for every shot.</p>
@@ -179,7 +211,7 @@ access to, plus pitch coordinates for every shot.</p>
 <p>Box touches persist <b>more strongly than xG per shot itself</b>. Where a player operates is a
 more stable trait than how good his chances are.</p>
 
-<h4>The zone grid, and why these zones</h4>
+<h4>L. The zone grid, and why these zones</h4>
 <p>Each player panel carries a six-by-five zone grid over the attacking half, coloured three ways
 against the baseline for his own position &mdash; above, typical, below. The three-way encoding is
 borrowed from The Athletic's territory charts for a practical reason: the eye reads categories
@@ -208,7 +240,7 @@ touch territory for whole teams; this shows where a player shoots from. True per
 heatmaps need coordinate-level event data &mdash; SofaScore publishes it, and a partial collection
 (154 players, 7,382 coordinates) exists, but a full season was not gathered.</div>
 
-<h4>What each one is actually measuring</h4>
+<h4>M. What each one is actually measuring</h4>
 <p><b>Midfielders &mdash; arriving is not the same as supplying.</b> Box touches predict
 second-half chances created with <b>extra R&sup2; = 0.258 beyond final-third passes</b>
 (t = 8.67). The two are separable skills: a high-final-third-pass midfielder is a supplier, a
@@ -234,7 +266,7 @@ xGOT measured what a player did to the ball after striking it, which is close to
 measure where he spends the match, which is a role &mdash; and roles are stable, transfer with
 the player, and lead output rather than lagging it.</div>
 
-<h3>Pricing: what the market charges for output</h3>
+<h3>III. Pricing: what the market charges for output</h3>
 <p>Fair price was originally <code>price + surplus / lambda</code>, using the budget shadow price
 from the optimiser. <b>That was wrong</b>, and it is the error that produced a &pound;13.3m fair
 price for a &pound;4.5m defender.</p>
@@ -245,7 +277,7 @@ tripled every price gap.</p>
 <p>Worse, a linear map assumes constant returns, and FPL is explicitly priced with
 <b>diminishing</b> ones &mdash; premium players are being charged for attacking ceiling, which is
 itself capped. So the curve is fitted per position and inverted:</p>
-<div class="eq">points_per_gameweek = a + b * log(price)      ->      fair price = exp((points - a) / b)</div>
+<div class="eq" data-n="(3)">points_per_gameweek = a + b * log(price)      ->      fair price = exp((points - a) / b)</div>
 <table><tr><th>Position</th><th>&pound;4.5m buys</th><th>&pound;9.0m buys</th><th>marginal</th></tr>
 <tr><td>DEF</td><td class="n">1.86</td><td class="n">4.73</td><td>steepest &mdash; cheap defenders are genuinely poor</td></tr>
 <tr><td>MID</td><td class="n">1.67</td><td class="n">4.16</td><td>steep</td></tr>
@@ -255,9 +287,9 @@ this rate, for this position?</em> Luke Shaw moves from an absurd &pound;13.3m t
 <b>&pound;6.6m</b> against a &pound;4.5m listing &mdash; a real, actionable claim about a nailed
 cheap defender rather than an artefact of the wrong denominator.</p>
 
-<h4>Positional quotas, and why roles are not positions</h4>
+<h4>A. Positional quotas, and why roles are not positions</h4>
 <p>The separate "value vs role" figure is a linear-programming reduced cost:</p>
-<div class="eq">surplus = xPts_H  -  lambda*price  -  mu_position  -  replacement_in_role</div>
+<div class="eq" data-n="(4)">surplus = xPts_H  -  lambda*price  -  mu_position  -  replacement_in_role</div>
 <p><b>mu</b> is the dual on the squad quota. FPL forces 2/5/5/3, so you are never choosing a
 forward against the whole market, only against the other forwards you are compelled to field.
 Omitting it made 76% of goalkeepers look positive against 1% of forwards &mdash; a statement
@@ -272,7 +304,7 @@ names from cluster centroids and produced "attacking full-back" for two centre-b
 Haaland in "support forward". The clusters were real; the names were invented. They are now
 derived mechanically from the dominant axis.</div>
 
-<h3>New signings</h3>
+<h3>IV. New signings</h3>
 <p>187 of 592 players have never played in the league. Two priors were tested on <b>244 genuine
 debutants</b>:</p>
 <table><tr><th>Prior</th><th>xG share MAE</th><th>Verdict</th></tr>
@@ -289,13 +321,13 @@ Premier League share at corr <b>+0.656</b>, but the fitted slope is <b>0.40</b> 
 scoring abroad overstates Premier League share by about 2.5x <em>even after</em> a league-strength
 adjustment. Players do not carry their rate across; they carry their rank.</p>
 
-<h3>Leakage control</h3>
+<h3>V. Leakage control</h3>
 <p>Every feature function is wrapped in a decorator that filters its input to
 <code>gw &lt; as_of_gw</code> and then <b>audits its output</b> &mdash; a function can join its
 way back to the future, so checking inputs alone is insufficient. All backtesting is
 walk-forward; random k-fold on football panel data leaks the future and inflates everything.</p>
 
-<h3>Errors found, and what they teach</h3>
+<h3>VI. Errors found, and what they teach</h3>
 <ul>
 <li><b>Element ids are reassigned every season.</b> Joining on them matched different people.
 This corrupted the newcomer test set (23 &rarr; 244 once fixed, reversing the result) and put
@@ -316,7 +348,7 @@ these findable: any input error shows up as a residual rather than as a plausibl
 The one mismatch it ever produced was a real rule change &mdash; goalkeeper goals were worth 6
 points in 2020/21 and are worth 10 now.</p>
 
-<h4>The success criterion, tested</h4>
+<h4>A. The success criterion, tested</h4>
 <p>The build plan sets one bar: beat the template &mdash; what a manager gets by following the
 crowd &mdash; or the project is a hobby rather than an edge. Walk-forward over 2025/26, GW8&ndash;38,
 9,196 player-gameweeks, every component refitted on gameweeks already played:</p>
@@ -334,7 +366,7 @@ models.</p>
 regresses extreme projections toward what the evidence supports, which buys accuracy and ordering
 at the cost of guessing which single player explodes this weekend. For a squad held over several
 gameweeks that is the right trade; for a one-week captain differential it is not.</div>
-<h4>The second criterion: four seasons, and a negative result</h4>
+<h4>B. The second criterion: four seasons, and a negative result</h4>
 <p>Accuracy is not the same claim as finishing well, so the season was simulated under the real
 constraints &mdash; budget, one free transfer, &minus;4 for the second &mdash; across all four
 seasons with xG coverage.</p>
@@ -360,10 +392,10 @@ single-season +69 as though it settled the question &mdash; four seasons show th
 toward overlapping squads, and the template is not a weak benchmark &mdash; it is the aggregated
 judgement of millions, already near the ceiling the constraints allow. A 30% edge in projection
 error compresses into a margin smaller than one week's noise.</div>
-<h4>Rank optimisation: tested, and the strong version is wrong</h4>
+<h4>C. Rank optimisation: tested, and the strong version is wrong</h4>
 <p>The obvious remaining lever was to optimise for <em>rank</em> rather than points. Start with the
 algebra, because it constrains the answer. Your margin over the field is</p>
-<div class="eq">margin = SUM_i (own_i - EO_i) * points_i</div>
+<div class="eq" data-n="(5)">margin = SUM_i (own_i - EO_i) * points_i</div>
 <p>and the field term does not depend on your choices &mdash; so <b>in expectation, maximising rank
 is mathematically identical to maximising expected points</b>. Any benefit from differentials must
 come from rank being <em>non-linear</em> in margin: a top finish needs a <em>large</em> margin, not
@@ -391,7 +423,7 @@ whether a parameter generalises across seasons, and it showed a spike at 0.05 th
 0.10, which is an overfitting signature rather than a dose-response. Leave-one-season-out is what
 answered the question, and it downgraded the result substantially.</p>
 
-<h3>Known limits</h3>
+<h3>VII. Known limits</h3>
 <ul>
 <li>Measured bias, from the walk-forward backtest on identical rows: <b>forwards
 &minus;0.30</b> and midfielders &minus;0.18 points per gameweek; <b>defenders are essentially
