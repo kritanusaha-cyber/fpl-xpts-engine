@@ -201,7 +201,13 @@ def setpiece_priors(season_tag: str = "2025_2026") -> pd.DataFrame:
     agg["sp_shot_share"] = agg["sp_shots"] / agg["shots"].clip(lower=1)
     agg["sp_xg_share_of_own"] = agg["sp_xg"] / (agg["sp_xg"] + agg["op_xg"]).clip(lower=0.01)
 
-    out = resolve_to_fpl(agg)
+    from fpl.resolve.players import resolve as _shared
+    from fpl.ingest.fbref import manual_overrides
+    # Team id lets the resolver disambiguate on club, which is what carries
+    # short-form names like "Joao Pedro" onto the right FPL entry.
+    st = pd.read_parquet("data/raw/fotmob/player_match_stats.parquet")
+    agg["team_id"] = agg["player_id"].map(st.groupby("player_id")["team_id"].first())
+    out = _shared(agg, overrides=manual_overrides())
     out = out.dropna(subset=["code"])
     out["code"] = out["code"].astype(int)
     return out[["code", "player_name", "shots", "sp_shots", "sp_shot_share",

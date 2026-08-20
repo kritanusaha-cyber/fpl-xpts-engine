@@ -100,14 +100,28 @@ def resolve(df: pd.DataFrame, name_col: str = "player_name",
         out["_club"] = out[team_col].map(bridge)
         for _, cand in d.groupby("team_code"):
             pass
+        # Score candidates by how many name tokens they share, and accept only a
+        # clear winner. Requiring a single hit was too strict: FPL stores the
+        # full Spanish and Portuguese name -- "Martin Zubimendi Ibanez",
+        # "Pedro Lomba Neto" -- while the source gives the short form, and a
+        # common first name like "Martin" produced ties that rejected the match.
         miss = out.code.isna() & out["_club"].notna()
         for idx in out.index[miss]:
             club = out.at[idx, "_club"]
             toks = set(out.at[idx, "norm"].split())
+            if not toks:
+                continue
             pool = d[d.team_code == club]
-            hits = pool[pool.tokens.apply(lambda t: bool(t & toks))]
-            if len(hits) == 1:
-                out.at[idx, "code"] = hits.iloc[0]["code"]
+            if pool.empty:
+                continue
+            scores = pool.tokens.apply(lambda t: len(t & toks))
+            best = scores.max()
+            if best == 0:
+                continue
+            winners = pool[scores == best]
+            # A tie is genuinely ambiguous, so leave it unmatched rather than guess.
+            if len(winners) == 1:
+                out.at[idx, "code"] = winners.iloc[0]["code"]
 
     # 3. unique surname, then unique first name -- league-wide, so require uniqueness
     for col in ("surname", "firstname"):

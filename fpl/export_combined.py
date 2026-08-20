@@ -85,8 +85,13 @@ def build() -> dict:
     grids = {}
     gp = Path("data/features/pitch_grids.parquet")
     if gp.exists():
-        from fpl.ingest.fotmob import resolve_to_fpl as _res
-        g = _res(pd.read_parquet(gp)).dropna(subset=["code"])
+        from fpl.resolve.players import resolve as _res
+        from fpl.ingest.fbref import manual_overrides
+        g = pd.read_parquet(gp)
+        # Attach the source team id so the resolver can disambiguate on club.
+        _st = pd.read_parquet("data/raw/fotmob/player_match_stats.parquet")
+        g["team_id"] = g["player_id"].map(_st.groupby("player_id")["team_id"].first())
+        g = _res(g, overrides=manual_overrides()).dropna(subset=["code"])
         g["code"] = g["code"].astype(int)
         code_to_el = dict(zip(d["code"], d["element"]))
         for _, r in g.drop_duplicates("code").iterrows():
