@@ -1,0 +1,344 @@
+<title>Threshold-Aware Point Projection</title>
+<style>
+:root{
+  --paper:#FFFFFF; --ink:#101010; --ink-2:#3A3A3A; --muted:#6A6A6A;
+  --rule:#D8D8D4; --accent:#7A1E1E; --shade:#F5F4F0;
+  --serif:"Times New Roman",Times,"Liberation Serif",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15150F; --ink:#E9E7DF; --ink-2:#C3C0B6; --muted:#8E8B82;
+  --rule:#33322B; --accent:#C97A6D; --shade:#1D1D16;
+}}
+:root[data-theme="dark"]{
+  --paper:#15150F; --ink:#E9E7DF; --ink-2:#C3C0B6; --muted:#8E8B82;
+  --rule:#33322B; --accent:#C97A6D; --shade:#1D1D16;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.pg{max-width:760px;margin:0 auto;padding:46px 34px 90px}
+.hdr{text-align:center;border-bottom:1px solid var(--rule);padding-bottom:20px}
+h1{font-size:25px;font-weight:700;line-height:1.24;margin:0 0 16px;letter-spacing:-.005em;
+  text-wrap:balance}
+.au{font-size:15px;margin:0}
+.au sup{font-size:10px}
+.af{font-size:12.5px;font-style:italic;color:var(--ink-2);margin:2px 0 0}
+.abs{margin:24px 0 0;font-size:13.5px;line-height:1.55;text-align:justify}
+.abs b{font-weight:700}
+h2{font-size:15px;font-weight:700;text-align:center;margin:30px 0 10px;
+  text-transform:none;letter-spacing:.01em}
+h3{font-size:14px;font-weight:700;margin:20px 0 5px}
+h4{font-size:13.5px;font-style:italic;font-weight:400;margin:15px 0 4px}
+p{margin:0 0 10px;text-align:justify;hyphens:auto}
+.drop::first-letter{font-size:2.55em;line-height:.86;float:left;padding:3px 6px 0 0;font-weight:700}
+sup.ref{font-size:10px;color:var(--accent);font-weight:700}
+.nom{display:grid;grid-template-columns:max-content 1ch 1fr;gap:1px 8px;
+  font-size:13px;margin:6px 0 4px}
+.nom .s{font-family:var(--mono);font-size:12px;text-align:right}
+.nom .d{color:var(--ink-2)}
+.eq{display:grid;grid-template-columns:1fr max-content;align-items:center;gap:14px;
+  margin:13px 0}
+.eq .body{text-align:center;font-family:var(--mono);font-size:13px}
+.eq .n{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;margin:8px 0 14px;font-size:12.5px}
+caption{caption-side:top;text-align:left;font-size:12.5px;color:var(--ink-2);
+  padding-bottom:5px}
+caption b{color:var(--ink)}
+th{text-align:right;font-weight:700;border-bottom:1.4px solid var(--ink);
+  padding:4px 8px;font-size:11.5px}
+th.l,td.l{text-align:left}
+td{text-align:right;padding:3px 8px;border-bottom:1px solid var(--rule);
+  font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:1.4px solid var(--ink)}
+.tw{overflow-x:auto}
+.fn{border-top:1px solid var(--rule);margin-top:28px;padding-top:8px;font-size:11.5px;
+  color:var(--muted)}
+.fn p{margin:0 0 3px;text-align:left}
+ol.refs{font-size:12.5px;padding-left:26px;margin:6px 0 0}
+ol.refs li{margin-bottom:5px;text-align:left}
+.note{background:var(--shade);border-left:2.5px solid var(--accent);padding:9px 12px;
+  margin:12px 0;font-size:13px}
+code{font-family:var(--mono);font-size:12px}
+@media (max-width:620px){.pg{padding:30px 18px 70px}h1{font-size:21px}}
+</style>
+
+<div class="pg">
+<div class="hdr">
+  <h1>Threshold-Aware Monte Carlo Point Projection for Constrained Fantasy Sports Squad Selection</h1>
+  <p class="au">K. Saha<sup>1</sup></p>
+  <p class="af">Independent Research, Ithaca, New York, 14853, United States</p>
+</div>
+
+<p class="abs"><b>A Monte Carlo projection system is developed for Fantasy Premier League, in which
+the majority of scoring rules are threshold functions rather than linear rates. Because the mean of a
+threshold is not the threshold of a mean, component expectations are unsuitable as direct inputs; the
+system therefore simulates 20,000 realizations per fixture and applies the scoring rules to each draw.
+Component models comprise chained binomial logits for participation, a Dixon&ndash;Coles bivariate Poisson
+for team scoring, empirical-Bayes shrunk shares for attacking returns, and a hierarchical negative
+binomial for defensive action counts. The scoring engine is validated by exact reconstruction of
+109,681 historical player-matches. Walk-forward evaluation over four seasons demonstrates that the
+system achieves lower mean absolute error and higher within-position rank correlation than an
+ownership-weighted benchmark in four of four seasons. However, when the projections are subjected to
+the squad constraints of the game and simulated over complete seasons, the resulting points advantage
+is not statistically distinguishable from zero. This dissociation between projection accuracy and
+realized performance is the principal result, and is attributed to the constraint set compressing
+projection quality into a margin smaller than seasonal variance.</b></p>
+
+<h2>Nomenclature</h2>
+<div class="nom">
+  <span class="s">EO</span><span>=</span><span class="d">effective ownership, fraction of the competing field holding a given player, including captaincy</span>
+  <span class="s">H</span><span>=</span><span class="d">planning horizon, gameweeks</span>
+  <span class="s">k</span><span>=</span><span class="d">rank-tilt coefficient, dimensionless</span>
+  <span class="s">n<sub>90</sub></span><span>=</span><span class="d">accumulated playing time, units of 90 minutes</span>
+  <span class="s">N</span><span>=</span><span class="d">count of qualifying defensive actions in a fixture</span>
+  <span class="s">p<sub>60</sub></span><span>=</span><span class="d">probability a player completes 60 or more minutes</span>
+  <span class="s">PsxG</span><span>=</span><span class="d">post-shot expected goals, expected value of a shot conditioned on its trajectory</span>
+  <span class="s">s<sub>i</sub></span><span>=</span><span class="d">share of team expected goals attributable to player <i>i</i>, dimensionless</span>
+  <span class="s">w</span><span>=</span><span class="d">empirical-Bayes shrinkage weight, dimensionless</span>
+  <span class="s">xG</span><span>=</span><span class="d">expected goals</span>
+  <span class="s">&lambda;</span><span>=</span><span class="d">expected goals scored by the home team in a fixture</span>
+  <span class="s">&lambda;<sub>B</sub></span><span>=</span><span class="d">budget shadow price, points per unit currency</span>
+  <span class="s">&mu;</span><span>=</span><span class="d">expected goals scored by the away team in a fixture</span>
+  <span class="s">&mu;<sub>P</sub></span><span>=</span><span class="d">dual variable on the positional quota constraint, points</span>
+  <span class="s">&rho;</span><span>=</span><span class="d">Dixon&ndash;Coles low-score dependence parameter, dimensionless</span>
+  <span class="s">&sigma;<sup>2</sup><sub>w</sub></span><span>=</span><span class="d">within-player variance of an observed share</span>
+  <span class="s">&sigma;<sup>2</sup><sub>b</sub></span><span>=</span><span class="d">between-player variance of true shares</span>
+  <span class="s">&xi;</span><span>=</span><span class="d">exponential time-decay rate, day<sup>&minus;1</sup></span>
+  <span class="s">&tau;</span><span>=</span><span class="d">Dixon&ndash;Coles low-score correction factor</span>
+</div>
+
+<h2>I. Introduction</h2>
+<p class="drop">Fantasy Premier League requires a competitor to select fifteen players under a budget
+constraint, a positional quota, and a limit of three players per club, and to field eleven of them each
+week. Points accrue from a published rule set. The forecasting problem is therefore not merely to rank
+players but to produce quantities that survive a constrained combinatorial selection.</p>
+<p>A property of the rule set governs the modeling approach. Most scoring events are <i>thresholds</i>
+rather than rates: a clean sheet is binary; defensive contribution pays at ten or twelve qualifying
+actions and nothing below; goals conceded deduct one point per two conceded as a step function. For a
+dispersed outcome, the expectation of a threshold function is not the threshold function of the
+expectation. A system that projects component means and then applies the rules is biased, and the sign
+of the bias depends on the player's variance.</p>
+<p>Accordingly the system presented here simulates. For each fixture, 20,000 realizations are drawn
+and the published scoring rules are applied to every draw, yielding a distribution of points rather
+than a point estimate. Section II describes the data layer and the point-in-time discipline required to
+avoid look-ahead. Section III presents the component models. Section IV describes assembly and
+valuation. Sections V and VI give the validation methodology and results. Section VII reports negative
+results, which constitute a substantial fraction of the findings and are presented at equal length.</p>
+
+<h2>II. Data Layer and Point-in-Time Construction</h2>
+<h3>A. Sources and Coverage</h3>
+<p>Ten seasons of per-gameweek player records (2016/17&ndash;2025/26) were assembled into a columnar
+store, comprising 253,890 player-fixture rows.<sup class="ref">1</sup> Expected-goals quantities are
+available from 2022/23 onward; defensive action counts are published for 2016/17&ndash;2018/19 and
+2025/26 only, leaving a six-season gap. Shot-level coordinates, situation tags, and post-shot expected
+goals were obtained for 2025/26.<sup class="ref">2</sup></p>
+<div class="note"><b>Key discovery.</b> The complete scoring table is published by the game's own
+application programming interface. It is therefore generated programmatically and compared against the
+stored copy in continuous integration, rather than transcribed by hand. This eliminates a class of
+silent error and renders a future rule change a no-operation.</div>
+
+<h3>B. Point-in-Time Enforcement</h3>
+<p>The dominant failure mode in panel-data backtesting is leakage: a feature computed at gameweek
+<i>t</i> that observes data from <i>t</i> or later. Every feature function is therefore wrapped in a
+decorator that filters its input to gameweek &lt; <i>t</i> and, critically, <i>audits its returned
+frame</i>. Input filtering alone is insufficient because a function may rejoin the full table
+internally and thereby reintroduce the future. All evaluation is walk-forward; random <i>k</i>-fold
+partitioning of football panel data leaks the future and inflates every metric.</p>
+
+<h3>C. Identifier Instability</h3>
+<p>Player identifiers are reassigned by the governing platform between seasons. Joining on them across
+a season boundary silently associates records belonging to different individuals. This defect was
+detected three times during development, in each case producing plausible but incorrect output, and is
+resolved by joining exclusively on a stable player code. Positional classification is likewise a
+per-season attribute and must not be inherited.</p>
+
+<h2>III. Component Models</h2>
+<h3>A. Participation</h3>
+<p>Playing time is modeled as two chained binomial logits, for <i>P</i>(appearance) and
+<i>P</i>(&ge;60 min | appearance), rather than a single ordered logit. Selection and in-match
+substitution have distinct drivers, and forcing both through a common linear index degrades
+calibration in both. Walk-forward over 86,755 predictions gives a Brier score of 0.0881, against 0.1124
+for an exponentially-weighted start-rate baseline and 0.1974 for the base rate.</p>
+
+<h3>B. Team Scoring</h3>
+<p>Fixture goal expectations follow the Dixon&ndash;Coles bivariate Poisson,<sup class="ref">3</sup>
+in which independent Poisson marginals are corrected on the four lowest scorelines:</p>
+<div class="eq"><span class="body">&lambda; = exp(&alpha;<sub>h</sub> &minus; &beta;<sub>a</sub> + &gamma;),&nbsp;&nbsp;&nbsp; &mu; = exp(&alpha;<sub>a</sub> &minus; &beta;<sub>h</sub>)</span><span class="n">(1)</span></div>
+<div class="eq"><span class="body">&tau;(0,0) = 1 &minus; &lambda;&mu;&rho;,&nbsp;&nbsp;&nbsp; &tau;(1,1) = 1 &minus; &rho;</span><span class="n">(2)</span></div>
+<p>The correction is physically motivated: a side that establishes a lead reduces risk, and two sides
+level late both do so, producing an excess of 0&ndash;0 and 1&ndash;1 relative to independence.
+Omitting it systematically underprices clean sheets. Exponential decay
+<i>e</i><sup>&minus;&xi;t</sup> is applied with &xi; tuned out of sample; the minimum of 1X2 log-loss
+occurs at &xi; = 0.003 day<sup>&minus;1</sup>, corresponding to a half-life of approximately eight
+months. Fitting on expected goals outperforms fitting on realized goals (log-loss 0.9978 against
+1.0093), as expected-goals estimates aggregate all chances rather than only converted ones.</p>
+
+<h3>C. Attacking Returns</h3>
+<p>Player attacking output is modeled multiplicatively as a share of team output, not as a per-90 rate:</p>
+<div class="eq"><span class="body">E[xG<sub>i</sub>] = xG<sub>team</sub> &times; s<sub>i</sub></span><span class="n">(3)</span></div>
+<p>The distinction is material. A per-90 rate already embeds the quality of the side in which it was
+accrued; multiplying it by a fixture-adjusted team strength counts team quality twice. A share is
+approximately invariant to team strength and therefore admits the multiplication. Shares are shrunk by
+empirical Bayes with the weight estimated per position from a variance decomposition:</p>
+<div class="eq"><span class="body">w = n<sub>90</sub> / (n<sub>90</sub> + &sigma;<sup>2</sup><sub>w</sub>/&sigma;<sup>2</sup><sub>b</sub>)</span><span class="n">(4)</span></div>
+<p>The estimated ratio differs strongly by position &mdash; 6.5 for midfielders against 15.7 for
+defenders and forwards &mdash; indicating that midfielders separate from positional peers more than
+twice as rapidly. Penalty expected goals are removed using shot situation tags and reintroduced as a
+distinct term attached to current designated duty, since the inclusive quantity inflates a taker's
+apparent open-play threat by as much as thirty percent.</p>
+
+<h3>D. Defensive Contributions</h3>
+<p>Qualifying action counts are modeled as hierarchical negative binomial with a log-minutes offset and
+position-varying dispersion. The Poisson alternative is not merely less accurate but systematically
+biased downward (&minus;0.028 against &minus;0.002), being unable to generate the right tail on which
+threshold payoffs depend. Two results govern usage. First, evaluating <i>P</i>(<i>N</i> &ge; threshold)
+at a nominal ninety minutes rather than at projected minutes yields a Brier score of 0.1270, inferior to
+the base rate of 0.1183; the threshold is reached by playing. Second, calibration degrades severely
+above <i>P</i> = 0.5, where a predicted rate of 0.606 corresponded to a realized rate of 0.188.
+Isotonic recalibration and a tail cap at 0.40 are applied, both fitted walk-forward.</p>
+
+<h2>IV. Assembly and Valuation</h2>
+<h3>A. Joint Simulation</h3>
+<p>Components are combined by simulation rather than by summation of marginals. One scoreline is drawn
+per realization and both squads are played out against it, so that a clean sheet and a low
+goals-conceded count are the same event, and bonus &mdash; awarded on a rank of a deterministic score
+across all twenty-two participants &mdash; emerges structurally rather than by assumption. Summing
+marginal expectations reproduces the mean while destroying the covariance, and the covariance is what
+captaincy and rank optimization require.</p>
+
+<h3>B. Valuation by Reduced Cost</h3>
+<p>Player value is expressed as a linear-programming reduced cost rather than as points per unit cost:</p>
+<div class="eq"><span class="body">surplus<sub>i</sub> = xPts<sub>i</sub> &minus; &lambda;<sub>B</sub> price<sub>i</sub> &minus; &mu;<sub>P</sub> &minus; replacement</span><span class="n">(5)</span></div>
+<p>The dual &mu;<sub>P</sub> on the positional quota is necessary: the game compels a fixed positional
+composition, so a forward is never selected against the entire market but only against other forwards.
+Omitting it produced positive valuations for 76 percent of goalkeepers against 1 percent of forwards, a
+statement about the constraint rather than about the players. Fair price is obtained by inverting an
+empirically fitted concave price&ndash;output relation, not by dividing surplus by &lambda;<sub>B</sub>;
+&lambda;<sub>B</sub> is a marginal rate at a constrained optimum, approximately one third of the market
+gradient, and the linear inversion produced a fair price of 13.3 for a player listed at 4.5.</p>
+
+<h2>V. Validation Methodology</h2>
+<p>The scoring engine is validated by exact reconstruction: realized points are recomputed from action
+counts for 109,681 player-matches spanning ten seasons, achieving 100.00 percent exact agreement. The
+single discrepancy encountered was traced to a genuine rule change, goalkeeper goals having been
+revalued from six to ten points, demonstrating that the procedure detects rule drift from data alone.</p>
+<p>Projection quality is assessed by walk-forward evaluation against four benchmarks in ascending
+order of difficulty: a price heuristic, the platform's published form statistic, points per appearance
+to date, and an ownership-weighted benchmark representing consensus selection. Squad-level performance
+is assessed by simulating complete seasons under the full constraint set with one free transfer per
+gameweek and a four-point charge for each additional transfer.</p>
+
+<h2>VI. Results</h2>
+<div class="tw"><table>
+<caption><b>Table 1</b> &nbsp;Walk-forward projection accuracy by season; MAE in points, &rho; is
+within-position Spearman rank correlation.</caption>
+<thead><tr><th class="l">Season</th><th>Engine MAE</th><th>Consensus MAE</th><th>Engine &rho;</th><th>Consensus &rho;</th></tr></thead>
+<tbody>
+<tr><td class="l">2022/23</td><td>1.885</td><td>2.730</td><td>0.291</td><td>0.229</td></tr>
+<tr><td class="l">2023/24</td><td>1.935</td><td>2.694</td><td>0.273</td><td>0.219</td></tr>
+<tr><td class="l">2024/25</td><td>1.863</td><td>2.636</td><td>0.272</td><td>0.244</td></tr>
+<tr><td class="l">2025/26</td><td>1.991</td><td>2.895</td><td>0.282</td><td>0.193</td></tr>
+</tbody></table></div>
+<p>The system attains lower mean absolute error than the consensus benchmark in four seasons of four,
+and additionally outperforms a points-per-appearance benchmark in four of four. Aggregate improvement
+against consensus is 31.2 percent in MAE and 46.1 percent in rank correlation over approximately 95,000
+player-gameweeks.</p>
+
+<div class="tw"><table>
+<caption><b>Table 2</b> &nbsp;Full-season squad simulation under the complete constraint set; total
+points and margin relative to the consensus benchmark.</caption>
+<thead><tr><th class="l">Season</th><th>Engine</th><th>Consensus</th><th>Margin</th></tr></thead>
+<tbody>
+<tr><td class="l">2022/23</td><td>1349</td><td>1376</td><td>&minus;27</td></tr>
+<tr><td class="l">2023/24</td><td>1495</td><td>1572</td><td>&minus;77</td></tr>
+<tr><td class="l">2024/25</td><td>1592</td><td>1546</td><td>+46</td></tr>
+<tr><td class="l">2025/26</td><td>1549</td><td>1480</td><td>+69</td></tr>
+</tbody></table></div>
+<p>The squad-level result does not follow from the projection-level result. The system prevails in two
+seasons of four, with a mean margin of +2.8 points per season and a pooled weekly margin of +0.089
+points (95 percent confidence interval &minus;3.15 to +3.33; <i>p</i> = 0.96). <b>No detectable
+season-points advantage over consensus selection is demonstrated.</b></p>
+<p>This dissociation is the principal finding. The constraint set &mdash; fifteen players, three per
+club, a fixed budget, eleven fielded &mdash; drives all competitors toward overlapping selections, and
+the consensus benchmark is not weak but represents the aggregated judgment of several million
+competitors, already near the ceiling the constraints permit. A thirty percent reduction in projection
+error is compressed into a margin smaller than one week's variance.</p>
+
+<h2>VII. Negative Results</h2>
+<p>Four hypotheses were tested and rejected. They are reported because the rejections are more
+informative than several of the positive results.</p>
+<h3>A. Market Blending</h3>
+<p>Combining the team model with de-vigged bookmaker closing odds yields an improvement of +0.00101 in
+log-loss (<i>t</i> = +0.58, 95 percent CI &minus;0.0024 to +0.0044) over 758 fixtures. The team model
+adds no measurable information beyond the market. Its retention is justified solely because bookmakers
+do not quote fixtures at the horizon the planner requires.</p>
+<h3>B. Post-Shot Expected Goals as a Skill Measure</h3>
+<p>Placement quality, defined as PsxG less pre-shot expected goals on target, does not persist within a
+season (<i>r</i> = &minus;0.007), nor does finishing (<i>r</i> = &minus;0.065), against a control &mdash;
+expected goals per shot &mdash; persisting at <i>r</i> = +0.742. The control establishes that the test
+has power. Shot <i>selection</i> is a stable attribute; what a player does to the ball thereafter is
+not measurable at these sample sizes. Goalkeeper shot-stopping is likewise unmeasurable, and here the
+control also fails, so the correct statement is that one season is insufficient rather than that no
+skill exists.</p>
+<h3>C. Role Inheritance for Transfers</h3>
+<p>The hypothesis that an incoming player inherits the output profile of the role he fills was tested
+on 244 debutants and rejected; a position-by-price-tier prior is superior on every metric. Two causes
+are identified: the listing price already encodes the club's assessment of the signing's intended role,
+and a minutes-weighted role profile describes the first-choice incumbent rather than the arrival.</p>
+<h3>D. Rank Tilting</h3>
+<p>Writing the margin over the field as &sum;<sub>i</sub>(own<sub>i</sub> &minus; EO<sub>i</sub>)
+points<sub>i</sub>, the second term is independent of selection. Hence <i>in expectation, rank
+maximization and points maximization are identical</i>, and any differential advantage must arise from
+the non-linearity of rank in margin. Tilting valuation toward lightly-owned players by
+xPts(1 + <i>k</i>(1 &minus; EO)) was tested across four seasons and is monotonically harmful for
+<i>k</i> &ge; 0.15, costing 856 points at <i>k</i> = 1. The mechanism is visible in the margin
+distribution: tilting increases weekly standard deviation from 18.4 to 20.6 while reducing the mean
+from +0.09 to &minus;6.9, so the upper tail does not improve. Ownership correlates with quality.</p>
+
+<h2>VIII. Transfer Economics</h2>
+<p>A separate result concerns the four-point charge levied for additional transfers. Applying the
+apparently rational criterion &mdash; incur the charge when projected weekly gain multiplied by
+expected holding period exceeds four points &mdash; cost 349 points across four seasons relative to
+declining all such transfers, of which only 156 points were the charges themselves. Recovery is
+monotonic in the required margin and complete only at abstention. This is the optimizer's curse: the
+transfer selected is that with the largest <i>estimated</i> gain, and the largest estimate in a noisy
+set is biased upward, so the charge is paid to acquire estimation error. Raising the threshold does not
+resolve it, because the filter operates on the same contaminated estimate.</p>
+
+<h2>IX. Conclusions</h2>
+<p>A threshold-aware simulation system was constructed and validated. Its scoring engine reproduces
+109,681 historical player-matches exactly. Its projections are more accurate and better ordered than
+consensus selection in four seasons of four. Under the game's constraint set, however, this advantage
+does not convert into a demonstrable points margin over four seasons of simulated play.</p>
+<p>The practical implication is that projection quality is not the binding constraint in this problem.
+Structural interventions were tested &mdash; rank tilting, transfer horizon valuation, hit discipline
+&mdash; and yielded improvements measured in tens of points against a seasonal variance measured in
+hundreds. Discriminating an advantage of the observed magnitude would require approximately ten
+seasons of data. Any claim of a demonstrated edge from a single-season backtest should be regarded as
+a reading of noise; the present work reached the opposite conclusion on its own single-season result
+when three further seasons were added.</p>
+
+<div class="fn">
+<p><sup>1</sup> Independent researcher. Complete source, data pipeline, and reproduction instructions
+are available in the project repository.</p>
+</div>
+
+<h2>References</h2>
+<ol class="refs">
+<li>Anand, V., <i>Fantasy-Premier-League: Historical Gameweek Data Repository</i>, GitHub, 2016&ndash;2026.</li>
+<li>Premier League, <i>Fantasy Premier League Application Programming Interface</i>, bootstrap-static
+and fixtures endpoints, accessed August 2026.</li>
+<li>Dixon, M. J., and Coles, S. G., "Modelling Association Football Scores and Inefficiencies in the
+Football Betting Market," <i>Journal of the Royal Statistical Society: Series C</i>, Vol. 46, No. 2,
+1997, pp. 265&ndash;280.</li>
+<li>Efron, B., and Morris, C., "Stein's Estimation Rule and Its Competitors&mdash;An Empirical Bayes
+Approach," <i>Journal of the American Statistical Association</i>, Vol. 68, No. 341, 1973,
+pp. 117&ndash;130.</li>
+<li>Smith, J. E., and Winkler, R. L., "The Optimizer's Curse: Skepticism and Postdecision Surprise in
+Decision Analysis," <i>Management Science</i>, Vol. 52, No. 3, 2006, pp. 311&ndash;322.</li>
+<li>Zadrozny, B., and Elkan, C., "Transforming Classifier Scores into Accurate Multiclass Probability
+Estimates," <i>Proceedings of the Eighth ACM SIGKDD International Conference on Knowledge Discovery and
+Data Mining</i>, 2002, pp. 694&ndash;699.</li>
+</ol>
+</div>
