@@ -241,7 +241,45 @@ prevented 7.05 goals, Verbruggen 5.59, Donnarumma 5.04. Vicario conceded 5.07 mo
 <tr><td>high corners</td><td class="n">197</td><td class="n">44&ndash;50%</td></tr>
 <tr><td>low corners</td><td class="n">988</td><td class="n">37&ndash;40%</td></tr>
 <tr><td>central</td><td class="n">1126</td><td class="n">16&ndash;19%</td></tr></table></div>
-<div class="caveat"><b>The model does not use this.</b> Shot-stopping does not persist across half a
+<h4>A. Shot quality faced separates two defensive jobs</h4>
+<p>Goals conceded tells you a defence let goals in. It does not tell you why. Two defences with the
+same total do different jobs. One concedes many weak shots. The other concedes few strong ones.</p>
+<div class="eq" data-n="(6)">PsxG/SOT = PsxG faced &divide; shots that reached the keeper</div>
+<p>This splits what a keeper faces into <b>volume</b> and <b>quality</b>. A low PsxG/SOT means the
+defence forces bad shots. Attackers reach dangerous areas rarely, or reach them under pressure and
+scuff it.</p>
+<p>The league average is <b>0.317</b>. Roughly a third of the shots that reach a keeper are expected
+to go in, which matches a league save rate near 70%.</p>
+
+<h4>B. Two counting mistakes that changed the answer</h4>
+<p>The first version of this analysis was wrong twice, and both errors are easy to repeat.</p>
+<p><b>A shot's team id names the side that took it, not the side that faced it.</b> Grouping on it
+measures shots created and calls them shots conceded. The defending side is the other team in the
+fixture.</p>
+<p><b>Half the shots flagged on target never reach the keeper.</b> A defender blocks them. The flag
+records where the ball was heading, not where it arrived, and those shots carry PsxG of zero.
+Leaving them in the denominator dragged the league average down to 0.160 &mdash; half its true
+value.</p>
+<p>Both mistakes produced numbers that looked plausible. The check that caught them was comparing
+the team figure against the keeper figure for the same season. They disagreed, and only one could
+be right.</p>
+
+<h4>C. Defences control volume more than quality</h4>
+<div class="tscroll"><table><tr><th>Signal</th><th>persistence r</th><th>t</th></tr>
+<tr><td>shots on target faced <b>(volume)</b></td><td class="n">+0.547</td><td class="n">+2.77</td></tr>
+<tr><td>PsxG faced per match</td><td class="n">+0.262</td><td class="n">+1.15</td></tr>
+<tr><td>PsxG per shot faced <b>(quality)</b></td><td class="n">+0.100</td><td class="n">+0.43</td></tr></table></div>
+<p>Volume persists across half a season. Quality does not.</p>
+<p><b>A good defence prevents shots. It does not make shots much worse.</b> Once the ball is struck
+and reaches the keeper, its danger is mostly the shooter's doing and the position he shot from.
+Defending happens earlier, in stopping the chance from existing at all.</p>
+<div class="caveat"><b>Twenty teams is a thin test.</b> Volume clears significance and quality does
+not, which is the finding. But nothing here predicts second-half clean sheet rate at this sample
+size, including volume. The model therefore prices clean sheets from team strength and the
+Dixon&ndash;Coles scoreline, and shows PsxG/SOT as context for reading a keeper &mdash; is he
+overworked, or left exposed &mdash; rather than as a forecast input.</div>
+
+<div class="caveat"><b>The model does not use shot-stopping.</b> It does not persist across half a
 season &mdash; and neither does the control, which is the difficulty a keeper faces. When the
 control fails, the test has no power. The honest statement is that <b>one season cannot measure
 shot-stopping</b>, not that the skill is absent. PsxG also loses to plain goals conceded when
@@ -258,7 +296,7 @@ gradient for defenders is about 3.2. Dividing by a number three times too small 
 <p>A linear map is also the wrong shape. FPL prices with <b>diminishing returns</b> &mdash; premium
 players are charged for a ceiling that is itself capped. So the model fits a curve per position and
 inverts it:</p>
-<div class="eq" data-n="(6)">points per gameweek = a + b log(price)   &rarr;   fair price = exp((points &minus; a) / b)</div>
+<div class="eq" data-n="(7)">points per gameweek = a + b log(price)   &rarr;   fair price = exp((points &minus; a) / b)</div>
 <div class="tscroll"><table><tr><th>Position</th><th>&pound;4.5m buys</th><th>&pound;9.0m buys</th><th>Shape</th></tr>
 <tr><td>DEF</td><td class="n">1.86</td><td class="n">4.73</td><td>steepest &mdash; cheap defenders really are poor</td></tr>
 <tr><td>MID</td><td class="n">1.67</td><td class="n">4.16</td><td>steep</td></tr>
@@ -268,7 +306,7 @@ for this position? Luke Shaw moves from an absurd &pound;13.3m to <b>&pound;6.6m
 &pound;4.5m listing. That is a claim you can act on.</p>
 
 <h4>A. Roles, not positions</h4>
-<div class="eq" data-n="(7)">surplus = xPts &minus; &lambda;<sub>B</sub> price &minus; &mu;<sub>P</sub> &minus; replacement in role</div>
+<div class="eq" data-n="(8)">surplus = xPts &minus; &lambda;<sub>B</sub> price &minus; &mu;<sub>P</sub> &minus; replacement in role</div>
 <p>&mu;<sub>P</sub> prices the squad quota. FPL forces 2/5/5/3, so <b>you never pick a forward
 against the whole market. You pick him against the other forwards you must field.</b> Drop this term
 and 76% of goalkeepers look good against 1% of forwards. That describes the constraint, not the
@@ -346,7 +384,7 @@ noise.</b></p>
 
 <h4>B. Rank tilting</h4>
 <p>Write your margin over the field as a sum over every player:</p>
-<div class="eq" data-n="(8)">margin = &sum;<sub>i</sub> (own<sub>i</sub> &minus; EO<sub>i</sub>) &times; points<sub>i</sub></div>
+<div class="eq" data-n="(9)">margin = &sum;<sub>i</sub> (own<sub>i</sub> &minus; EO<sub>i</sub>) &times; points<sub>i</sub></div>
 <p>The field term does not depend on your choices. <b>So maximising rank and maximising points are
 the same problem in expectation.</b> A differential can only help through the non-linearity: a top
 finish needs a <em>large</em> margin, and large margins need variance.</p>

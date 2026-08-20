@@ -121,32 +121,14 @@ def zone_breakdown(shots: pd.DataFrame) -> pd.DataFrame:
 
 
 def resolve_to_fpl(k: pd.DataFrame, season: str = "2025-26") -> pd.DataFrame:
-    """Attach the stable FPL `code` so keeper metrics reach the dashboard.
+    """Attach the stable FPL `code`, goalkeepers only.
 
-    Candidates are restricted to goalkeepers. Without that constraint the
-    surname fallback resolved Emiliano Martinez onto Lisandro Martinez, because
-    FPL stores the first as "Martinez Romero" and the second as "Martinez" --
-    both unique surnames, so the shorter one won the last-token match and a
-    Manchester United defender inherited an Aston Villa keeper's save record.
-    A keeper's shot-stopping can only belong to a keeper, so say so.
+    Restricting candidates to goalkeepers removes a whole class of collision.
+    Without it the surname fallback put Emiliano Martinez's save record on
+    Lisandro Martinez, because FPL stores the keeper as "Martinez Romero" and the
+    defender as "Martinez" -- both unique, so the shorter one won.
     """
-    from fpl.ingest.fbref import normalise, manual_overrides
-    pl = pd.read_parquet(f"data/raw/vaastav/players_raw/season={season}.parquet")
-    pl = pl[pl["element_type"] == 1]          # goalkeepers only
-    pl["full"] = (pl["first_name"].fillna("") + " " + pl["second_name"].fillna("")).map(normalise)
-    pl["surname"] = pl["second_name"].fillna("").map(normalise)
-    d = k.copy()
-    d["norm"] = d["name"].map(normalise)
-    m = d.merge(pl[["code", "full"]].rename(columns={"full": "norm"}), on="norm", how="left")
-    counts = pl["surname"].value_counts()
-    uniq = pl[pl["surname"].isin(counts[counts == 1].index)]
-    lut = dict(zip(uniq["surname"], uniq["code"]))
-    for tok in (-1, 0):
-        miss = m["code"].isna()
-        if miss.any():
-            m.loc[miss, "code"] = m.loc[miss, "norm"].str.split().str[tok].map(lut)
-    ov = manual_overrides()
-    if ov:
-        miss = m["code"].isna()
-        m.loc[miss, "code"] = m.loc[miss, "name"].map(ov)
-    return m
+    from fpl.resolve.players import resolve
+    from fpl.ingest.fbref import manual_overrides
+    return resolve(k, name_col="name", team_col=None, element_type=1,
+                   season=season, overrides=manual_overrides())

@@ -230,8 +230,15 @@ def _attach_zonal(d: pd.DataFrame) -> pd.DataFrame:
         return d
     z = pd.read_parquet(path)
 
-    from fpl.ingest.fotmob import resolve_to_fpl
-    z = resolve_to_fpl(z.rename(columns={"player_name": "player_name"}))
+    # Attach the source team id so the resolver can bridge on club, which is what
+    # lifts coverage from roughly two thirds to almost all.
+    st = pd.read_parquet("data/raw/fotmob/player_match_stats.parquet")
+    teams = st.groupby("player_id")["team_id"].first()
+    z["team_id"] = z["player_id"].map(teams)
+
+    from fpl.resolve.players import resolve
+    from fpl.ingest.fbref import manual_overrides
+    z = resolve(z, overrides=manual_overrides())
     z = z.dropna(subset=["code"])
     z["code"] = z["code"].astype(int)
     z = z[z["minutes"] >= 450].drop_duplicates("code")

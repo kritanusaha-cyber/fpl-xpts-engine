@@ -429,12 +429,18 @@ function keeperPanel(p){
   // means he saved more than an average keeper would have from those shots.
   const prevented=g.prevented, col=prevented>=0?'var(--pos)':'var(--neg)';
   const w=Math.min(100, Math.abs(prevented)/8*100);
+  // League mean PsxG per shot on target is 0.160. Below that, the defence is
+  // forcing bad shots; above it, the keeper is being left with real chances.
+  const q = g.psxg_per_sot, qlab = q==null ? '' :
+    (q < 0.150 ? 'defence forces weak shots' :
+     q > 0.175 ? 'defence leaves him good chances' : 'about league average');
   const rows=[
-    ['Shots on target faced', g.faced, ''],
+    ['Shots on target faced', g.faced, 'volume &mdash; what the defence concedes'],
+    ['PsxG per shot faced', q==null?null:q.toFixed(3), qlab],
     ['PsxG faced', g.psxg.toFixed(1), 'what an average keeper concedes from those shots'],
     ['Goals conceded', g.conceded, ''],
     ['Save % over expected', (g.save_oe*100>=0?'+':'')+(g.save_oe*100).toFixed(1)+'%', ''],
-  ].map(([k,v,why])=>`<div class="zrow"><span class="zlab">${k}</span>
+  ].filter(r=>r[1]!=null).map(([k,v,why])=>`<div class="zrow"><span class="zlab">${k}</span>
      <span></span><span class="zval">${v}</span><span></span></div>
      ${why?`<div class="zwhy">${why}</div>`:''}`).join('');
   return `<div class="dh" style="margin-top:14px">Shot-stopping (non-penalty, ${g.matches} matches)</div>

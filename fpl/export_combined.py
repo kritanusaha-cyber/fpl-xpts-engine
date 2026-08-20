@@ -121,6 +121,9 @@ def build() -> dict:
                 "save_oe": round(float(r["save_pct_oe"]), 3),
                 "save_pct": round(float(r["save_pct"]), 3),
                 "matches": int(r["matches"]),
+                # Quality of the shots he faces, which is a read on the defence
+                # in front of him rather than on him.
+                "psxg_per_sot": round(float(r["psxg_np"]) / max(int(r["faced_np"]), 1), 3),
             }
 
     # GW1 component breakdown, keyed by element
