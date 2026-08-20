@@ -175,6 +175,9 @@ tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
 .zgstat{display:flex;gap:13px;flex-wrap:wrap;margin-top:5px;font-size:11.5px;color:var(--muted)}
 .zgstat b{font-family:var(--mono);color:var(--ink)}
 .zgn{margin-left:auto;font-family:var(--mono)}
+.gktwo{display:flex;flex-wrap:wrap;gap:22px}
+.gkgap{font-size:11.5px;color:var(--muted);margin:2px 0 6px}
+.gkgap b{font-family:var(--mono);color:var(--ink)}
 .gkhead{display:flex;align-items:center;gap:11px;margin:8px 0 6px}
 .gkbig{font-family:var(--mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
 .gklab{font-size:11.5px;color:var(--ink-2);line-height:1.35}
@@ -443,11 +446,26 @@ function keeperPanel(p){
   ].filter(r=>r[1]!=null).map(([k,v,why])=>`<div class="zrow"><span class="zlab">${k}</span>
      <span></span><span class="zval">${v}</span><span></span></div>
      ${why?`<div class="zwhy">${why}</div>`:''}`).join('');
+  // Show both measures side by side. They answer different questions and the
+  // gap between them is the defence, so hiding either loses the point.
+  const gs = g.gsaa, gcol = gs>=0?'var(--pos)':'var(--neg)';
+  const de = g.diff_effect;
+  const verdict = de==null ? '' :
+    (de > 1.5 ? 'faced hard shots &mdash; GSAA understates him' :
+     de < -1.5 ? 'faced easy shots &mdash; GSAA flatters him' :
+     'shot difficulty near league average');
   return `<div class="dh" style="margin-top:14px">Shot-stopping (non-penalty, ${g.matches} matches)</div>
-    <div class="gkhead">
-      <span class="gkbig" style="color:${col}">${prevented>=0?'+':''}${prevented.toFixed(2)}</span>
-      <span class="gklab">goals prevented<br><span class="zwhy">PsxG faced &minus; goals conceded</span></span>
+    <div class="gktwo">
+      <div class="gkhead">
+        <span class="gkbig" style="color:${col}">${prevented>=0?'+':''}${prevented.toFixed(2)}</span>
+        <span class="gklab">goals prevented<br><span class="zwhy">vs the shots he faced</span></span>
+      </div>
+      <div class="gkhead">
+        <span class="gkbig" style="color:${gcol}">${gs>=0?'+':''}${gs.toFixed(2)}</span>
+        <span class="gklab">GSAA<br><span class="zwhy">vs a flat ${(g.lg_save*100).toFixed(0)}% league save rate</span></span>
+      </div>
     </div>
+    <div class="gkgap">Difference <b>${de>=0?'+':''}${de.toFixed(2)}</b> &mdash; ${verdict}</div>
     <div class="zbar" style="height:9px"><i style="width:${w}%;background:${col}"></i></div>
     <div class="zwrap">${rows}</div>
     <div class="warn" style="color:var(--muted)"><span>&#9650;</span><span>Descriptive only.

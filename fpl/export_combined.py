@@ -129,6 +129,12 @@ def build() -> dict:
                 # Quality of the shots he faces, which is a read on the defence
                 # in front of him rather than on him.
                 "psxg_per_sot": round(float(r["psxg_np"]) / max(int(r["faced_np"]), 1), 3),
+                # GSAA measures him against the flat league save rate. Goals
+                # prevented measures him against the shots he actually faced.
+                # The gap between them is the defence.
+                "gsaa": round(float(r["gsaa"]), 2),
+                "diff_effect": round(float(r["difficulty_effect"]), 2),
+                "lg_save": round(float(r["league_save_rate"]), 3),
             }
 
     # GW1 component breakdown, keyed by element

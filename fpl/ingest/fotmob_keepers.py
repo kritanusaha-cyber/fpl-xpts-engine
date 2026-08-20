@@ -75,6 +75,18 @@ def goal_zone(y, z) -> str:
     return f"{height}-{side}"
 
 
+def league_save_rate(shots: pd.DataFrame) -> float:
+    """League-wide save percentage on shots that actually reached a keeper."""
+    s = shots.copy()
+    s["psxg"] = pd.to_numeric(s["psxg"], errors="coerce").fillna(0.0)
+    s = s[s["on_target"] & ~s["own_goal"] & ~s["situation"].eq("Penalty")
+          & (s["psxg"] > 0)]
+    if s.empty:
+        return 0.7
+    goals = (s["event_type"] == "Goal").sum()
+    return 1.0 - goals / len(s)
+
+
 def keeper_stats(shots: pd.DataFrame, min_faced: int = 20) -> pd.DataFrame:
     """Per keeper: PsxG faced, goals conceded, goals prevented."""
     s = shots.dropna(subset=["keeper_id"]).copy()
@@ -99,7 +111,24 @@ def keeper_stats(shots: pd.DataFrame, min_faced: int = 20) -> pd.DataFrame:
     }), include_groups=False).reset_index()
 
     out = out[out.faced_np >= min_faced].copy()
+
+    # Goals prevented adjusts for the difficulty of the shots he faced.
     out["goals_prevented"] = out.psxg_np - out.conceded_np
+
+    # GSAA compares him to the league save rate instead, with no difficulty
+    # adjustment at all:
+    #     GSAA = saves made - saves an average keeper makes on that many shots
+    # The two answer different questions, and the gap between them is the
+    # defence. A keeper with high GSAA and low goals prevented was handed easy
+    # shots. One with the reverse faced hard ones and dealt with them.
+    lg = league_save_rate(shots)
+    out["league_save_rate"] = lg
+    out["saves"] = out.faced_np - out.conceded_np
+    out["expected_saves_avg"] = out.faced_np * lg
+    out["gsaa"] = out.saves - out.expected_saves_avg
+    out["gsaa_per_shot"] = out.gsaa / out.faced_np.clip(lower=1)
+    # What the difficulty adjustment is worth for this keeper.
+    out["difficulty_effect"] = out.goals_prevented - out.gsaa
     out["gp_per_shot"] = out.goals_prevented / out.faced_np.clip(lower=1)
     out["save_pct"] = 1 - out.conceded_np / out.faced_np.clip(lower=1)
     out["expected_save_pct"] = 1 - out.psxg_np / out.faced_np.clip(lower=1)
