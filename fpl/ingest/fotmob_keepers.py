@@ -121,9 +121,18 @@ def zone_breakdown(shots: pd.DataFrame) -> pd.DataFrame:
 
 
 def resolve_to_fpl(k: pd.DataFrame, season: str = "2025-26") -> pd.DataFrame:
-    """Attach the stable FPL `code` so keeper metrics reach the dashboard."""
+    """Attach the stable FPL `code` so keeper metrics reach the dashboard.
+
+    Candidates are restricted to goalkeepers. Without that constraint the
+    surname fallback resolved Emiliano Martinez onto Lisandro Martinez, because
+    FPL stores the first as "Martinez Romero" and the second as "Martinez" --
+    both unique surnames, so the shorter one won the last-token match and a
+    Manchester United defender inherited an Aston Villa keeper's save record.
+    A keeper's shot-stopping can only belong to a keeper, so say so.
+    """
     from fpl.ingest.fbref import normalise, manual_overrides
     pl = pd.read_parquet(f"data/raw/vaastav/players_raw/season={season}.parquet")
+    pl = pl[pl["element_type"] == 1]          # goalkeepers only
     pl["full"] = (pl["first_name"].fillna("") + " " + pl["second_name"].fillna("")).map(normalise)
     pl["surname"] = pl["second_name"].fillna("").map(normalise)
     d = k.copy()

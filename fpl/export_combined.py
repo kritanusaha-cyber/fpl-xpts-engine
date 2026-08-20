@@ -165,7 +165,10 @@ def build() -> dict:
             "squad": e in picked, "xi": e in xi, "capt": e in capt,
             "comp": comp.get(e, {}),
             "runs": runs.get(e, []),
-            "grid": grids.get(int(p.element)),
+            # Only midfielders and forwards render a shot grid; shipping one for
+            # a keeper or a defender is dead weight in a payload this size.
+            "grid": (grids.get(int(p.element))
+                     if p.position in ("MID", "FWD") else None),
             "gk": keepers.get(int(p.element)),
             "zon": ({
                 "six": round(float(p.six_yard_share), 3) if pd.notna(p.get("six_yard_share")) else None,

@@ -456,6 +456,13 @@ function keeperPanel(p){
 // dominant / contested / below encoding The Athletic uses for team territory.
 const CHANNELS=['Right wing','Right half-space','Centre','Left half-space','Left wing'];
 const BANDS=['Halfway','Middle','Approach','Zone 14','Box edge','Six-yard'];
+// Shot grids are shown for midfielders and forwards only. A defender takes a
+// median of 17 shots in a season, which lights three of thirty cells -- a grid
+// that wide is mostly empty and says less than the territory bars beneath it.
+// Goalkeepers get the shot-stopping panel instead.
+const GRID_POSITIONS = new Set(['MID','FWD']);
+function hasGrid(p){ return !!p.grid && GRID_POSITIONS.has(p.pos); }
+
 function zoneGrid(p){
   const g=p.grid; if(!g) return '';
   const W=330,H=210, PAD=8, gw=(W-PAD*2), gh=(H-PAD*2), cw=gw/6, ch=gh/5;
@@ -528,12 +535,17 @@ function zonalPanel(p){
   if(!p.zon) return '<div class="dh" style="margin-top:12px">Territory</div>'+
     '<div style="font-size:11.5px;color:var(--muted)">No FotMob match data for this player.</div>';
   const z=p.zon, pc=z.pct||{};
-  const rows=[
-    ['Touches in opposition box', z.box_t, pc.box_touches_p90, 'arrives in the box'],
-    ['Passes into final third',   z.ft,    pc.passes_ft_p90,   'progresses play'],
-    ['Accurate crosses',          z.cross, pc.crosses_p90,     'delivers from wide'],
-    ['Shots from the 6-yard box', z.six==null?null:z.six*100, pc.six_yard_share, 'gets on the end of things'],
-  ].filter(r=>r[1]!=null).map(([lab,v,q,why])=>{
+  // Show a player only the territory that means something for his job. A
+  // goalkeeper has no use for box touches or crossing volume, and only
+  // midfielders and forwards shoot often enough for six-yard-box share to read.
+  const all=[
+    ['Touches in opposition box', z.box_t, pc.box_touches_p90, 'arrives in the box', 'DEF MID FWD'],
+    ['Passes into final third',   z.ft,    pc.passes_ft_p90,   'progresses play',    'DEF MID FWD'],
+    ['Accurate crosses',          z.cross, pc.crosses_p90,     'delivers from wide', 'DEF MID FWD'],
+    ['Shots from the 6-yard box', z.six==null?null:z.six*100, pc.six_yard_share,
+     'gets on the end of things', 'MID FWD'],
+  ];
+  const rows=all.filter(r=>r[1]!=null && r[4].includes(p.pos)).map(([lab,v,q,why])=>{
     const w=Math.round((q==null?0:q)*100);
     const col=w>=70?'var(--pos)':(w<=30?'var(--neg)':'var(--accent)');
     return `<div class="zrow"><span class="zlab">${lab}</span>
@@ -542,14 +554,15 @@ function zonalPanel(p){
       <span class="zpct">${q==null?'':(w+'%')}</span></div>
       <div class="zwhy">${why}</div>`;
   }).join('');
-  const grid = p.grid
+  const grid = hasGrid(p)
     ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
   const gk = keeperPanel(p);
-  if (gk) return `${gk}<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
-    <div class="zwrap">${rows}</div>`;
-  return `${grid}<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
-    <div class="zwrap">${rows}</div>`;
+  if (gk) return gk;
+  const terr = rows
+    ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
+       <div class="zwrap">${rows}</div>` : '';
+  return `${grid}${terr}`;
 }
 
 /* ---------------- table ---------------- */
