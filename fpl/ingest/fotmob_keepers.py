@@ -87,7 +87,7 @@ def league_save_rate(shots: pd.DataFrame) -> float:
     return 1.0 - goals / len(s)
 
 
-def keeper_stats(shots: pd.DataFrame, min_faced: int = 12) -> pd.DataFrame:
+def keeper_stats(shots: pd.DataFrame, min_faced: int = 1) -> pd.DataFrame:
     """Per keeper: PsxG faced, goals conceded, goals prevented."""
     s = shots.dropna(subset=["keeper_id"]).copy()
     s = s[s["on_target"] & ~s["own_goal"]]
@@ -113,6 +113,9 @@ def keeper_stats(shots: pd.DataFrame, min_faced: int = 12) -> pd.DataFrame:
     # Twelve shots faced, not twenty. A keeper who played a third of the season
     # still tells you something; the panel marks the sample as thin instead of
     # hiding him.
+    # One shot faced, not twelve -- the only exclusion left is a keeper with
+    # nothing to display at all. Save percentage off a handful of shots is
+    # close to meaningless, so anything under 40 carries a thin-sample warning.
     out = out[out.faced_np >= min_faced].copy()
     out["low_sample"] = out.faced_np < 40
 
@@ -165,3 +168,25 @@ def resolve_to_fpl(k: pd.DataFrame, season: str = "2025-26") -> pd.DataFrame:
     from fpl.ingest.fbref import manual_overrides
     return resolve(k, name_col="name", team_col=None, element_type=1,
                    season=season, overrides=manual_overrides())
+
+
+def build(out: Path = Path("data/features/keeper_stats.parquet")) -> pd.DataFrame:
+    """Parse the shotmap cache, name the keepers, resolve to FPL codes.
+
+    The shot records carry `keeperId` but no keeper name -- the only names in a
+    shotmap belong to the shooter. Names come from the match stats table, which
+    is also the reason a keeper absent from that table is dropped: there is no
+    string to resolve against FPL.
+    """
+    k = keeper_stats(parse_cache())
+    pm = pd.read_parquet("data/raw/fotmob/player_match_stats.parquet")
+    k["name"] = k.keeper_id.map(pm.drop_duplicates("player_id")
+                                  .set_index("player_id")["player_name"])
+    k = resolve_to_fpl(k.dropna(subset=["name"]))
+    k.to_parquet(out, index=False)
+    return k
+
+
+if __name__ == "__main__":
+    k = build()
+    print(f"{len(k)} keepers, {int(k.low_sample.sum())} flagged thin sample")

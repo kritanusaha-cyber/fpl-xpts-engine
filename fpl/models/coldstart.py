@@ -241,13 +241,12 @@ def _attach_zonal(d: pd.DataFrame) -> pd.DataFrame:
     z = resolve(z, overrides=manual_overrides())
     z = z.dropna(subset=["code"])
     z["code"] = z["code"].astype(int)
-    # Three full matches, not five. The floor exists because a rate from 34
-    # minutes is noise, but 450 was excluding genuine starters who missed half a
-    # season injured -- Trafford, Pinnock and Abraham all sat between 270 and 360.
-    # Anything under the floor still shows nothing; between the floor and 450 the
-    # panel says the sample is thin.
+    # No minutes floor. A per-90 rate off 34 minutes is one substitute
+    # appearance extrapolated eleven-fold, but hiding it tells the reader
+    # nothing either. Show whatever exists and mark the sample thin under 450
+    # minutes, which is where the rate stops moving much with one more match.
     z["low_sample"] = z["minutes"] < 450
-    z = z[z["minutes"] >= 270].drop_duplicates("code")
+    z = z.drop_duplicates("code")
 
     for c in ("box_touches_p90", "crosses_p90", "passes_ft_p90", "six_yard_share",
               "box_touch_share"):

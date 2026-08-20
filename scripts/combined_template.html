@@ -559,7 +559,7 @@ function pitchSvg(p){
 function zonalPanel(p){
   if(!p.zon) return `<div class="dh" style="margin-top:14px">Territory</div>
     <div class="zwhy">${p.hist_pl
-      ? 'Under 270 minutes last season, so any per-90 rate would be noise.'
+      ? 'No FotMob event data for this player last season.'
       : 'No Premier League appearances last season.'}</div>`;
   const z=p.zon, pc=z.pct||{};
   // Show a player only the territory that means something for his job. A
@@ -586,8 +586,13 @@ function zonalPanel(p){
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
   const gk = keeperPanel(p);
   if (gk) return gk;
+  // With no minutes floor a rate can come off a single substitute appearance,
+  // so say how thin the sample is instead of presenting it at full confidence.
+  const thin = z.thin
+    ? `<div class="zwhy" style="color:var(--neg)">Thin sample &mdash; ${z.mins} minutes last season, so treat these as indicative.</div>`
+    : '';
   const terr = rows
-    ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>
+    ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>${thin}
        <div class="zwrap">${rows}</div>` : '';
   return `${grid}${terr}`;
 }
