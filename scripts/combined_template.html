@@ -465,6 +465,7 @@ function keeperPanel(p){
         <span class="gklab">GSAA<br><span class="zwhy">vs a flat ${(g.lg_save*100).toFixed(0)}% league save rate</span></span>
       </div>
     </div>
+    ${g.thin ? `<div class="zwhy" style="color:var(--neg)">Thin sample &mdash; only ${g.faced} shots faced.</div>` : ''}
     <div class="gkgap">Difference <b>${de>=0?'+':''}${de.toFixed(2)}</b> &mdash; ${verdict}</div>
     <div class="zbar" style="height:9px"><i style="width:${w}%;background:${col}"></i></div>
     <div class="zwrap">${rows}</div>
@@ -556,8 +557,10 @@ function pitchSvg(p){
   </svg>`;
 }
 function zonalPanel(p){
-  if(!p.zon) return '<div class="dh" style="margin-top:12px">Territory</div>'+
-    '<div style="font-size:11.5px;color:var(--muted)">No FotMob match data for this player.</div>';
+  if(!p.zon) return `<div class="dh" style="margin-top:14px">Territory</div>
+    <div class="zwhy">${p.hist_pl
+      ? 'Under 270 minutes last season, so any per-90 rate would be noise.'
+      : 'No Premier League appearances last season.'}</div>`;
   const z=p.zon, pc=z.pct||{};
   // Show a player only the territory that means something for his job. A
   // goalkeeper has no use for box touches or crossing volume, and only

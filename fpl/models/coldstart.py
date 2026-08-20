@@ -241,12 +241,20 @@ def _attach_zonal(d: pd.DataFrame) -> pd.DataFrame:
     z = resolve(z, overrides=manual_overrides())
     z = z.dropna(subset=["code"])
     z["code"] = z["code"].astype(int)
-    z = z[z["minutes"] >= 450].drop_duplicates("code")
+    # Three full matches, not five. The floor exists because a rate from 34
+    # minutes is noise, but 450 was excluding genuine starters who missed half a
+    # season injured -- Trafford, Pinnock and Abraham all sat between 270 and 360.
+    # Anything under the floor still shows nothing; between the floor and 450 the
+    # panel says the sample is thin.
+    z["low_sample"] = z["minutes"] < 450
+    z = z[z["minutes"] >= 270].drop_duplicates("code")
 
     for c in ("box_touches_p90", "crosses_p90", "passes_ft_p90", "six_yard_share",
               "box_touch_share"):
         if c in z.columns:
             d[c] = d["code"].map(dict(zip(z["code"], z[c])))
+    d["zon_low_sample"] = d["code"].map(dict(zip(z["code"], z["low_sample"]))).fillna(False)
+    d["zon_minutes"] = d["code"].map(dict(zip(z["code"], z["minutes"])))
 
     # Creativity uplift. Applied to the xA share, which is what chances created
     # feed, and shrunk toward the positional mean so a small sample cannot move a

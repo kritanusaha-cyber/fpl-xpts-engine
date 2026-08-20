@@ -135,6 +135,7 @@ def build() -> dict:
                 "gsaa": round(float(r["gsaa"]), 2),
                 "diff_effect": round(float(r["difficulty_effect"]), 2),
                 "lg_save": round(float(r["league_save_rate"]), 3),
+                "thin": bool(r.get("low_sample", False)),
             }
 
     # GW1 component breakdown, keyed by element
@@ -190,6 +191,8 @@ def build() -> dict:
                 "cross": round(float(p.crosses_p90), 2) if pd.notna(p.get("crosses_p90")) else None,
                 "ft": round(float(p.passes_ft_p90), 2) if pd.notna(p.get("passes_ft_p90")) else None,
                 "sp": round(float(p.sp_share), 3) if pd.notna(p.get("sp_share")) else None,
+                "thin": bool(p.get("zon_low_sample", False)),
+                "mins": (int(p["zon_minutes"]) if pd.notna(p.get("zon_minutes")) else None),
             } if pd.notna(p.get("box_touches_p90")) else None),
             "drv": {
                 "p60": round(float(p.starts60), 3),

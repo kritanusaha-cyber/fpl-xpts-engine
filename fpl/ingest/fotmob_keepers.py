@@ -87,7 +87,7 @@ def league_save_rate(shots: pd.DataFrame) -> float:
     return 1.0 - goals / len(s)
 
 
-def keeper_stats(shots: pd.DataFrame, min_faced: int = 20) -> pd.DataFrame:
+def keeper_stats(shots: pd.DataFrame, min_faced: int = 12) -> pd.DataFrame:
     """Per keeper: PsxG faced, goals conceded, goals prevented."""
     s = shots.dropna(subset=["keeper_id"]).copy()
     s = s[s["on_target"] & ~s["own_goal"]]
@@ -110,7 +110,11 @@ def keeper_stats(shots: pd.DataFrame, min_faced: int = 20) -> pd.DataFrame:
         "conceded_np": int((d.is_goal & ~d.is_pen).sum()),
     }), include_groups=False).reset_index()
 
+    # Twelve shots faced, not twenty. A keeper who played a third of the season
+    # still tells you something; the panel marks the sample as thin instead of
+    # hiding him.
     out = out[out.faced_np >= min_faced].copy()
+    out["low_sample"] = out.faced_np < 40
 
     # Goals prevented adjusts for the difficulty of the shots he faced.
     out["goals_prevented"] = out.psxg_np - out.conceded_np
