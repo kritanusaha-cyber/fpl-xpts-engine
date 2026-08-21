@@ -98,6 +98,7 @@ refresh:           ## full weekly refresh: data -> models -> dashboard
 
 deploy:            ## rebuild the dashboard and publish to GitHub Pages
 	$(MAKE) dashboard
+	$(PY) scripts/build_findings.py
 	@git add -A && git commit -q -m "Refresh projections" || echo "  (nothing changed)"
 	@git push -q origin main && echo "pushed -- Pages rebuilds in ~30s"
 	@echo "https://kritanusaha-cyber.github.io/fpl-xpts-engine/"
