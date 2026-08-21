@@ -134,8 +134,12 @@ def run(min_gw: int = 8, db: str = "data/fpl.duckdb",
                        + cur.xa_share.fillna(0) * cur.team_goals * mins_frac * 3
                        + p_cs * csp * cur.p_60.fillna(0)
                        + cur.p_defcon.fillna(0) * dcp)
+        # Keep the minutes probabilities. Without them the projection can only
+        # be scored unconditionally, and scoring an unconditional expectation
+        # against players who are known to have played builds in a negative
+        # bias that has nothing to do with the model being wrong.
         keep = ["gw", "element", "position", "minutes", "total_points", "xpts",
-                "club_code"]
+                "club_code", "p_appear", "p_60", "p_cameo"]
         cur["price"] = cur["value"] / 10.0
         out.append(cur[keep + ["price"]].assign(season=season))
     return pd.concat(out, ignore_index=True)

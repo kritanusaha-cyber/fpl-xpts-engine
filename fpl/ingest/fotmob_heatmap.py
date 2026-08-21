@@ -100,8 +100,15 @@ def fetch(player_ids: list[int], cache: Path = CACHE,
                 continue
             time.sleep(PAUSE)
             r = _get(f"{API}/playerStats?playerId={pid}&seasonId={e}")
+            # Keep the whole payload, not just the coordinates. The same
+            # response carries the season stat panel with FotMob's own
+            # percentile ranks and the keeper shotmap; storing only the
+            # heatmap means paying for the request again to get them.
             d = {"coordinates": (r.get("heatmap") or {}).get("coordinates") or [],
-                 "entry": e}
+                 "entry": e,
+                 "statsSection": r.get("statsSection"),
+                 "shotmap": r.get("shotmap"),
+                 "keeperShotmap": r.get("keeperShotmap")}
             f.write_text(json.dumps(d))
             time.sleep(PAUSE)
         for c in d.get("coordinates") or []:

@@ -1402,3 +1402,92 @@ squad management are worth tens of points, and season variance is worth hundreds
 accounting on, hits off. The hit machinery stays in the code with the margin
 parameter, because the finding is about *why* it fails, not that the rule is
 unimplementable.
+
+---
+
+# Walk-forward accuracy, four seasons
+
+Run 2026-08-20 over 2022-23 to 2025-26, the seasons with team xG. Every model
+refits at each gameweek on gameweeks already played, so a GW20 projection has
+never seen GW20. 87,007 player-gameweeks where all three models produce a
+number — scored on the same rows, because comparing MAE across different row
+sets is not a comparison.
+
+References are what a manager could do without the engine: season-to-date
+points per game, and last-five-gameweek form.
+
+## Magnitude: the engine wins every season
+
+| season | form | naive | engine | better by |
+|---|---|---|---|---|
+| 2022-23 | 1.082 | 1.106 | **0.961** | 11.2% |
+| 2023-24 | 0.984 | 0.992 | **0.919** | 6.6% |
+| 2024-25 | 1.035 | 1.046 | **0.981** | 5.2% |
+| 2025-26 | 1.035 | 1.050 | **0.947** | 8.5% |
+
+MAE, all rows. By position the gain concentrates where the scoring is:
+midfielders 10.1%, forwards 10.6%, keepers 4.3%, defenders 2.0%.
+
+## Ranking: a tie, until you look at the top
+
+| season | form | naive | engine |
+|---|---|---|---|
+| 2022-23 | 0.687 | 0.652 | **0.689** |
+| 2023-24 | **0.686** | 0.663 | 0.676 |
+| 2024-25 | **0.698** | 0.671 | 0.691 |
+| 2025-26 | **0.720** | 0.694 | 0.709 |
+
+Mean Spearman per gameweek. **The engine loses three of four.**
+
+This is not the contradiction it looks like. 61% of rows are players who did
+not appear. Across the whole list the ranking question is mostly "will he
+play at all", and a five-game form average answers that nearly as well as a
+minutes model. Global rank correlation is therefore dominated by rows nobody
+picks from.
+
+## Where decisions are actually made, the engine wins clearly
+
+Mean points scored by the players each model ranked highest, chosen before the
+gameweek:
+
+| picked | engine | form | naive | field |
+|---|---|---|---|---|
+| top 10 | **4.80** | 4.21 | 4.41 | 1.11 |
+| top 20 | **4.25** | 3.95 | 4.01 | 1.11 |
+| top 50 | **3.68** | 3.57 | 3.65 | 1.11 |
+| top 1 (captain) | **6.69** | 5.01 | 6.09 | 1.11 |
+
+**The captaincy edge is the largest single effect measured in this project.**
++0.60 per gameweek over season-to-date form, roughly +23 points a season from
+the armband alone, and +1.68 over five-game form.
+
+The engine's skill is concentrated at the top of its own ranking. That is the
+useful shape: it is the top of the list you pick from.
+
+## Calibration: the top end is under-projected
+
+| projected | n | actual | gap |
+|---|---|---|---|
+| 3–4 | 5,354 | 3.66 | **+0.34** |
+| 4–5 | 177 | 5.45 | **+1.21** |
+| 5+ | 6 | 5.83 | +0.75 |
+
+Two problems. The projections are systematically low at the top, and they are
+compressed: across four seasons the engine produced six projections above five
+points. It never says a player will haul.
+
+Conditional on a 60-minute appearance, and after dividing out the appearance
+probability so the comparison is fair, the residual bias is positional:
+forwards −1.62, midfielders −1.11, keepers −0.66, defenders −0.17.
+
+## What this changes
+
+Nothing about the headline. Better projections were already winning on
+accuracy and still do not move season points, which remains the finding of
+this project. But two things are now specific rather than vague:
+
+1. **The engine's value is captaincy and the top of the ranking**, not the
+   full-list ordering, where it loses to five-game form.
+2. **Attackers are under-projected by roughly a point and a half a start.**
+   That is a concrete defect with a known sign, and it is the same population
+   the top-end compression affects.
