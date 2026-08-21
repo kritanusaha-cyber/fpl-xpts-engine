@@ -1491,3 +1491,68 @@ this project. But two things are now specific rather than vague:
 2. **Attackers are under-projected by roughly a point and a half a start.**
    That is a concrete defect with a known sign, and it is the same population
    the top-end compression affects.
+
+---
+
+# Is the model directionally right about who is underpriced?
+
+Run 2026-08-20 across 2022-23 to 2025-26. At each gameweek the engine fits
+points against log price, per position, on gameweeks already played. A player
+projected above what his price implies is called undervalued. The outcome is
+measured over the following six gameweeks, which had not happened when the
+call was made.
+
+## The first answer was wrong
+
+Uncontrolled, the top decile beat comparably-priced players 94.7% of the time.
+That is not a mispricing signal. The flag was tracking appearances:
+
+| decile | 1 | 5 | 10 |
+|---|---|---|---|
+| mean P(appear) | 0.20 | 0.21 | 0.91 |
+
+The peer group contained benched players scoring zero, so any starter cleared
+it. The model was being credited for knowing who plays, which was already
+established and is not what was being asked.
+
+## Controlled
+
+Starters only, compared against other starters in the same 0.5m price band:
+
+| quintile | resid | next-6 points | peers | beat peers | price rose |
+|---|---|---|---|---|---|
+| Q1 | −0.11 | 11.34 | 16.09 | 20.1% | 7.4% |
+| Q2 | +0.87 | 15.82 | 16.73 | 40.6% | 13.3% |
+| Q3 | +1.26 | 17.11 | 16.44 | 49.3% | 14.2% |
+| Q4 | +1.52 | 17.46 | 15.92 | 53.6% | 12.6% |
+| Q5 | +1.82 | **19.24** | 15.64 | **63.4%** | **19.4%** |
+
+**Monotonic, and it holds in all four seasons** — 63.1%, 59.0%, 63.2%, 68.4%.
+
+## The signal scales with the size of the call
+
+| flag size | n | hit rate | edge vs peers |
+|---|---|---|---|
+| negative | 2,105 | 15.4% | −5.90 |
+| 0 to 1 | 4,247 | 34.2% | −1.85 |
+| 1 to 1.5 | 5,896 | 49.2% | +0.65 |
+| 1.5 to 2 | 4,480 | 59.0% | +2.59 |
+| 2 to 2.5 | 1,010 | 68.0% | +4.54 |
+| 2.5+ | 35 | 77.1% | +7.74 |
+
+A bigger call is a better call, which is what a real signal looks like and
+what an artefact usually does not.
+
+By position the flag works best on midfielders (69.2%) and worst on keepers
+(56.6%), with defenders 58.8% and forwards 62.9%.
+
+## Size of the effect
+
+A most-undervalued starter returns **+3.60 points over six gameweeks** against
+players priced like him — 0.60 a gameweek. Real, and consistent with everything
+else in this file: worth tens of points a season, against seasonal variance
+worth hundreds. It is also why the price-rise number matters less than it
+looks. A rise is worth 0.1m of team value; outscoring the bracket is worth
+points.
+
+**Roughly one call in three is wrong.** 63% is an edge, not a rule.
