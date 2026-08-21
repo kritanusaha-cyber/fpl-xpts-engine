@@ -1556,3 +1556,48 @@ looks. A rise is worth 0.1m of team value; outscoring the bracket is worth
 points.
 
 **Roughly one call in three is wrong.** 63% is an edge, not a rule.
+
+---
+
+# Possession unblocks the DefCon covariate gap
+
+Six seasons of FotMob match detail were ingested 2026-08-20/21: 2,281 matches,
+90,621 player-matches, 58,647 shots, 4,560 team-matches. Zero failures.
+
+The team block carries **ball possession**, which the build plan had recorded
+as unavailable outside FBref and which left Build 4 blocked. It is present on
+100% of team-matches. Sanity holds: the mean is 50.0%, home sides average
+51.0% against 49.0% away, and every pair sums to 100.
+
+## Opponent possession predicts defensive contribution
+
+47,585 player-matches of 60 minutes or more:
+
+| line | n | mean DefCon | r vs opponent possession |
+|---|---|---|---|
+| DEF | 17,692 | 6.71 | **+0.298** |
+| MID | 14,268 | 9.46 | +0.114 |
+| FWD | 11,078 | 5.24 | +0.180 |
+
+## The effect on the threshold is large
+
+DefCon pays 2 points at 10 actions for a defender. That threshold is reached
+almost four times as often against a side that keeps the ball:
+
+| opponent possession | n | mean DefCon | hit rate |
+|---|---|---|---|
+| under 40% | 4,217 | 5.28 | **8.6%** |
+| 40–45% | 2,206 | 6.24 | 15.5% |
+| 45–50% | 2,624 | 6.55 | 18.5% |
+| 50–55% | 2,396 | 6.98 | 21.7% |
+| 55–60% | 2,214 | 7.33 | 25.4% |
+| 60% or more | 4,035 | 8.06 | **31.7%** |
+
+**Monotonic, and a 3.7-fold spread on a variable the model does not currently
+use.** DefCon is the weakest component in the engine — calibration collapses
+above p = 0.5, which is why the tail is capped at 0.40. This is the covariate
+the build plan named, and it is now in hand.
+
+A defender at home to a possession side is a materially different DefCon bet
+from the same defender away at a team that sits deep. The model presently
+treats them alike.

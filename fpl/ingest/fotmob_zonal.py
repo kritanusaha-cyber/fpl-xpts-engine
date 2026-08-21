@@ -130,7 +130,10 @@ def parse_player_stats(content: dict) -> list[dict]:
     rows = []
     for pid, p in (content.get("playerStats") or {}).items():
         rec = {
-            "player_id": p.get("id") or pid,
+            # The dict key is a string and older seasons sometimes omit the
+            # numeric id, so this column arrives mixed str/int and fails to
+            # write as a parquet column. Coerce at the source.
+            "player_id": int(p.get("id") or pid),
             "player_name": p.get("name"),
             "team_id": p.get("teamId"),
             # positionId is a pitch-slot code, not a position enum -- decoding it

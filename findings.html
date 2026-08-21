@@ -2765,4 +2765,102 @@ worth hundreds. It is also why the price-rise number matters less than it
 looks. A rise is worth 0.1m of team value; outscoring the bracket is worth
 points.</p>
 <p><strong>Roughly one call in three is wrong.</strong> 63% is an edge, not a rule.</p>
+<hr />
+<h1 id="possession-unblocks-the-defcon-covariate-gap">Possession unblocks the DefCon covariate gap</h1>
+<p>Six seasons of FotMob match detail were ingested 2026-08-20/21: 2,281 matches,
+90,621 player-matches, 58,647 shots, 4,560 team-matches. Zero failures.</p>
+<p>The team block carries <strong>ball possession</strong>, which the build plan had recorded
+as unavailable outside FBref and which left Build 4 blocked. It is present on
+100% of team-matches. Sanity holds: the mean is 50.0%, home sides average
+51.0% against 49.0% away, and every pair sums to 100.</p>
+<h2 id="opponent-possession-predicts-defensive-contribution">Opponent possession predicts defensive contribution</h2>
+<p>47,585 player-matches of 60 minutes or more:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>line</th>
+<th>n</th>
+<th>mean DefCon</th>
+<th>r vs opponent possession</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DEF</td>
+<td>17,692</td>
+<td>6.71</td>
+<td><strong>+0.298</strong></td>
+</tr>
+<tr>
+<td>MID</td>
+<td>14,268</td>
+<td>9.46</td>
+<td>+0.114</td>
+</tr>
+<tr>
+<td>FWD</td>
+<td>11,078</td>
+<td>5.24</td>
+<td>+0.180</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="the-effect-on-the-threshold-is-large">The effect on the threshold is large</h2>
+<p>DefCon pays 2 points at 10 actions for a defender. That threshold is reached
+almost four times as often against a side that keeps the ball:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>opponent possession</th>
+<th>n</th>
+<th>mean DefCon</th>
+<th>hit rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>under 40%</td>
+<td>4,217</td>
+<td>5.28</td>
+<td><strong>8.6%</strong></td>
+</tr>
+<tr>
+<td>40–45%</td>
+<td>2,206</td>
+<td>6.24</td>
+<td>15.5%</td>
+</tr>
+<tr>
+<td>45–50%</td>
+<td>2,624</td>
+<td>6.55</td>
+<td>18.5%</td>
+</tr>
+<tr>
+<td>50–55%</td>
+<td>2,396</td>
+<td>6.98</td>
+<td>21.7%</td>
+</tr>
+<tr>
+<td>55–60%</td>
+<td>2,214</td>
+<td>7.33</td>
+<td>25.4%</td>
+</tr>
+<tr>
+<td>60% or more</td>
+<td>4,035</td>
+<td>8.06</td>
+<td><strong>31.7%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Monotonic, and a 3.7-fold spread on a variable the model does not currently
+use.</strong> DefCon is the weakest component in the engine — calibration collapses
+above p = 0.5, which is why the tail is capped at 0.40. This is the covariate
+the build plan named, and it is now in hand.</p>
+<p>A defender at home to a possession side is a materially different DefCon bet
+from the same defender away at a team that sits deep. The model presently
+treats them alike.</p>
 </div></body></html>
