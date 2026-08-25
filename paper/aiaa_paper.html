@@ -64,6 +64,13 @@ code{font-family:var(--mono);font-size:12px}
 </style>
 
 <div class="pg">
+<nav style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:16px">
+  <a href="../index.html" style="color:inherit;text-decoration:none">&larr; FPL xPts Engine</a>
+  <span style="opacity:.5;margin:0 5px">&middot;</span>
+  <a href="../dashboard.html" style="color:inherit;text-decoration:none">Dashboard</a>
+  <span style="opacity:.5;margin:0 5px">&middot;</span>
+  <a href="../findings.html" style="color:inherit;text-decoration:none">Findings</a>
+</nav>
 <div class="hdr">
   <h1>Threshold-Aware Monte Carlo Point Projection for Constrained Fantasy Sports Squad Selection</h1>
   <p class="au">K. Saha<sup>1</sup></p>
@@ -237,19 +244,22 @@ gameweek and a four-point charge for each additional transfer.</p>
 
 <h2>VI. Results</h2>
 <div class="tw"><table>
-<caption><b>Table 1</b> &nbsp;Walk-forward projection accuracy by season; MAE in points, &rho; is
-within-position Spearman rank correlation.</caption>
+<caption><b>Table 1</b> &nbsp;Walk-forward projection accuracy by season, restricted to players who
+appeared; MAE in points, &rho; is within-position Spearman rank correlation. 33,802 player-gameweeks.
+The restriction matters: including non-appearing players, for whom every method correctly predicts
+approximately zero, halves all mean absolute errors.</caption>
 <thead><tr><th class="l">Season</th><th>Engine MAE</th><th>Consensus MAE</th><th>Engine &rho;</th><th>Consensus &rho;</th></tr></thead>
 <tbody>
-<tr><td class="l">2022/23</td><td>1.885</td><td>2.730</td><td>0.291</td><td>0.229</td></tr>
+<tr><td class="l">2022/23</td><td>1.885</td><td>2.715</td><td>0.291</td><td>0.221</td></tr>
 <tr><td class="l">2023/24</td><td>1.935</td><td>2.694</td><td>0.273</td><td>0.219</td></tr>
 <tr><td class="l">2024/25</td><td>1.863</td><td>2.636</td><td>0.272</td><td>0.244</td></tr>
 <tr><td class="l">2025/26</td><td>1.991</td><td>2.895</td><td>0.282</td><td>0.193</td></tr>
 </tbody></table></div>
 <p>The system attains lower mean absolute error than the consensus benchmark in four seasons of four,
-and additionally outperforms a points-per-appearance benchmark in four of four. Aggregate improvement
-against consensus is 31.2 percent in MAE and 46.1 percent in rank correlation over approximately 95,000
-player-gameweeks.</p>
+and additionally outperforms a points-per-appearance benchmark in four of four. Mean improvement
+against consensus across the four seasons is 29.8 percent in MAE and 28.5 percent in within-position
+rank correlation. Season-by-season the rank-correlation margin is unstable, ranging from 11.5 percent
+in 2024/25 to 46.1 percent in 2025/26, and the mean is the appropriate summary.</p>
 
 <div class="tw"><table>
 <caption><b>Table 2</b> &nbsp;Full-season squad simulation under the complete constraint set; total
@@ -276,7 +286,7 @@ accuracy can buy, but an objective that was maximising the wrong quantity.</p>
 <h3>A. Where the Accuracy Advantage Is Concentrated</h3>
 <p>Aggregate accuracy statistics conceal the shape of the advantage. Scored against a five-gameweek
 form benchmark over 87,007 player-gameweeks, the system reduces mean absolute error in four seasons of
-four, by 5.2 to 11.2 percent, yet <i>loses</i> mean per-gameweek Spearman correlation in three seasons
+four, by 4.9 to 8.3 percent, yet <i>loses</i> mean per-gameweek Spearman correlation in three seasons
 of four. The two results are compatible. Sixty-one percent of rows are players who did not appear;
 across the full list the ranking question is largely whether a player features at all, which a form
 average answers nearly as well as a minutes model.</p>
@@ -344,8 +354,15 @@ parameter. Ownership lagged to the deadline.</caption>
 <tr><td class="l">&gamma; = +0.05</td><td>&minus;311</td><td>&minus;324</td><td>&minus;38</td><td>&minus;183</td><td>&minus;856</td><td>0 of 4</td></tr>
 </tbody></table></div>
 
-<p>The optimum is sharp and negative. Positive &gamma;, which purchases margin variance, degrades
-monotonically to &minus;1790 points at &gamma; = 0.40. An earlier linear surrogate that paid a premium
+<p>The optimum is a shallow negative plateau rather than a point: &gamma; = &minus;0.02 and
+&gamma; = &minus;0.05 score within five points of one another, and the defensible claim is that a
+small negative coefficient is correct rather than any specific value. Positive &gamma;, which
+purchases margin variance, degrades monotonically to &minus;1790 points at &gamma; = 0.40.</p>
+<p>Because the coefficient was selected by sweeping the same four seasons used to evaluate it, it was
+re-selected under leave-one-season-out: &gamma; chosen on three seasons and applied blind to the
+fourth. This yields +345 points across the four held-out seasons, winning all four, against +357
+fitted in sample on the same ownership basis. An overfitting penalty of twelve points across four
+seasons indicates the parameter is not an artefact of the sweep. An earlier linear surrogate that paid a premium
 for scarcity, x&#770;<sub>i</sub>(1 + k(1 &minus; EO<sub>i</sub>)), failed at every k &gt; 0 for the
 same reason and is reported in Section VIII.</p>
 <p>Two controls were run because a four-of-four result invites them. Removing the ownership
@@ -395,11 +412,12 @@ objective of Section VII reverses the sign of the optimal parameter and wins fou
 <p>Defensive contribution is the weakest component of the projection, and opponent possession share is
 the covariate its specification identified as missing. The relationship is large and unambiguous:
 across 47,585 player-matches, an outfield player whose opponent holds 60 percent or more of the ball
-reaches the qualifying threshold 34.4 percent of the time, against 17.4 percent at 40 percent or less.
+reaches the qualifying threshold 26.6 percent of the time, against 11.9 percent at 40 percent or less,
+the threshold being ten qualifying actions for defenders and twelve for midfielders and forwards.
 Possession is also forecastable, unlike goals, with team means correlating 0.77 to 0.91 between
 consecutive seasons and 0.85 between the opening ten matches and the remainder. A rating difference
 with a home term predicts a fixture at <i>r</i> = 0.71 in walk-forward evaluation, and forecast rather
-than realized possession still moves the threshold rate from 17.5 to 32.1 percent.</p>
+than realized possession still moves the threshold rate from 11.9 to 24.0 percent.</p>
 <p>It contributes nothing to the model. Against a baseline containing only the player's own rolling
 counts, the existing opponent-strength feature is worth +0.92 percent in Brier score; expected
 opponent possession is worth &minus;0.03 percent, and including both is inferior to opponent strength

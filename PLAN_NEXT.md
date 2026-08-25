@@ -91,7 +91,7 @@ are a bounded, low-risk win — this is the safest item on the list.
 
 The covariate was never unavailable — it is in the FotMob team block, now
 ingested for six seasons at 100% coverage. The football effect is real and
-large (threshold rate doubles, 17.4% → 34.4%). It adds **−0.03%** to the model.
+large (threshold rate more than doubles, 11.9% → 26.6%). It adds **−0.03%** to the model.
 The player's own rolling counts already measure it. See FINDINGS.md.
 
 <details><summary>original plan</summary>

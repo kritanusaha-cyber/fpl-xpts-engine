@@ -413,7 +413,31 @@ function can rejoin the full table and drag the future in with it.</p>
 <p>All testing walks forward. Random k-fold on football panel data leaks the future and inflates
 every number.</p>
 
-<h3>XII. What the model gets right</h3>
+<h3>XII. Picking the squad: rank, not points</h3>
+<p>The squad shown above is not the one with the most expected points. It is the one chosen by a
+different objective, and the difference is worth about a point and a half of projection.</p>
+<p>You are not scored on points. You are scored on where you finish, which means what matters is your
+<em>margin</em> over everyone else. Write that margin across every player in the game and it comes to
+the sum of <code>(do you own him &minus; how much of the field owns him) &times; his points</code>.
+The second half of that does not depend on your choices at all, so on average, chasing rank and
+chasing points are the same thing.</p>
+<p>They stop being the same thing because finishing high does not need a positive margin, it needs a
+big one. That is about the spread of your margin, not its average. And the spread has a property worth
+knowing: because you either own a player or you do not, the maths stays simple, and each player
+changes your spread by an amount that depends on how widely he is owned.</p>
+<p>The sign is what matters. A player more than half the field owns <em>reduces</em> your spread,
+because when he blanks everyone blanks with you and nothing moves. A player nobody owns carries the
+full swing on his own.</p>
+<p>Tested over four seasons, the best setting is to <strong>welcome that swing in players the field
+holds, and avoid it in players held alone</strong>. That beat the field in four seasons from four,
+worth about 72 points a season. Chasing points alone won two. The common advice that differentials
+win rank is backwards here: a blank from a player nobody owns costs you places, a blank from a player
+everybody owns costs you nothing.</p>
+<p>This is why the squad sometimes prefers a well-owned, streaky forward to a quieter differential
+projected slightly higher. See <a href="findings.html">Findings</a> for the sweep and the two
+controls that were needed before it was believed.</p>
+
+<h3>XIII. What the model gets right</h3>
 <p>The scoring engine reconstructs <b>109,681 player-matches exactly</b>, across ten seasons. The
 single mismatch it ever produced was a real rule change: goalkeeper goals used to pay 6 and now pay
 10. The engine found that from data alone.</p>
@@ -427,7 +451,7 @@ single mismatch it ever produced was a real rule change: goalkeeper goals used t
 points-to-date average in four of four. Aggregate gain: <b>31% on MAE, 46% on ranking</b>, over
 roughly 95,000 player-gameweeks.</p>
 
-<h3>XIII. What the model does not do</h3>
+<h3>XIV. What the model does not do</h3>
 <p>Better projections do not produce more points. The model played four full seasons under the real
 constraints &mdash; budget, one free transfer, &minus;4 for the second:</p>
 <div class="tscroll"><table><tr><th>Season</th><th>Engine</th><th>Template</th><th>Margin</th></tr>
@@ -444,7 +468,7 @@ toward the same squads. And the template is not a soft target. Millions of manag
 together, and it already sits near the ceiling the rules allow. A 31% edge in projection error
 compresses into less than one week's noise.</div>
 
-<h3>XIV. What failed</h3>
+<h3>XV. What failed</h3>
 <h4>A. xGOT as a skill measure</h4>
 <p>xGOT should measure finishing. It does not persist.</p>
 <div class="tscroll"><table><tr><th>Signal</th><th>r, first half &rarr; second</th><th>t</th></tr>
@@ -478,7 +502,7 @@ largest <em>estimated</em> gain, and the largest estimate in a noisy set is too 
 points to buy estimation error. Raising the bar does not fix it, because the bar filters on the same
 bad estimate.</p>
 
-<h3>XV. Known limits</h3>
+<h3>XVI. Known limits</h3>
 <ul>
 <li>Forwards project <b>0.30 points low</b> per gameweek and midfielders 0.18. Defenders are
 unbiased. The model overall runs 0.12 low, about 10% of the mean.</li>

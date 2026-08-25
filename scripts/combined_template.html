@@ -193,10 +193,19 @@ tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
 .warn{margin-top:10px;font-size:11.5px;color:var(--neg);display:flex;gap:6px;align-items:flex-start}
 .empty{padding:32px;text-align:center;color:var(--muted);font-size:13px}
 footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
+.xnav{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:14px}
+.xnav a{color:var(--muted);text-decoration:none}
+.xnav a:hover,.xnav a:focus-visible{color:var(--accent);text-decoration:underline}
+.xnav span{margin:0 5px;opacity:.5}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="wrap">
+  <nav class="xnav">
+    <a href="index.html">&larr; FPL xPts Engine</a>
+    <span>&middot;</span><a href="findings.html">Findings</a>
+    <span>&middot;</span><a href="paper/aiaa_paper.html">Technical paper</a>
+  </nav>
   <h1>Shadow Price</h1>
   <div class="sub" id="sub"></div>
   <div class="tabs" role="tablist">

@@ -151,8 +151,17 @@ def build() -> dict:
     runs = {int(e): g.sort_values("gw")[["gw", "xpts", "team_goals", "opp_goals", "is_home"]]
                      .to_dict("records") for e, g in runs_df.groupby("element")}
 
-    # Optimal squad over the horizon
-    r = optimise(d, cfg)
+    # Optimal squad over the horizon, under the rank objective rather than raw
+    # expected points. gamma = -0.05 beat the template in four seasons of four
+    # in walk-forward simulation; expected points alone won two. See rank.py.
+    #
+    # The parameter transfers from the weekly backtest to this H-gameweek
+    # horizon without rescaling. Expected points and variance both scale
+    # linearly in H for independent gameweeks, so the objective is H times the
+    # weekly one and the argmax is unchanged.
+    from fpl.optimize.rank import RANK_GAMMA, rank_value_live
+    d["rank_val"] = rank_value_live(d, RANK_GAMMA, sd_col="sd_h")
+    r = optimise(d, cfg, xpts_col="rank_val")
     picked = set(r["squad"].element)
     xi = set(r["squad"][r["squad"].in_xi].element)
     capt = set(r["squad"][r["squad"].is_captain].element)
@@ -253,7 +262,15 @@ def build() -> dict:
         "generated": pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
         "season": "2026/27", "horizon": int(runs_df.gw.nunique()), "n_sims": 8000,
         "lambda": round(lam, 3), "mu": {k: round(v, 2) for k, v in mu.items()},
-        "squad_xpts": round(r["objective"], 1), "squad_spend": round(r["spend"], 1),
+        # The LP objective is now the rank value, which includes a variance
+        # term. Report the squad's actual expected points instead -- calling
+        # the objective "xPts" would overstate the projection by whatever the
+        # variance term contributed.
+        "squad_xpts": round(float(
+            d.loc[d.element.isin(xi), "xpts"].sum()
+            + d.loc[d.element.isin(capt), "xpts"].sum()), 1),
+        "squad_obj": round(r["objective"], 1),
+        "squad_spend": round(r["spend"], 1),
         "hist_edges": [int(x) for x in hz.hist_edges.iloc[0]],
         "roles": sorted(d.role.unique().tolist()),
         "components": COMPONENTS,

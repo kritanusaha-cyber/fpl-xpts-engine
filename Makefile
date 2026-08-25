@@ -47,8 +47,6 @@ defcon:            ## walk-forward DefCon threshold evaluation
 gw1:               ## end-to-end GW1 projection + optimal squad
 	$(PY) fpl/predict_gw1.py
 
-coldstart:         ## build 2026/27 cold-start priors
-	$(PY) fpl/models/coldstart.py
 
 install-snapshot:  ## install the daily snapshotter as a LaunchAgent
 	@sed 's|__FPL_ROOT__|$(CURDIR)|g' scripts/com.fpl.snapshot.plist \
@@ -93,8 +91,26 @@ dist:              ## collect the static site into dist/ for any static host
 	@cp index.html dashboard.html simulation.html dist/
 	@echo "dist/ ready ($$(du -sh dist | cut -f1)) -- self-contained, no server needed"
 
+live:              ## pull finished gameweeks of the running season into player_gw
+	$(PY) fpl/ingest/live.py
+
+coldstart:         ## rebuild 2026/27 priors, blending in played gameweeks
+	$(PY) -c "from fpl.models.coldstart import build; \
+	  build().to_parquet('data/features/coldstart_2026_27.parquet', index=False)"
+
+roles:             ## k-means role clusters over the horizon projection
+	$(PY) -c "import pandas as pd; from fpl.models.roles import assign_all; \
+	  assign_all(pd.read_parquet('data/features/horizon_projection.parquet')) \
+	    .to_parquet('data/features/horizon_roles.parquet', index=False)"
+
+# Order matters and is not obvious. `live` must precede `coldstart`, which
+# blends played gameweeks into the priors; `coldstart` must precede `horizon`,
+# which simulates from them; and `roles` must sit between `horizon` and
+# `dashboard`, because the clusters are fitted on the projection the dashboard
+# then displays. Running these out of order produces a dashboard that is stale
+# in a way nothing errors on.
 refresh:           ## full weekly refresh: data -> models -> dashboard
-	$(MAKE) snapshot facts team-match horizon dashboard dist
+	$(MAKE) snapshot live facts team-match coldstart horizon roles dashboard dist
 
 deploy:            ## rebuild the dashboard and publish to GitHub Pages
 	$(MAKE) dashboard

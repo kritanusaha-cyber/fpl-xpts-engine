@@ -73,6 +73,10 @@ def main() -> None:
 <style>{CSS}</style></head><body>
 <div class="wrap">
 <a class="back" href="index.html">&larr; FPL xPts Engine</a>
+<span style="color:var(--muted);opacity:.5;margin:0 5px">&middot;</span>
+<a class="back" href="dashboard.html">Dashboard</a>
+<span style="color:var(--muted);opacity:.5;margin:0 5px">&middot;</span>
+<a class="back" href="paper/aiaa_paper.html">Technical paper</a>
 {html}
 </div></body></html>""", encoding="utf-8")
     print(f"built {OUT} ({OUT.stat().st_size // 1024} KB)")

@@ -161,3 +161,35 @@ def rank_value_plain_var(gw_pool: pd.DataFrame, gamma: float, pred_col: str = "x
     pred = pd.to_numeric(gw_pool[pred_col], errors="coerce").fillna(0.0)
     sd = pd.to_numeric(gw_pool.get(sd_col, 0.0), errors="coerce").fillna(0.0)
     return pred + gamma * sd ** 2
+
+
+RANK_GAMMA = -0.05          # fitted on four seasons; see the module docstring
+
+
+def rank_value_live(d: pd.DataFrame, gamma: float = RANK_GAMMA,
+                    pred_col: str = "xpts", sd_col: str = "sd",
+                    own_col: str = "selected_by_percent") -> pd.Series:
+    """The shipped objective, for the live squad rather than the backtest.
+
+    Differs from `rank_value_mv` only in where ownership comes from. The
+    backtest carries a `selected` headcount; the live feed publishes ownership
+    already as a percentage of entries, so it needs dividing rather than
+    normalising against the most-owned player.
+
+    Captaincy is added the same way: the field concentrates its armband on the
+    best projected players it already owns, so the premium is a softmax over
+    projection weighted by ownership.
+    """
+    if own_col not in d.columns:
+        raise KeyError(f"{own_col!r} not in frame; rank objective needs ownership")
+    own = pd.to_numeric(d[own_col], errors="coerce").fillna(0.0) / 100.0
+    pred = pd.to_numeric(d[pred_col], errors="coerce").fillna(0.0)
+    if sd_col not in d.columns:
+        raise KeyError(f"{sd_col!r} not in frame; rank objective needs a spread")
+    sd = pd.to_numeric(d[sd_col], errors="coerce").fillna(0.0)
+
+    z = (pred - pred.max()) * CAPTAIN_CONCENTRATION
+    w = np.exp(z) * own
+    eo = (own + w / max(w.sum(), 1e-9)).clip(0, 2.0)
+
+    return pred + gamma * margin_variance_weight(eo) * sd ** 2
