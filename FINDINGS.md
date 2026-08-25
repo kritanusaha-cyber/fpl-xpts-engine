@@ -1797,7 +1797,32 @@ points-per-appearance benchmark ranked highest:
 | **midweek rounds** | 4.02 | 3.98 | **+0.04** |
 | **blank gameweeks** | 4.83 | 4.83 | **0.00** |
 
-Three environments where the edge disappears:
+**These three gaps are not real.** Corrected 2026-08-21: treating each gameweek
+as one observation, none of the three is distinguishable from the normal
+gameweek result.
+
+| slice | gameweeks | mean gain | 95% CI | p vs zero |
+|---|---|---|---|---|
+| normal (20 teams) | 80 | +0.514 | +0.22 to +0.80 | **0.001** |
+| blank (≤18 teams) | 11 | +0.000 | −0.87 to +0.87 | 1.000 |
+| double (>20 teams) | 21 | +0.119 | −0.35 to +0.59 | 0.625 |
+| midweek rounds | 16 | +0.044 | −0.68 to +0.77 | 0.907 |
+| clean-sheet-rich | 36 | +0.056 | −0.41 to +0.52 | 0.818 |
+
+Every one of those confidence intervals contains the +0.51 of a normal
+gameweek. Weekend rounds against midweek gives a Welch p of 0.315. **The
+correct statement is that these slices are too small to measure, not that the
+edge disappears in them** — 11 blank gameweeks in four seasons cannot resolve
+an effect of this size.
+
+This mattered practically: it was about to justify building a congestion
+feature to fix a phantom. The minutes model already carries `days_since_last`
+and `fixtures_14d`, and short rest moves the re-start rate only from 79.4% to
+75.0%. There was no problem to fix.
+
+The original, over-read version follows.
+
+Three environments where the edge *appeared* to disappear:
 
 **Blank gameweeks.** Exactly zero. When the pool shrinks, the engine's top ten
 and the benchmark's top ten are worth the same.
@@ -1822,10 +1847,16 @@ DefCon component being the weakest part of the engine.
 
 ## The honest summary
 
-The projections are robust across environments. The *decisions* are not. Anyone
-using this should discount it in midweek rounds, in blank gameweeks, and when
-defences are on top — which are, unhelpfully, three of the moments a manager
-most wants help.
+The projections are robust across environments, and the selection edge is
+established only for normal gameweeks (+0.51, p = 0.001), which are 80 of the
+112 measured. For blanks, doubles, midweek rounds and clean-sheet-heavy weeks
+the honest answer is that four seasons do not contain enough of them to say
+either way.
+
+The lesson is the same one this file keeps recording. A point estimate computed
+on a slice is not a finding until it is compared against the noise of that
+slice, and the smaller the slice the louder the temptation to explain the
+number.
 
 ---
 
@@ -1933,3 +1964,81 @@ outcome when nothing clears the bar.
 One caveat worth stating: the threshold was swept on the same four seasons it is
 reported on. The effect is large enough that the sign is not in doubt, but the
 magnitude is fitted.
+
+---
+
+# DefCon tail cap raised from 0.40 to 0.70 — Build 4
+
+The cap was a data problem wearing a model problem's clothes.
+
+The original reasoning was correct on the evidence available. After isotonic
+recalibration the p > 0.5 band read **0.606 predicted against 0.188 realised**,
+and on that a refusal to emit high-confidence DefCon calls was right. But the
+sample was **n = 16**, because per-match defensive counts existed for one
+season and were reconstructed for the rest.
+
+Six seasons of real components from FotMob remove the collapse entirely.
+Walk-forward over 41,989 player-matches:
+
+| predicted band | n | predicted | realised | gap |
+|---|---|---|---|---|
+| 0.2 – 0.3 | 5,213 | 0.245 | 0.284 | +0.039 |
+| 0.3 – 0.4 | 3,148 | 0.345 | 0.395 | +0.050 |
+| 0.4 – 0.5 | 2,003 | 0.446 | 0.488 | +0.043 |
+| **0.5 – 0.6** | 1,149 | 0.545 | **0.548** | **+0.003** |
+| **0.6 +** | 808 | 0.688 | **0.682** | **−0.006** |
+
+The tail is now the best-calibrated part of the distribution. The residual
+error is mild *under*-prediction in the middle, which isotonic handles.
+
+At 0.40 the cap had become actively harmful:
+
+| cap | Brier | predictions flattened |
+|---|---|---|
+| no calibration at all | 0.12479 | — |
+| **0.40** | **0.12601** | **2,667** |
+| 0.55 | 0.12418 | 358 |
+| **0.70** | **0.12408** | **107** |
+| 1.00 | 0.12410 | 1 |
+
+**Capping at 0.40 was worse than not calibrating at all.** Shipped 0.70.
+
+Duels won, newly available from the six-season parse, add nothing: Brier
+0.12429 against 0.12431 with them.
+
+One structural fix alongside: `assemble_fixture.py` restated the cap as a
+hardcoded 0.40 with a comment pointing at the calibration module, so changing
+it in one place left the simulation using the old value. It now imports.
+
+**A cap fitted to compensate for thin data has to be revisited when the data
+stops being thin, or it silently becomes the constraint it was invented to
+protect against.**
+
+---
+
+# Fixture-aware transfers — no measurable gain
+
+The transfer planner values a swap as gain × `hold_weeks`, treating every
+coming gameweek as identical to this one. It is not: a club about to blank is
+worth less over the hold than its single-gameweek projection says.
+
+The fixture list is published months ahead, so reading the schedule forward is
+not hindsight — reading the *projections* for those gameweeks would be, since
+they are built from data that has not happened yet at decision time. Only the
+schedule is used, scored on opponent strength from matches already played.
+
+| season | flat hold | fixture-aware | gain |
+|---|---|---|---|
+| 2022-23 | 1488 | 1472 | −16 |
+| 2023-24 | 1570 | 1575 | +5 |
+| 2024-25 | 1536 | 1561 | +25 |
+| 2025-26 | 1590 | 1590 | 0 |
+
+**+14 across four seasons, 2 of 4.** That is noise against seasons that swing
+±25 on their own, and it does not meet the bar the rank result had to clear.
+
+The reason is structural rather than a flaw in the idea: blanks occur two or
+three times a season, so the weighting only separates clubs in the few weeks
+around them. The code is kept and defaults to **off**, because it costs nothing
+and the reasoning is sound — but it is not a demonstrated improvement and is
+not claimed as one.

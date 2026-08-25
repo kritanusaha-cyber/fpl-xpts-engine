@@ -87,7 +87,8 @@ def worth_a_hit(weekly_gain: float, hold_weeks: float, n_hits: int,
 
 def plan_transfers(squad: Squad, pool: pd.DataFrame, pred: str,
                    hold_weeks: float = 4.0, max_hits: int = 2,
-                   hit_margin: float = 1.0) -> tuple[set, set, int]:
+                   hit_margin: float = 1.0,
+                   fx: dict | None = None) -> tuple[set, set, int]:
     """Choose swaps by horizon value, spending banked transfers before hits.
 
     Candidates are ranked by the gain from replacing the weakest holder in a
@@ -98,6 +99,12 @@ def plan_transfers(squad: Squad, pool: pd.DataFrame, pred: str,
         return set(), set(), 0
     prices = dict(zip(pool.element, pool.price))
     val = dict(zip(pool.element, pd.to_numeric(pool[pred], errors="coerce").fillna(0)))
+    # Scale each player's value by how many of the coming gameweeks his club
+    # actually plays. A player about to blank is worth less over the hold than
+    # his single-gameweek projection says, and a double is worth more.
+    if fx:
+        _club = dict(zip(pool.element, pool.club_code))
+        val = {e: v * fx.get(_club.get(e), 1.0) for e, v in val.items()}
     pos = dict(zip(pool.element, pool.position))
     club = dict(zip(pool.element, pool.club_code))
 
@@ -140,3 +147,41 @@ def plan_transfers(squad: Squad, pool: pd.DataFrame, pred: str,
         out_set.add(o)
         in_set.add(i)
     return out_set, in_set, hits
+
+def fixture_weights(pool_by_gw: dict, gw: int, horizon: int = 4) -> dict:
+    """Per-club multiplier for how good the next few fixtures look.
+
+    The planner's `hold_weeks` treats every one of the coming weeks as
+    identical to this one. It is not: a striker facing the best defence in the
+    league this week and three promoted sides after it is worth more than his
+    current projection says, and the reverse is worth less.
+
+    The fixture list is published months ahead, so using it is not hindsight.
+    What would be hindsight is using the *projections* for those gameweeks,
+    since those are built from data that has not happened yet at decision time.
+    So only the schedule is read forward -- each club's opponents -- and it is
+    scored with opponent strength estimated from matches already played.
+    """
+    hist = [g for g in pool_by_gw if g < gw]
+    if not hist:
+        return {}
+    past = pd.concat([pool_by_gw[g] for g in hist], ignore_index=True)
+    # how many points a club's opponents have conceded to date, per club
+    conceded = (past.groupby("club_code")["total_points"].mean()
+                    .rename("scored").to_dict())
+    if not conceded:
+        return {}
+    lg = float(np.mean(list(conceded.values()))) or 1.0
+
+    ahead = [g for g in pool_by_gw if gw <= g < gw + horizon]
+    if not ahead:
+        return {}
+    w: dict = {}
+    for g in ahead:
+        p = pool_by_gw[g]
+        for club in p["club_code"].dropna().unique():
+            # a club playing at all in that gameweek is the first thing that
+            # matters -- a blank is a zero, not an average week
+            w[club] = w.get(club, 0.0) + 1.0
+    n = len(ahead)
+    return {c: v / n for c, v in w.items()}

@@ -34,17 +34,30 @@ import pandas as pd
 from sklearn.isotonic import IsotonicRegression
 
 
-# Isotonic repairs the bulk of the distribution but cannot learn a tail its own
-# training history barely contains -- after recalibration the p > 0.5 band still
-# read 0.606 predicted against 0.188 realised (n = 16). So the tail is capped as
-# well. The cap is not a fudge: on walk-forward data every cap from 0.60 down to
-# 0.40 improves both Brier and log-loss monotonically, which says the model
-# simply should not be emitting high-confidence DefCon calls at all.
+# The cap was 0.40, and that was a data problem wearing a model problem's
+# clothes.
 #
-# It matters where it counts. The 0.72% of players above raw p = 0.45 averaged
-# 0.562 predicted against 0.306 realised -- about 0.51 xPts per match of
-# overstatement, applied to exactly the defenders a DefCon strategy would buy.
-TAIL_CAP = 0.40
+# The original reasoning was sound on the evidence available: after isotonic
+# recalibration the p > 0.5 band read 0.606 predicted against 0.188 realised,
+# on n = 16. Sixteen observations, because DefCon counts existed for one season
+# and were reconstructed for the rest. On that evidence, refusing to emit
+# high-confidence calls was right.
+#
+# Six seasons of real per-match components from FotMob remove the collapse
+# entirely. Fitted walk-forward over 41,989 player-matches the high bins are
+# now well calibrated on their own -- 0.545 predicted against 0.548 realised,
+# and 0.688 against 0.682 -- so there is no tail left to cap.
+#
+# At 0.40 the cap is now actively harmful. It flattens 2,667 predictions and
+# scores a Brier of 0.12601, WORSE than applying no calibration at all
+# (0.12479). Raising it to 0.70 gives 0.12408, the best of any setting, and
+# touches only 107 predictions. Above 0.70 nothing changes, because the model
+# rarely goes there.
+#
+# The lesson worth keeping: a cap fitted to compensate for thin data has to be
+# revisited when the data stops being thin, or it silently becomes the
+# constraint it was invented to protect against.
+TAIL_CAP = 0.70
 
 
 class DefConCalibrator:

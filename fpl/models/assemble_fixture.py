@@ -18,7 +18,10 @@ import pandas as pd
 
 from fpl.models.defcon import THRESHOLDS
 
-DEFCON_TAIL_CAP = 0.40      # see fpl/models/defcon_calibration.py
+# Imported rather than restated. This was a hardcoded 0.40 with a comment
+# pointing at the calibration module, which meant changing the cap there left
+# the simulation silently using the old one.
+from fpl.models.defcon_calibration import TAIL_CAP as DEFCON_TAIL_CAP
 P_TEAM_PENALTY = 0.121      # 92 penalties / (380 fixtures x 2 teams), 2025/26
 PENALTY_CONVERSION = 0.79   # standard penalty conversion / xG value
 

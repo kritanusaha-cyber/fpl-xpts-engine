@@ -180,7 +180,7 @@ def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
 def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4.0,
                        max_hits: int = 0, rank_k: float = 0.0, gamma: float = 0.0,
                        start_gw: int | None = None, hit_margin: float = 1.0,
-                       chips: bool = False) -> pd.DataFrame:
+                       chips: bool = False, fixture_aware: bool = False) -> pd.DataFrame:
     """Season with real transfer economics: banked FTs, horizon-valued hits,
     and sell-price path dependency. Compare against run_season, which re-picks
     greedily each week and cannot represent saving a transfer.
@@ -189,11 +189,12 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
     naive rule cost 349 points against the same strategy with hits disabled, and
     the damage only disappears when hits are abandoned entirely. See FINDINGS.md
     -- the mechanism is the optimiser's curse, not the four-point fee."""
-    from fpl.optimize.transfers import Squad, plan_transfers, MAX_BANKED
+    from fpl.optimize.transfers import Squad, plan_transfers, MAX_BANKED, fixture_weights
     from fpl.optimize.chips import ChipPlan, wildcard_value
 
     plan = ChipPlan()
     hist_pts: list[float] = []
+    by_gw = {int(g): d for g, d in preds.groupby("gw")}
     gws = sorted(preds.gw.dropna().unique())
     if start_gw:
         gws = [g for g in gws if g >= start_gw]
@@ -221,9 +222,10 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
             squad = Squad(picked, prices, bank=round(BUDGET - sum(
                 prices.get(e, 0.0) for e in picked), 1))
         else:
+            fx = fixture_weights(by_gw, gw, horizon=int(hold_weeks)) if fixture_aware else None
             out_, in_, hits = plan_transfers(squad, pool, sel_col,
                                              hold_weeks=hold_weeks, max_hits=max_hits,
-                                             hit_margin=hit_margin)
+                                             hit_margin=hit_margin, fx=fx)
             if out_ and not squad.apply(out_, in_, prices):
                 out_, in_, hits = set(), set(), 0
             used = len(out_)
