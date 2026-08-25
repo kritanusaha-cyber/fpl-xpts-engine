@@ -80,16 +80,21 @@ binomial for defensive action counts. The scoring engine is validated by exact r
 109,681 historical player-matches. Walk-forward evaluation over four seasons demonstrates that the
 system achieves lower mean absolute error and higher within-position rank correlation than an
 ownership-weighted benchmark in four of four seasons. However, when the projections are subjected to
-the squad constraints of the game and simulated over complete seasons, the resulting points advantage
-is not statistically distinguishable from zero. This dissociation between projection accuracy and
-realized performance is the principal result, and is attributed to the constraint set compressing
-projection quality into a margin smaller than seasonal variance.</b></p>
+the squad constraints of the game and maximized for expected points, the resulting advantage is not
+statistically distinguishable from zero. This dissociation is shown to arise from the objective rather
+than from the projections. A competition scored by rank depends on the second moment of the margin
+over the field, and that variance is shown to be linear in the squad selection rather than quadratic,
+because the ownership indicator is binary. Optimizing the resulting objective wins four seasons of
+four by an average of 72 points, at a negative variance coefficient: risk is worth carrying in players
+the field also holds and worth avoiding in players held alone, inverting the common heuristic that
+differentials win rank.</b></p>
 
 <h2>Nomenclature</h2>
 <div class="nom">
   <span class="s">EO</span><span>=</span><span class="d">effective ownership, fraction of the competing field holding a given player, including captaincy</span>
   <span class="s">H</span><span>=</span><span class="d">planning horizon, gameweeks</span>
   <span class="s">k</span><span>=</span><span class="d">rank-tilt coefficient, dimensionless</span>
+  <span class="s">&gamma;</span><span>=</span><span class="d">margin variance coefficient, points<sup>&minus;1</sup></span>
   <span class="s">n<sub>90</sub></span><span>=</span><span class="d">accumulated playing time, units of 90 minutes</span>
   <span class="s">N</span><span>=</span><span class="d">count of qualifying defensive actions in a fixture</span>
   <span class="s">p<sub>60</sub></span><span>=</span><span class="d">probability a player completes 60 or more minutes</span>
@@ -123,7 +128,8 @@ of the bias depends on the player's variance.</p>
 and the published scoring rules are applied to every draw, yielding a distribution of points rather
 than a point estimate. Section II describes the data layer and the point-in-time discipline required to
 avoid look-ahead. Section III presents the component models. Section IV describes assembly and
-valuation. Sections V and VI give the validation methodology and results. Section VII reports negative
+valuation. Sections V and VI give the validation methodology and results. Section VII derives the rank
+objective and reports the margin variance identity on which it rests. Section VIII reports negative
 results, which constitute a substantial fraction of the findings and are presented at equal length.</p>
 
 <h2>II. Data Layer and Point-in-Time Construction</h2>
