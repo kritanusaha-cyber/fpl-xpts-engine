@@ -61,7 +61,12 @@ h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut
 .tabs{display:flex;gap:2px;margin-top:16px;border-bottom:1px solid var(--line)}
 .tabs button{font:inherit;font-size:13px;font-weight:600;padding:8px 15px;border:0;
   background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
-  margin-bottom:-1px}
+  margin-bottom:-1px;white-space:nowrap}
+/* Three tabs no longer fit a phone at full padding. Scroll them rather than
+   let a label wrap onto three lines. */
+.tabs{overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+@media (max-width:520px){.tabs button{padding:8px 10px;font-size:12.5px}}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .m h3{font-size:14.5px;margin:26px 0 6px;color:var(--ink)}
 .m h4{font-size:12.5px;margin:16px 0 4px;color:var(--ink-2);font-weight:600}
@@ -193,6 +198,61 @@ tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
 .warn{margin-top:10px;font-size:11.5px;color:var(--neg);display:flex;gap:6px;align-items:flex-start}
 .empty{padding:32px;text-align:center;color:var(--muted);font-size:13px}
 footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
+.bldgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px}
+@media (max-width:860px){.bldgrid{grid-template-columns:minmax(0,1fr)}}
+.bldcard{padding:14px 16px}
+.bldhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.bldbtns{display:flex;gap:6px}
+.bbtn{font-family:var(--mono);font-size:10.5px;padding:3px 8px;border:1px solid var(--line);
+  border-radius:3px;background:var(--surface);color:var(--ink-2);cursor:pointer}
+.bbtn:hover{border-color:var(--accent);color:var(--accent)}
+.bldbud{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:8px 0 10px;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bldbud b{color:var(--ink)}
+.bldbud .over{color:var(--neg)}
+.bpos{margin-top:9px}
+.bposh{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:3px}
+.brow{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12.5px;
+  border-bottom:1px solid var(--line)}
+.brow:last-child{border-bottom:0}
+.brow .bn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The club column was a fixed 34px with no overflow rule, so "Arsenal" spilled
+   out of it and squeezed the name down to two characters. Fixed columns need a
+   truncation rule as well as a width. */
+.brow .bc{font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  width:52px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .bn{flex:1 1 auto;min-width:70px}
+.brow .bp,.brow .bx{font-family:var(--mono);font-size:11.5px;width:42px;
+  flex:none;text-align:right}
+@media (max-width:640px){
+  .brow{gap:5px;font-size:12px}
+  .brow .bc{width:44px}
+  .brow .bp,.brow .bx{width:38px;font-size:11px}
+}
+.brow .bx{color:var(--accent)}
+.brow.empty-slot{color:var(--muted);font-style:italic}
+.bcap{font-family:var(--mono);font-size:9.5px;border:1px solid var(--line);border-radius:2px;
+  padding:0 3px;color:var(--muted);cursor:pointer;background:none}
+.bcap.on{border-color:var(--accent);color:var(--accent)}
+.bxi{width:7px;height:7px;border-radius:50%;flex:none}
+.bxi.in{background:var(--pos)}
+.bxi.out{background:var(--line-2)}
+.bdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
+.bdel:hover{color:var(--neg)}
+.bldwarn{margin-top:9px;font-size:11.5px;color:var(--neg);line-height:1.45}
+.bldinput{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:3px;
+  background:var(--ground);color:var(--ink);font-family:inherit;font-size:12.5px}
+.bldres{max-height:250px;overflow-y:auto;margin-top:7px}
+.bldres .brow{cursor:pointer;padding:4px 3px}
+.bldres .brow:hover{background:var(--ground)}
+.bldres .brow[aria-disabled="true"]{opacity:.4;cursor:not-allowed}
+.bigstat{font-family:var(--mono);font-size:27px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.bigsub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.bcmp{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;
+  border-bottom:1px solid var(--line)}
+.bcmp:last-child{border-bottom:0}
+.bcmp .v{font-family:var(--mono)}
 .xnav{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:14px}
 .xnav a{color:var(--muted);text-decoration:none}
 .xnav a:hover,.xnav a:focus-visible{color:var(--accent);text-decoration:underline}
@@ -210,6 +270,7 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
   <div class="sub" id="sub"></div>
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-model" aria-selected="true" aria-controls="panel-model">Players</button>
+    <button role="tab" id="tab-build" aria-selected="false" aria-controls="panel-build">Build a team</button>
     <button role="tab" id="tab-method" aria-selected="false" aria-controls="panel-method">Methodology</button>
   </div>
   <div id="panel-model" role="tabpanel" aria-labelledby="tab-model">
@@ -264,6 +325,44 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
   </div>
 
   <footer id="foot"></footer>
+  </div>
+
+  <div id="panel-build" role="tabpanel" aria-labelledby="tab-build" hidden>
+    <p class="hint" style="margin-top:14px">
+      Pick fifteen players under the real constraints &mdash; &pound;100.0m, two goalkeepers, five
+      defenders, five midfielders, three forwards, and at most three from any one club. The squad is
+      then run forward over the same __H__-gameweek simulation the rest of this page uses, so the
+      projection you get is the projection the model would give that squad.
+    </p>
+
+    <div class="bldgrid">
+      <div>
+        <div class="card bldcard">
+          <div class="bldhead">
+            <span class="dh" style="margin:0">Your squad</span>
+            <span class="bldbtns">
+              <button type="button" id="b-opt" class="bbtn">Fill optimal</button>
+              <button type="button" id="b-tmpl" class="bbtn">Fill template</button>
+              <button type="button" id="b-clear" class="bbtn">Clear</button>
+            </span>
+          </div>
+          <div id="b-budget" class="bldbud"></div>
+          <div id="b-slots"></div>
+          <div id="b-warn" class="bldwarn" hidden></div>
+        </div>
+
+        <div class="card bldcard" style="margin-top:12px">
+          <div class="dh" style="margin:0 0 8px">Add a player</div>
+          <input id="b-q" class="bldinput" type="search" placeholder="Search by name or club&hellip;"
+                 autocomplete="off" aria-label="Search players to add">
+          <div id="b-results" class="bldres"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card bldcard" id="b-proj"></div>
+      </div>
+    </div>
   </div>
 
   <div id="panel-method" role="tabpanel" aria-labelledby="tab-method" hidden>__METHOD__</div>
@@ -757,7 +856,285 @@ document.getElementById('foot').innerHTML=
    separated out and re-attached to the current designated taker.`;
 mountSeg(); redraw();
 
-const tabs=[['tab-model','panel-model'],['tab-method','panel-method']];
+
+/* ================= team builder ================= */
+/* The rules are the game's, not a simplification of them: fifteen players in a
+   2/5/5/3 shape, at most three from a club, and a hundred million to spend. A
+   builder that lets you break them would project a squad you cannot field. */
+const SQUAD_SHAPE={GKP:2,DEF:5,MID:5,FWD:3};
+const XI_MIN={GKP:1,DEF:3,MID:2,FWD:1};
+const BUDGET=100.0, CLUB_MAX=3;
+const POS_ORDER=['GKP','DEF','MID','FWD'];
+let bSquad=[], bCapt=null;
+
+const byId=new Map(D.players.map(p=>[p.id,p]));
+const H=D.horizon;
+
+function bCount(pos){return bSquad.filter(i=>byId.get(i).pos===pos).length}
+function bSpend(){return bSquad.reduce((a,i)=>a+byId.get(i).price,0)}
+function bClub(c){return bSquad.filter(i=>byId.get(i).club===c).length}
+
+function bCanAdd(p){
+  if(bSquad.includes(p.id)) return 'already picked';
+  if(bCount(p.pos)>=SQUAD_SHAPE[p.pos]) return `already have ${SQUAD_SHAPE[p.pos]} ${p.pos}`;
+  if(bClub(p.club)>=CLUB_MAX) return `already have ${CLUB_MAX} from ${p.club}`;
+  if(bSpend()+p.price>BUDGET+1e-9) return 'over budget';
+  return null;
+}
+
+/* Best legal XI from the fifteen. Greedy by projection inside the formation
+   floors, then the remaining places to whoever projects highest -- which is
+   what the LP does once the squad is fixed, because with no budget left to
+   spend the only constraint that still binds is the shape. */
+function bestXI(ids){
+  const ps=ids.map(i=>byId.get(i)).sort((a,b)=>b.xpts-a.xpts);
+  const xi=[], used=new Set();
+  for(const pos of POS_ORDER){
+    ps.filter(p=>p.pos===pos).slice(0,XI_MIN[pos]).forEach(p=>{xi.push(p);used.add(p.id)});
+  }
+  for(const p of ps){
+    if(xi.length>=11) break;
+    if(used.has(p.id)) continue;
+    if(p.pos==='GKP') continue;                 /* only ever one keeper starts */
+    xi.push(p); used.add(p.id);
+  }
+  return xi;
+}
+
+/* Forward projection. Points and variance both add across players, so the
+   squad total is the sum of the XI plus the captain counted twice.
+
+   The spread is a normal approximation using the per-player standard
+   deviations the simulation already produced. It is an UNDERSTATEMENT for a
+   squad holding several players from one club: clean sheets, and to a lesser
+   extent goals, are shared events, so those players move together and the real
+   distribution is wider than independence implies. The panel says so rather
+   than quietly presenting a tight band. */
+function bProject(ids){
+  const xi=bestXI(ids);
+  const capt=(bCapt&&xi.some(p=>p.id===bCapt))?byId.get(bCapt)
+             :xi.slice().sort((a,b)=>b.xpts-a.xpts)[0];
+  const total=xi.reduce((a,p)=>a+p.xpts,0)+(capt?capt.xpts:0);
+  const varSum=xi.reduce((a,p)=>a+p.sd*p.sd,0)+(capt?capt.sd*capt.sd:0);
+  const sd=Math.sqrt(varSum);
+  const gw=[];
+  for(let k=0;k<H;k++){
+    let v=0;
+    for(const p of xi){ const r=(p.runs||[])[k]; if(r) v+=r.xpts; }
+    const rc=capt?(capt.runs||[])[k]:null; if(rc) v+=rc.xpts;
+    gw.push(v);
+  }
+  const clubs={};
+  ids.forEach(i=>{const c=byId.get(i).club; clubs[c]=(clubs[c]||0)+1});
+  const shared=Object.values(clubs).filter(n=>n>1).reduce((a,n)=>a+n-1,0);
+  return {xi,capt,total,sd,gw,shared,
+          bench:ids.filter(i=>!xi.some(p=>p.id===i)).map(i=>byId.get(i))};
+}
+
+function bValid(){
+  const w=[];
+  for(const pos of POS_ORDER){
+    const n=bCount(pos);
+    if(n<SQUAD_SHAPE[pos]) w.push(`${SQUAD_SHAPE[pos]-n} more ${pos}`);
+  }
+  if(bSpend()>BUDGET+1e-9) w.push(`&pound;${(bSpend()-BUDGET).toFixed(1)}m over budget`);
+  return w;
+}
+
+
+/* ---- builder rendering ---- */
+function bRenderSquad(){
+  const spend=bSpend(), left=BUDGET-spend;
+  document.getElementById('b-budget').innerHTML=
+    `<span>Spent <b>&pound;${spend.toFixed(1)}m</b> of &pound;${BUDGET.toFixed(1)}m</span>
+     <span class="${left<-1e-9?'over':''}">Remaining <b>&pound;${left.toFixed(1)}m</b></span>
+     <span>Picked <b>${bSquad.length}</b>/15</span>`;
+
+  const proj=bSquad.length?bProject(bSquad):null;
+  const inXI=new Set(proj?proj.xi.map(p=>p.id):[]);
+  let html='';
+  for(const pos of POS_ORDER){
+    const mine=bSquad.map(i=>byId.get(i)).filter(p=>p.pos===pos)
+                     .sort((a,b)=>b.xpts-a.xpts);
+    html+=`<div class="bpos"><div class="bposh">${pos} &middot; ${mine.length}/${SQUAD_SHAPE[pos]}</div>`;
+    for(const p of mine){
+      const isC=proj&&proj.capt&&proj.capt.id===p.id;
+      html+=`<div class="brow">
+        <span class="bxi ${inXI.has(p.id)?'in':'out'}" title="${inXI.has(p.id)?'in the XI':'on the bench'}"></span>
+        <span class="bn">${p.name}</span>
+        <span class="bc">${p.club}</span>
+        <button type="button" class="bcap ${isC?'on':''}" data-cap="${p.id}"
+          title="${isC?'captain':'make captain'}" aria-pressed="${isC}">C</button>
+        <span class="bp">&pound;${p.price.toFixed(1)}</span>
+        <span class="bx">${p.xpts.toFixed(1)}</span>
+        <button type="button" class="bdel" data-del="${p.id}" aria-label="Remove ${p.name}">&times;</button>
+      </div>`;
+    }
+    for(let k=mine.length;k<SQUAD_SHAPE[pos];k++)
+      html+=`<div class="brow empty-slot"><span class="bxi out"></span><span class="bn">empty</span></div>`;
+    html+='</div>';
+  }
+  document.getElementById('b-slots').innerHTML=html;
+
+  const w=bValid(), warn=document.getElementById('b-warn');
+  warn.hidden=!w.length;
+  if(w.length) warn.innerHTML='Not a legal squad yet &mdash; needs '+w.join(', ')+'.';
+  bRenderProj(proj);
+}
+
+function bBar(vals,w,h){
+  const max=Math.max(...vals,1), n=vals.length, bw=w/n;
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Projected points by gameweek">
+    ${vals.map((v,i)=>{
+      const bh=Math.max(1,(v/max)*(h-18));
+      return `<rect x="${i*bw+2}" y="${h-18-bh}" width="${bw-4}" height="${bh}"
+        fill="var(--accent)" opacity=".82"><title>GW${i+1}: ${v.toFixed(1)} pts</title></rect>
+        <text x="${i*bw+bw/2}" y="${h-6}" class="tk" text-anchor="middle"
+          fill="var(--muted)">${i+1}</text>`;}).join('')}
+  </svg>`;
+}
+
+function bRenderProj(proj){
+  const el=document.getElementById('b-proj');
+  if(!proj||bSquad.length===0){
+    el.innerHTML=`<div class="dh" style="margin:0 0 6px">Projection</div>
+      <div style="font-size:12px;color:var(--muted)">Pick players to see the squad simulated
+      forward over the next ${H} gameweeks.</div>`;
+    return;
+  }
+  const incomplete=bValid().length>0;
+  const lo=proj.total-1.28*proj.sd, hi=proj.total+1.28*proj.sd;
+  /* the page's own optimal squad, for reference */
+  const optIds=D.players.filter(p=>p.squad).map(p=>p.id);
+  const opt=optIds.length===15?bProject(optIds):null;
+
+  el.innerHTML=`
+    <div class="dh" style="margin:0 0 6px">Projection over ${H} gameweeks</div>
+    ${incomplete?`<div class="bldwarn" style="margin:0 0 8px">Partial squad &mdash; this is the
+       ${proj.xi.length} player${proj.xi.length===1?'':'s'} you have, not a full XI.</div>`:''}
+    <div class="bigstat">${proj.total.toFixed(1)} <span style="font-size:14px;color:var(--muted)">pts</span></div>
+    <div class="bigsub">starting XI plus captain, who counts twice</div>
+
+    <div class="dh" style="margin-top:14px">Range</div>
+    <div class="bcmp"><span>Likely (80% of simulations)</span>
+      <span class="v">${lo.toFixed(0)} &ndash; ${hi.toFixed(0)}</span></div>
+    <div class="bcmp"><span>Standard deviation</span><span class="v">&plusmn;${proj.sd.toFixed(1)}</span></div>
+    ${proj.shared>0?`<div class="zwhy" style="margin-top:5px">Spread assumes players are independent.
+      You hold ${proj.shared} extra player${proj.shared>1?'s':''} from clubs you already own, and
+      teammates share clean sheets and goals &mdash; so the real range is wider than this.</div>`:''}
+
+    <div class="dh" style="margin-top:14px">By gameweek</div>
+    ${bBar(proj.gw,330,120)}
+
+    <div class="dh" style="margin-top:12px">Captain</div>
+    <div class="bcmp"><span>${proj.capt?proj.capt.name:'&mdash;'}</span>
+      <span class="v">${proj.capt?('+'+proj.capt.xpts.toFixed(1)+' from the armband'):''}</span></div>
+
+    ${opt?`<div class="dh" style="margin-top:14px">Against the model's own squad</div>
+      <div class="bcmp"><span>This page's optimal fifteen</span>
+        <span class="v">${opt.total.toFixed(1)}</span></div>
+      <div class="bcmp"><span>Your squad</span><span class="v">${proj.total.toFixed(1)}</span></div>
+      <div class="bcmp"><span><b>Difference</b></span>
+        <span class="v" style="color:${proj.total>=opt.total?'var(--pos)':'var(--neg)'}">
+        ${(proj.total-opt.total>=0?'+':'')}${(proj.total-opt.total).toFixed(1)}</span></div>`:''}
+
+    ${proj.bench.length?`<div class="dh" style="margin-top:14px">Bench</div>
+      <div style="font-size:11.5px;color:var(--muted)">
+      ${proj.bench.sort((a,b)=>b.xpts-a.xpts).map(p=>`${p.name} ${p.xpts.toFixed(1)}`).join(' &middot; ')}
+      </div>`:''}
+
+    <p class="zwhy" style="margin-top:12px">These are the same per-gameweek numbers behind the
+    Players tab &mdash; no separate model. Bench points are excluded because they only score through
+    automatic substitution, which the projection does not attempt to predict.</p>`;
+}
+
+/* ---- builder interaction ---- */
+function bSearch(){
+  const q=(document.getElementById('b-q').value||'').toLowerCase().trim();
+  const box=document.getElementById('b-results');
+  if(!q){box.innerHTML='';return}
+  const hits=D.players.filter(p=>
+      p.name.toLowerCase().includes(q)||p.club.toLowerCase().includes(q))
+    .sort((a,b)=>b.xpts-a.xpts).slice(0,40);
+  box.innerHTML=hits.map(p=>{
+    const why=bCanAdd(p);
+    return `<div class="brow" data-add="${p.id}" ${why?`aria-disabled="true" title="${why}"`:''}>
+      <span class="bn">${p.name}</span><span class="bc">${p.pos}</span>
+      <span class="bc">${p.club}</span>
+      <span class="bp">&pound;${p.price.toFixed(1)}</span>
+      <span class="bx">${p.xpts.toFixed(1)}</span></div>`;}).join('')
+    ||'<div class="zwhy">No players match.</div>';
+}
+
+function bFill(ids){bSquad=ids.slice(0,15); bCapt=null; bRenderSquad();}
+
+document.addEventListener('click',e=>{
+  const add=e.target.closest('[data-add]');
+  if(add){
+    const p=byId.get(+add.dataset.add);
+    if(p&&!bCanAdd(p)){bSquad.push(p.id); bRenderSquad(); bSearch();}
+    return;
+  }
+  const del=e.target.closest('[data-del]');
+  if(del){const id=+del.dataset.del; bSquad=bSquad.filter(x=>x!==id);
+          if(bCapt===id)bCapt=null; bRenderSquad(); bSearch(); return;}
+  const cap=e.target.closest('[data-cap]');
+  if(cap){const id=+cap.dataset.cap; bCapt=(bCapt===id)?null:id; bRenderSquad(); return;}
+});
+document.getElementById('b-q').addEventListener('input',bSearch);
+document.getElementById('b-clear').addEventListener('click',()=>{bSquad=[];bCapt=null;bRenderSquad();bSearch()});
+document.getElementById('b-opt').addEventListener('click',()=>
+  bFill(D.players.filter(p=>p.squad).map(p=>p.id)));
+/* "Template" = what the field owns, which is the benchmark the whole project
+   is measured against. Filled greedily by ownership, but greed alone spends the
+   budget on eleven popular players and then cannot afford a legal fifteen --
+   the first attempt stopped at 13. Each pick therefore has to leave enough
+   behind to fill every remaining slot at the cheapest price available for that
+   position. */
+const MIN_PRICE={};
+for(const pos of POS_ORDER)
+  MIN_PRICE[pos]=Math.min(...D.players.filter(p=>p.pos===pos).map(p=>p.price));
+
+function bFloorFor(squad){
+  /* cheapest legal completion of the slots still empty */
+  let need=0;
+  for(const pos of POS_ORDER){
+    const have=squad.filter(i=>byId.get(i).pos===pos).length;
+    need+=Math.max(0,SQUAD_SHAPE[pos]-have)*MIN_PRICE[pos];
+  }
+  return need;
+}
+
+function bGreedyFill(rank){
+  const pool=D.players.slice().sort(rank);
+  const out=[];
+  const fits=p=>{
+    if(out.includes(p.id)) return false;
+    if(out.filter(i=>byId.get(i).pos===p.pos).length>=SQUAD_SHAPE[p.pos]) return false;
+    if(out.filter(i=>byId.get(i).club===p.club).length>=CLUB_MAX) return false;
+    const spend=out.reduce((a,i)=>a+byId.get(i).price,0)+p.price;
+    return spend+bFloorFor([...out,p.id])<=BUDGET+1e-9;
+  };
+  for(const p of pool){ if(out.length>=15) break; if(fits(p)) out.push(p.id); }
+  /* any slot greed could not reach, filled with the cheapest legal option */
+  for(const pos of POS_ORDER){
+    while(out.filter(i=>byId.get(i).pos===pos).length<SQUAD_SHAPE[pos]){
+      const c=D.players.filter(p=>p.pos===pos&&!out.includes(p.id)
+        &&out.filter(i=>byId.get(i).club===p.club).length<CLUB_MAX)
+        .sort((a,b)=>a.price-b.price)[0];
+      if(!c) break;
+      out.push(c.id);
+    }
+  }
+  return out;
+}
+
+document.getElementById('b-tmpl').addEventListener('click',()=>{
+  bSquad=bGreedyFill((a,b)=>b.own-a.own); bCapt=null; bRenderSquad();
+});
+bRenderSquad();
+
+const tabs=[['tab-model','panel-model'],['tab-build','panel-build'],['tab-method','panel-method']];
 tabs.forEach(([t,pn])=>document.getElementById(t).addEventListener('click',()=>{
   tabs.forEach(([t2,p2])=>{
     document.getElementById(t2).setAttribute('aria-selected',String(t2===t));

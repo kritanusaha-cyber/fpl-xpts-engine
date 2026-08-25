@@ -18,7 +18,11 @@ def main() -> None:
                     r'<div class="tscroll"><table>\1</table></div>',
                     method, flags=re.S)
     tpl = tpl.replace("__METHOD__", method)
-    data = json.dumps(json.loads(DATA.read_text(encoding="utf-8")), ensure_ascii=True)
+    payload = json.loads(DATA.read_text(encoding="utf-8"))
+    # The builder copy names the horizon, which is set by the simulation rather
+    # than by the page, so it is substituted rather than hardcoded.
+    tpl = tpl.replace("__H__", str(payload.get("horizon", 6)))
+    data = json.dumps(payload, ensure_ascii=True)
     out = tpl.replace("__DATA__", data)
     assert "__DATA__" not in out
     bad = sorted({c for c in out if ord(c) > 127})
