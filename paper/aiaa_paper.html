@@ -259,14 +259,101 @@ points and margin relative to the consensus benchmark.</caption>
 seasons of four, with a mean margin of +2.8 points per season and a pooled weekly margin of +0.089
 points (95 percent confidence interval &minus;3.15 to +3.33; <i>p</i> = 0.96). <b>No detectable
 season-points advantage over consensus selection is demonstrated.</b></p>
-<p>This dissociation is the principal finding. The constraint set &mdash; fifteen players, three per
-club, a fixed budget, eleven fielded &mdash; drives all competitors toward overlapping selections, and
-the consensus benchmark is not weak but represents the aggregated judgment of several million
-competitors, already near the ceiling the constraints permit. A thirty percent reduction in projection
-error is compressed into a margin smaller than one week's variance.</p>
+<p>This dissociation was long taken as the principal finding. The constraint set &mdash; fifteen
+players, three per club, a fixed budget, eleven fielded &mdash; drives all competitors toward
+overlapping selections, and the consensus benchmark is not weak but represents the aggregated judgment
+of several million competitors, already near the ceiling the constraints permit. A thirty percent
+reduction in projection error is compressed into a margin smaller than one week's variance.</p>
+<p>Section VII shows the dissociation had a different cause: not a ceiling on what projection
+accuracy can buy, but an objective that was maximising the wrong quantity.</p>
 
-<h2>VII. Negative Results</h2>
-<p>Four hypotheses were tested and rejected. They are reported because the rejections are more
+<h3>A. Where the Accuracy Advantage Is Concentrated</h3>
+<p>Aggregate accuracy statistics conceal the shape of the advantage. Scored against a five-gameweek
+form benchmark over 87,007 player-gameweeks, the system reduces mean absolute error in four seasons of
+four, by 5.2 to 11.2 percent, yet <i>loses</i> mean per-gameweek Spearman correlation in three seasons
+of four. The two results are compatible. Sixty-one percent of rows are players who did not appear;
+across the full list the ranking question is largely whether a player features at all, which a form
+average answers nearly as well as a minutes model.</p>
+<p>The advantage is concentrated at the top of the ordering, where selection occurs.</p>
+
+<div class="tw"><table>
+<caption><b>Table 3</b> &nbsp;Mean points scored by the players each model ranked highest, selected
+before the gameweek.</caption>
+<thead><tr><th class="l">Selection</th><th>Engine</th><th>Form</th><th>Points per appearance</th><th>Field</th></tr></thead>
+<tbody>
+<tr><td class="l">Top 10</td><td>4.80</td><td>4.21</td><td>4.41</td><td>1.11</td></tr>
+<tr><td class="l">Top 20</td><td>4.25</td><td>3.95</td><td>4.01</td><td>1.11</td></tr>
+<tr><td class="l">Top 1 (captain)</td><td>6.69</td><td>5.01</td><td>6.09</td><td>1.11</td></tr>
+</tbody></table></div>
+<p>The captaincy margin, +0.60 per gameweek over a points-per-appearance benchmark, is the largest
+single effect measured in this work, worth approximately 23 points across a season from the armband
+alone.</p>
+<p>Calibration is imperfect in a specific direction. Projections in the 4 to 5 point band return 5.45
+points; the system under-projects its own top end and, across four seasons, produced six projections
+above five points. Conditional on a 60-minute appearance and after dividing out the appearance
+probability, residual bias is positional: forwards &minus;1.62, midfielders &minus;1.11, defenders
+&minus;0.17.</p>
+
+<h3>B. Directional Validity of the Valuation</h3>
+<p>The valuation identifies players projected above what their price implies. Restricted to
+established starters and compared against other starters within the same 0.5m price band, the
+most-underpriced quintile outscores its band 63.4 percent of the time over the following six
+gameweeks, against 20.1 percent for the most overpriced, with the hit rate rising monotonically
+across quintiles and holding in all four seasons. The rate scales with the magnitude of the call,
+from 15.4 percent for negative residuals to 68.0 percent above 2.0 points, crossing 50 percent where
+the residual crosses zero.</p>
+<p>An uncontrolled version of this test returned 94.7 percent and was measuring appearances rather
+than price: mean appearance probability rises from 0.20 in the bottom decile to 0.91 in the top, and
+the comparison group contained non-appearing players scoring zero.</p>
+
+<h2>VII. Rank Optimization and the Margin Variance Identity</h2>
+<p>Expected points is the wrong objective for a competition scored by rank. Write the margin over the
+field as a sum over every player in the game,</p>
+<div class="eq"><span class="body">margin = &Sigma;<sub>i</sub> (own<sub>i</sub> &minus; EO<sub>i</sub>) p<sub>i</sub></span><span class="n">(6)</span></div>
+<p>where own<sub>i</sub> is an indicator of ownership and EO<sub>i</sub> is effective ownership, the
+fraction of the field holding the player with captaincy counted twice. Separating the terms shows that
+the expectation of the margin is maximized by maximizing expected points, so the two objectives
+coincide in the first moment. Rank, however, is a nonlinear function of margin: a high finish requires
+a large positive margin, not a positive one. The second moment therefore matters, and it is where the
+objectives diverge.</p>
+<p>Margin variance appears quadratic in the decision variable and thus outside a linear program. It is
+not. Because own<sub>i</sub> is binary, own<sub>i</sub><sup>2</sup> = own<sub>i</sub>, and</p>
+<div class="eq"><span class="body">(own<sub>i</sub> &minus; EO<sub>i</sub>)<sup>2</sup> = own<sub>i</sub>(1 &minus; 2&thinsp;EO<sub>i</sub>) + EO<sub>i</sub><sup>2</sup></span><span class="n">(7)</span></div>
+<p>The second term is constant. <b>Margin variance is linear in the squad choice</b>, with coefficient
+(1 &minus; 2&thinsp;EO<sub>i</sub>), and is carried exactly by the same linear program that maximizes
+expected points. The objective becomes</p>
+<div class="eq"><span class="body">maximize &nbsp; &Sigma;<sub>i</sub> own<sub>i</sub> [ xPts<sub>i</sub> + &gamma; (1 &minus; 2&thinsp;EO<sub>i</sub>) &sigma;<sub>i</sub><sup>2</sup> ]</span><span class="n">(8)</span></div>
+<p>The sign of the coefficient carries the result. A player held by more than half the field has a
+negative coefficient: owning him <i>reduces</i> margin variance, because his returns and failures move
+the competitor and the field together. A differential carries the full positive coefficient.</p>
+<p>The parameter was swept on four seasons of walk-forward simulation under the full constraint set.</p>
+
+<div class="tw"><table>
+<caption><b>Table 4</b> &nbsp;Season points relative to the consensus benchmark, by margin variance
+parameter. Ownership lagged to the deadline.</caption>
+<thead><tr><th class="l">Objective</th><th>2022/23</th><th>2023/24</th><th>2024/25</th><th>2025/26</th><th>Total</th><th>Wins</th></tr></thead>
+<tbody>
+<tr><td class="l">Expected points (&gamma; = 0)</td><td>&minus;27</td><td>&minus;77</td><td>+46</td><td>+69</td><td>+11</td><td>2 of 4</td></tr>
+<tr><td class="l"><b>&gamma; = &minus;0.05</b></td><td><b>+78</b></td><td><b>+43</b></td><td><b>+49</b></td><td><b>+119</b></td><td><b>+289</b></td><td><b>4 of 4</b></td></tr>
+<tr><td class="l">&gamma; = +0.05</td><td>&minus;311</td><td>&minus;324</td><td>&minus;38</td><td>&minus;183</td><td>&minus;856</td><td>0 of 4</td></tr>
+</tbody></table></div>
+
+<p>The optimum is sharp and negative. Positive &gamma;, which purchases margin variance, degrades
+monotonically to &minus;1790 points at &gamma; = 0.40. An earlier linear surrogate that paid a premium
+for scarcity, x&#770;<sub>i</sub>(1 + k(1 &minus; EO<sub>i</sub>)), failed at every k &gt; 0 for the
+same reason and is reported in Section VIII.</p>
+<p>Two controls were run because a four-of-four result invites them. Removing the ownership
+coefficient and penalizing variance uniformly yields &minus;711 points and one winning season,
+establishing that the effect is the ownership structure rather than risk aversion. Substituting
+contemporaneous for deadline-lagged ownership inflates the margin by 68 points, and the lagged figure
+is reported throughout.</p>
+<p>The practical statement inverts a widely held heuristic. Differentials are conventionally held to
+win rank. Under this constraint set they do not: a failure by an unowned player costs rank, while a
+failure by a universally owned player costs nothing, the field having failed alongside. Risk is worth
+taking where the field takes it jointly and worth avoiding where it is borne alone.</p>
+
+<h2>VIII. Negative Results</h2>
+<p>Five hypotheses were tested and rejected. They are reported because the rejections are more
 informative than several of the positive results.</p>
 <h3>A. Market Blending</h3>
 <p>Combining the team model with de-vigged bookmaker closing odds yields an improvement of +0.00101 in
@@ -294,9 +381,30 @@ the non-linearity of rank in margin. Tilting valuation toward lightly-owned play
 xPts(1 + <i>k</i>(1 &minus; EO)) was tested across four seasons and is monotonically harmful for
 <i>k</i> &ge; 0.15, costing 856 points at <i>k</i> = 1. The mechanism is visible in the margin
 distribution: tilting increases weekly standard deviation from 18.4 to 20.6 while reducing the mean
-from +0.09 to &minus;6.9, so the upper tail does not improve. Ownership correlates with quality.</p>
+from +0.09 to &minus;6.9, so the upper tail does not improve. Ownership correlates with quality. The failure is specific to
+the surrogate rather than to rank optimization itself: replacing it with the exact margin variance
+objective of Section VII reverses the sign of the optimal parameter and wins four seasons of four.</p>
 
-<h2>VIII. Transfer Economics</h2>
+<h3>E. Opponent Possession as a Defensive Contribution Covariate</h3>
+<p>Defensive contribution is the weakest component of the projection, and opponent possession share is
+the covariate its specification identified as missing. The relationship is large and unambiguous:
+across 47,585 player-matches, an outfield player whose opponent holds 60 percent or more of the ball
+reaches the qualifying threshold 34.4 percent of the time, against 17.4 percent at 40 percent or less.
+Possession is also forecastable, unlike goals, with team means correlating 0.77 to 0.91 between
+consecutive seasons and 0.85 between the opening ten matches and the remainder. A rating difference
+with a home term predicts a fixture at <i>r</i> = 0.71 in walk-forward evaluation, and forecast rather
+than realized possession still moves the threshold rate from 17.5 to 32.1 percent.</p>
+<p>It contributes nothing to the model. Against a baseline containing only the player's own rolling
+counts, the existing opponent-strength feature is worth +0.92 percent in Brier score; expected
+opponent possession is worth &minus;0.03 percent, and including both is inferior to opponent strength
+alone. The two features correlate at only 0.112, so this is not collinearity. The information is
+already present in the player's own history: an exponentially weighted count of his recent defensive
+actions is a direct measurement of how much defending he does, and a team-level possession forecast is
+a noisier statement of the same fact.</p>
+<p>The negative result is worth stating precisely because the football reasoning was sound and the
+covariate is real. A hypothesis can be true about the sport and useless to the model.</p>
+
+<h2>IX. Transfer Economics</h2>
 <p>A separate result concerns the four-point charge levied for additional transfers. Applying the
 apparently rational criterion &mdash; incur the charge when projected weekly gain multiplied by
 expected holding period exceeds four points &mdash; cost 349 points across four seasons relative to
@@ -306,18 +414,34 @@ transfer selected is that with the largest <i>estimated</i> gain, and the larges
 set is biased upward, so the charge is paid to acquire estimation error. Raising the threshold does not
 resolve it, because the filter operates on the same contaminated estimate.</p>
 
-<h2>IX. Conclusions</h2>
+<h2>X. Conclusions</h2>
 <p>A threshold-aware simulation system was constructed and validated. Its scoring engine reproduces
-109,681 historical player-matches exactly. Its projections are more accurate and better ordered than
-consensus selection in four seasons of four. Under the game's constraint set, however, this advantage
-does not convert into a demonstrable points margin over four seasons of simulated play.</p>
-<p>The practical implication is that projection quality is not the binding constraint in this problem.
-Structural interventions were tested &mdash; rank tilting, transfer horizon valuation, hit discipline
-&mdash; and yielded improvements measured in tens of points against a seasonal variance measured in
-hundreds. Discriminating an advantage of the observed magnitude would require approximately ten
-seasons of data. Any claim of a demonstrated edge from a single-season backtest should be regarded as
-a reading of noise; the present work reached the opposite conclusion on its own single-season result
-when three further seasons were added.</p>
+109,681 historical player-matches exactly, and its projections are more accurate than consensus
+selection in four seasons of four.</p>
+<p>For most of this work that accuracy did not convert into points. Maximizing expected points won two
+seasons of four with a mean margin of +2.8 and <i>p</i> = 0.96, and successive structural
+interventions &mdash; rank tilting, transfer horizon valuation, hit discipline &mdash; produced
+improvements measured in tens of points against a seasonal variance measured in hundreds. The natural
+reading was that the constraint set imposes a ceiling and consensus selection sits near it.</p>
+<p>That reading was wrong, and the error was in the objective rather than in the projection. A
+competition scored by rank is not scored by expected points, and the difference lives in the second
+moment of the margin, not the first. Once margin variance is written correctly &mdash; and it is
+linear in the squad choice, not quadratic, because the ownership indicator is binary &mdash; the
+resulting objective wins four seasons of four by an average of 72 points, with the optimum at negative
+&gamma;. The direction is the substantive finding: risk is worth carrying in players the field also
+holds, because the field carries it jointly, and worth avoiding in players held alone.</p>
+<p>Two conclusions follow for practice. Projection quality was never the binding constraint, and the
+effort spent improving it was measurably misdirected; the same system, unchanged, produces a positive
+result under a corrected objective. And the value that projection accuracy does carry is concentrated
+at the top of the ordering rather than spread across it. The system loses aggregate rank correlation
+to a five-gameweek form average while its top selection outscores that benchmark by 1.68 points per
+gameweek, which is the difference between describing a population and choosing from it.</p>
+<p>The methodological caution stands unchanged and now applies to the positive result as well. Four
+seasons yield a sign test at <i>p</i> = 0.06. Two controls were required before the result was
+credited: removing the ownership coefficient collapses it, and contemporaneous ownership inflates it
+by 68 points. Any claim of a demonstrated edge from a single-season backtest should be regarded as a
+reading of noise; the present work reached the opposite conclusion on its own single-season result
+once three further seasons were added.</p>
 
 <div class="fn">
 <p><sup>1</sup> Independent researcher. Complete source, data pipeline, and reproduction instructions

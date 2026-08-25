@@ -26,7 +26,15 @@ keep whichever wins. That is Build 1.
 
 ---
 
-## Build 1 — Rank optimisation  *(highest value, ~1 day)*
+## Build 1 — Rank optimisation  ✅ **LANDED 2026-08-21**
+
+**Result: +289 points over four seasons, winning 4 of 4.** Not via the linear
+tilt, which lost at every setting, but via the exact margin-variance objective
+— which turns out to be linear in the squad choice. Optimal γ = −0.05: reward
+variance in template players, penalise it in differentials. See FINDINGS.md.
+
+<details><summary>original plan</summary>
+
 
 **Why this first.** Against a field that overwhelmingly owns the template, points
 are not the currency — *rank* is. Owning a template player who hauls gains you
@@ -46,6 +54,8 @@ what you would expect from optimising the wrong objective.
 **Success criterion.** Beats the template on season points in **≥3 of 4 seasons**,
 or pooled p < 0.05 across 124 gameweeks. Anything less and it goes in FINDINGS.md
 as another negative result.
+
+</details>
 
 ---
 
@@ -77,7 +87,15 @@ are a bounded, low-risk win — this is the safest item on the list.
 
 ---
 
-## Build 4 — Close the DefCon covariate gap  *(~half day, blocked)*
+## Build 4 — DefCon possession covariate  ❌ **TESTED AND REJECTED 2026-08-21**
+
+The covariate was never unavailable — it is in the FotMob team block, now
+ingested for six seasons at 100% coverage. The football effect is real and
+large (threshold rate doubles, 17.4% → 34.4%). It adds **−0.03%** to the model.
+The player's own rolling counts already measure it. See FINDINGS.md.
+
+<details><summary>original plan</summary>
+
 
 DefCon is the weakest component: calibration collapses above p = 0.5 and the
 tail is capped at 0.40 as a result. The build plan specifies **opponent
@@ -85,6 +103,8 @@ possession share** as the key covariate, which is not in the FPL feed. FBref has
 it and `soccerdata` already reaches FBref.
 
 Do this only if Builds 1–3 land, since DefCon is ~10% of a typical projection.
+
+</details>
 
 ---
 
@@ -94,7 +114,10 @@ Do this only if Builds 1–3 land, since DefCon is ~10% of a typical projection.
   Effort here is measurably wasted.
 * **xGOT.** Tested and rejected — finishing r = −0.065, placement r = −0.007
   against a control persisting at r = +0.742.
-* **SofaScore heatmaps.** Blocked by their bot detection after my request burst.
+* ~~**SofaScore heatmaps.**~~ Superseded: FotMob serves season touch heatmaps.
+  Collected for 383 players, 426,596 touches. Zone shares predict xG/90 at
+  r = 0.90 and separate goal threat from creation cleanly.
+* **SofaScore specifically.** Blocked by their bot detection after my request burst.
   The collector is written and waits; territory already persists at r = 0.894 via
   FotMob, so the marginal gain is small.
 
