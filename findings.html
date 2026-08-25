@@ -2445,41 +2445,51 @@ points per game, and last-five-gameweek form.</p>
 <th>naive</th>
 <th>engine</th>
 <th>better by</th>
+<th>n</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>2022-23</td>
-<td>1.082</td>
-<td>1.106</td>
-<td><strong>0.961</strong></td>
-<td>11.2%</td>
+<td>1.044</td>
+<td>1.076</td>
+<td><strong>0.963</strong></td>
+<td>7.8%</td>
+<td>17,236</td>
 </tr>
 <tr>
 <td>2023-24</td>
 <td>0.984</td>
 <td>0.992</td>
-<td><strong>0.919</strong></td>
-<td>6.6%</td>
+<td><strong>0.921</strong></td>
+<td>6.4%</td>
+<td>23,980</td>
 </tr>
 <tr>
 <td>2024-25</td>
 <td>1.035</td>
 <td>1.046</td>
-<td><strong>0.981</strong></td>
-<td>5.2%</td>
+<td><strong>0.984</strong></td>
+<td>4.9%</td>
+<td>21,958</td>
 </tr>
 <tr>
 <td>2025-26</td>
 <td>1.035</td>
 <td>1.050</td>
-<td><strong>0.947</strong></td>
-<td>8.5%</td>
+<td><strong>0.949</strong></td>
+<td>8.3%</td>
+<td>23,833</td>
 </tr>
 </tbody>
 </table></div>
-<p>MAE, all rows. By position the gain concentrates where the scoring is:
+<p>MAE on matched rows. By position the gain concentrates where the scoring is:
 midfielders 10.1%, forwards 10.6%, keepers 4.3%, defenders 2.0%.</p>
+<p><em>(Corrected. This table first carried per-season figures in which each model was
+scored on whatever rows it could produce — form covered fewer rows in 2022-23
+than the engine did — while the surrounding text claimed matched rows. The
+2022-23 margin was overstated as 11.2%, and the honest range is 4.9% to 8.3%
+rather than 5.2% to 11.2%. The ordering and every conclusion are unchanged.)</em></p>
 <h2 id="ranking-a-tie-until-you-look-at-the-top">Ranking: a tie, until you look at the top</h2>
 <div class="tscroll"><table>
 <thead>
@@ -2872,15 +2882,21 @@ treats them alike.</p>
 <p>The build plan named opponent possession share as the covariate DefCon was
 missing, and recorded it as unreachable outside FBref. It is in the FotMob team
 block, now ingested for six seasons with 100% coverage and validated: possession
-sums to 100 in every one of 4,560 team-matches.</p>
+sums to 100 in all 4,560 team-match rows, covering 2,280 of the 2,281 matches
+cached.</p>
 <p>The raw relationship is exactly as advertised. Over 47,585 player-matches, an
 outfielder whose opponent holds 60% or more of the ball reaches the DefCon
-threshold <strong>34.4%</strong> of the time; at 40% or less, <strong>17.4%</strong>. The rate doubles.</p>
+threshold <strong>26.6%</strong> of the time; at 40% or less, <strong>11.9%</strong>. The rate more than
+doubles.</p>
+<p><em>(Corrected. The figures first published here, 34.4% and 17.4%, applied a flat
+threshold of 10 to every outfielder. FPL's threshold is position-dependent:
+10 for defenders, 12 for midfielders and forwards. The ratio is unchanged at
+about 2.2x and no conclusion moves, but the levels were overstated.)</em></p>
 <p>Possession is also forecastable, which goals are not. Team means correlate 0.77
 to 0.91 season to season and 0.85 from the first ten matches to the rest. A
 rating difference plus a home term predicts a fixture at r = 0.71 walk-forward,
 against 10.3 points of error for assuming an even split. Forecast rather than
-actual possession still moves the DefCon hit rate from 17.5% to 32.1%.</p>
+actual possession still moves the DefCon hit rate from 11.9% to 24.0%.</p>
 <p><strong>And it adds nothing to the model.</strong></p>
 <div class="tscroll"><table>
 <thead>
@@ -2991,8 +3007,53 @@ because his hauls and blanks move you and the field together.</p>
 </tbody>
 </table></div>
 <p>Points against the template. Sign test on 4 of 4 gives p = 0.06; mean +72 a
-season. The optimum is sharp — gamma = −0.20 falls to +152, and any positive
-gamma collapses.</p>
+season.</p>
+<p>The optimum is a <strong>shallow plateau, not a point</strong>, which is the better outcome:
+γ = −0.02 scores +362 and γ = −0.05 scores +357 on contemporaneous ownership,
+while γ = −0.10 gives +275 and any positive γ collapses. The negative region is
+also somewhat noisy — γ = −0.15 dips to +87 between two better neighbours — so
+the defensible claim is that a small negative γ works, not that −0.05
+specifically is optimal.</p>
+<h3 id="leave-one-season-out">Leave-one-season-out</h3>
+<p>Choosing γ by sweeping four seasons and reading off the best total is fitting on
+the test set. So γ was re-chosen on three seasons and applied blind to the
+fourth:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>held out</th>
+<th>γ chosen on the other three</th>
+<th>held-out result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022-23</td>
+<td>−0.02</td>
+<td><strong>+53</strong></td>
+</tr>
+<tr>
+<td>2023-24</td>
+<td>−0.02</td>
+<td><strong>+63</strong></td>
+</tr>
+<tr>
+<td>2024-25</td>
+<td>−0.05</td>
+<td><strong>+62</strong></td>
+</tr>
+<tr>
+<td>2025-26</td>
+<td>−0.05</td>
+<td><strong>+167</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>+345 out of sample, winning 4 of 4</strong>, against +357 fitted in sample on the
+same ownership basis. An overfitting penalty of 12 points across four seasons is
+close to nothing, and the two γ values chosen sit next to each other on the
+plateau. This is the strongest evidence the result is not an artefact of the
+sweep.</p>
 <h2 id="two-controls-because-4-of-4-demands-them">Two controls, because 4 of 4 demands them</h2>
 <p><strong>Is it just risk aversion?</strong> Penalising variance flat, with the ownership
 weight removed, scores <strong>−711 and wins 1 of 4</strong>. The ownership structure is
@@ -3037,4 +3098,267 @@ you are alone.</strong></p>
 in more than two seasons. Every previous structural intervention was worth tens
 of points against seasonal variance worth hundreds. This one is worth +72 a
 season, four times from four.</p>
+<hr />
+<h1 id="does-the-methodology-hold-across-different-premier-leagues">Does the methodology hold across different Premier Leagues?</h1>
+<p>A four-season average can hide a method that works in one kind of league. These
+seasons are not interchangeable: goals per team-game run 1.35 to 1.64,
+clean-sheet rate 0.21 to 0.30, and the spread of team possession 10.7 to 14.2
+points. A threshold-heavy scoring system should be most sensitive to exactly
+those things. 87,007 player-gameweeks, sliced.</p>
+<h2 id="the-projection-advantage-is-stable-everywhere">The projection advantage is stable everywhere</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>slice</th>
+<th>engine MAE</th>
+<th>best reference</th>
+<th>gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>low-goal gameweeks</td>
+<td>0.944</td>
+<td>1.023</td>
+<td><strong>7.7%</strong></td>
+</tr>
+<tr>
+<td>high-goal gameweeks</td>
+<td>0.951</td>
+<td>1.013</td>
+<td><strong>6.1%</strong></td>
+</tr>
+<tr>
+<td>few clean sheets</td>
+<td>0.942</td>
+<td>1.011</td>
+<td><strong>6.8%</strong></td>
+</tr>
+<tr>
+<td>many clean sheets</td>
+<td>0.970</td>
+<td>1.040</td>
+<td><strong>6.7%</strong></td>
+</tr>
+<tr>
+<td>blank gameweeks</td>
+<td>0.923</td>
+<td>0.982</td>
+<td><strong>6.0%</strong></td>
+</tr>
+<tr>
+<td>double gameweeks</td>
+<td>0.925</td>
+<td>0.985</td>
+<td><strong>6.1%</strong></td>
+</tr>
+<tr>
+<td>midweek rounds</td>
+<td>0.965</td>
+<td>1.023</td>
+<td><strong>5.7%</strong></td>
+</tr>
+<tr>
+<td>early season (GW8-12)</td>
+<td>1.003</td>
+<td>1.109</td>
+<td><strong>9.5%</strong></td>
+</tr>
+<tr>
+<td>late season (GW27-38)</td>
+<td>0.908</td>
+<td>0.962</td>
+<td><strong>5.5%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>No environment where it fails.</strong> The range is 4.9% to 9.5% and every slice is
+positive.</p>
+<h2 id="but-the-useful-advantage-is-not-stable">But the <em>useful</em> advantage is not stable</h2>
+<p>MAE is not what a manager spends. Top-10 selection is. Measured as the points
+scored by the ten players the engine ranked highest, against the ten a
+points-per-appearance benchmark ranked highest:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>slice</th>
+<th>engine top-10</th>
+<th>reference</th>
+<th>gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>weekend rounds</td>
+<td>4.93</td>
+<td>4.48</td>
+<td><strong>+0.45</strong></td>
+</tr>
+<tr>
+<td>normal gameweeks</td>
+<td>4.85</td>
+<td>4.33</td>
+<td><strong>+0.51</strong></td>
+</tr>
+<tr>
+<td>high-goal gameweeks</td>
+<td>5.28</td>
+<td>4.82</td>
+<td><strong>+0.47</strong></td>
+</tr>
+<tr>
+<td>few clean sheets</td>
+<td>5.00</td>
+<td>4.48</td>
+<td><strong>+0.51</strong></td>
+</tr>
+<tr>
+<td>early season</td>
+<td>4.93</td>
+<td>4.14</td>
+<td><strong>+0.79</strong></td>
+</tr>
+<tr>
+<td>late season</td>
+<td>4.67</td>
+<td>4.43</td>
+<td>+0.24</td>
+</tr>
+<tr>
+<td>double gameweeks</td>
+<td>4.61</td>
+<td>4.49</td>
+<td>+0.12</td>
+</tr>
+<tr>
+<td><strong>many clean sheets</strong></td>
+<td>4.43</td>
+<td>4.37</td>
+<td><strong>+0.06</strong></td>
+</tr>
+<tr>
+<td><strong>midweek rounds</strong></td>
+<td>4.02</td>
+<td>3.98</td>
+<td><strong>+0.04</strong></td>
+</tr>
+<tr>
+<td><strong>blank gameweeks</strong></td>
+<td>4.83</td>
+<td>4.83</td>
+<td><strong>0.00</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Three environments where the edge disappears:</p>
+<p><strong>Blank gameweeks.</strong> Exactly zero. When the pool shrinks, the engine's top ten
+and the benchmark's top ten are worth the same.</p>
+<p><strong>Midweek rounds.</strong> +0.04 against +0.45 at weekends. Midweek is rotation, and
+rotation is a minutes problem the model does not solve — it knows who usually
+starts, not who a manager will rest three days before a European tie.</p>
+<p><strong>Clean-sheet-rich gameweeks.</strong> +0.06. When defences dominate, points
+concentrate in threshold events the model caps at 0.40 by its own admission.</p>
+<h2 id="where-the-advantage-lives-by-position">Where the advantage lives, by position</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>environment</th>
+<th>DEF</th>
+<th>MID</th>
+<th>FWD</th>
+<th>GKP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>low-goal gameweeks</td>
+<td>2.4%</td>
+<td>11.9%</td>
+<td><strong>12.6%</strong></td>
+<td>3.0%</td>
+</tr>
+<tr>
+<td>high-goal gameweeks</td>
+<td>1.4%</td>
+<td>8.8%</td>
+<td>8.9%</td>
+<td>6.9%</td>
+</tr>
+</tbody>
+</table></div>
+<p>Attackers in a mean league is where the model earns its keep, and defenders are
+where it barely beats a rolling average anywhere. That is consistent with the
+DefCon component being the weakest part of the engine.</p>
+<h2 id="the-honest-summary">The honest summary</h2>
+<p>The projections are robust across environments. The <em>decisions</em> are not. Anyone
+using this should discount it in midweek rounds, in blank gameweeks, and when
+defences are on top — which are, unhelpfully, three of the moments a manager
+most wants help.</p>
+<hr />
+<h1 id="self-audit-2026-08-21">Self-audit, 2026-08-21</h1>
+<p>Every headline number from this session was recomputed from source. Four
+claims survived unchanged; three did not, and are corrected in place above.</p>
+<h2 id="confirmed-exactly">Confirmed exactly</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>claim</th>
+<th>recomputed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Captain pick 6.69 vs 6.09 naive, 5.01 form</td>
+<td>6.69 / 6.09 / 5.01</td>
+</tr>
+<tr>
+<td>Top-10 4.80 vs 4.41 / 4.21</td>
+<td>4.80 / 4.41 / 4.21</td>
+</tr>
+<tr>
+<td>Directional Q5 63.4%, Q1 20.1%</td>
+<td>63.4% / 20.1%</td>
+</tr>
+<tr>
+<td>GW1 minutes weight 0.65</td>
+<td>0.65</td>
+</tr>
+<tr>
+<td>Heatmap zones, xG/90 r = 0.902</td>
+<td>0.902 (also holds with a season filter)</td>
+</tr>
+<tr>
+<td>Possession sums to 100 in every match</td>
+<td>100.0% of 2,280 matches</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="corrected">Corrected</h2>
+<p><strong>DefCon threshold rates were computed against a flat threshold of 10.</strong> FPL's
+threshold is position-dependent — 10 for defenders, 12 for midfielders and
+forwards. The published 17.4% → 34.4% becomes <strong>11.9% → 26.6%</strong>, and the
+forecast-band version 17.5% → 32.1% becomes <strong>11.9% → 24.0%</strong>. The ratio is
+unchanged at about 2.2x, so the possession conclusion is unaffected, but the
+levels were overstated by roughly a third.</p>
+<p><strong>The MAE table was published on unmatched rows</strong> while the surrounding text
+claimed matched rows. Form covered fewer 2022-23 rows than the engine did, and
+that season's margin was inflated from 7.8% to 11.2%. The honest range is
+<strong>4.9% to 8.3%</strong>, not 5.2% to 11.2%.</p>
+<p><strong>The paper reported one season's improvement as the four-season aggregate,
+twice.</strong> "31.2 percent in MAE and 46.1 percent in rank correlation" are both the
+2025/26 figures. The means are <strong>29.8%</strong> and <strong>28.5%</strong>, and the rank-correlation
+margin is unstable across seasons (11.5% to 46.1%), which the paper now says.
+The paper's Table 1 was also silently restricted to players who appeared — a
+population that doubles every MAE — and now states so.</p>
+<p><strong>A fourth defect was structural rather than numerical.</strong> <code>rank.py</code> described
+γ = −0.05 as the shipped default while the live pipeline still optimised plain
+expected points; the result existed only in the backtest. The live optimiser now
+uses it. Reporting was wrong too — the exported "squad xPts" was the LP objective
+including the variance term, overstating the projection by 8 points.</p>
+<h2 id="what-this-says">What this says</h2>
+<p>Three of the four defects flattered the result, which is the direction bias
+runs when nobody checks. None changed a conclusion. The habit worth keeping is
+that every number in a summary should be recomputed from source before it is
+published, because the errors were all in <em>summaries</em> — the per-season tables
+were right in every case, and the sentence underneath them was wrong.</p>
 </div></body></html>
