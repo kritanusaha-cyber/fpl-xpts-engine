@@ -76,7 +76,15 @@ The rules it ignores are worth real points:
 
 ---
 
-## Build 3 — Chip strategy  *(~half day)*
+## Build 3 — Chip strategy  ✅ **LANDED 2026-08-21**
+
+**+139 over four seasons, mean +35, 3 of 4 improved.** Wildcard the biggest
+contributor (+27 a play). The deadline-collapse rule had to be restricted to
+chips that cannot lose points — forcing a wildcard at a window deadline cost
+2025-26 forty-four points. See FINDINGS.md.
+
+<details><summary>original plan</summary>
+
 
 Eight chips, two half-season windows, currently unmodelled. Bench Boost and
 Triple Captain are straightforward given the simulator already produces
@@ -84,6 +92,8 @@ distributions. Wildcard is a free re-solve; Free Hit is a one-week re-solve.
 
 **Success criterion.** Positive points contribution across four seasons. Chips
 are a bounded, low-risk win — this is the safest item on the list.
+
+</details>
 
 ---
 
@@ -136,3 +146,35 @@ Every build is scored on the same four seasons with the same harness. If Build 1
 fails its criterion, that is a finding worth as much as a success: it would say
 the template is close to unbeatable under FPL's constraints, which is a real
 answer to the question the project set out to ask.
+
+---
+
+## Status after 2026-08-21
+
+| build | outcome |
+|---|---|
+| 1 — Rank optimisation | ✅ **+289, 4 of 4** (LOSO +345, 4 of 4) |
+| 2 — Transfer planning | partly shipped; fixture-awareness tested, **+14 and 2 of 4, shelved** |
+| 3 — Chips | ✅ **+139, 3 of 4** |
+| 4 — DefCon possession | ❌ rejected; but the **tail cap moved 0.40 → 0.70**, which the six-season data justified |
+
+### Cancelled on evidence
+
+**Congestion / midweek rotation.** The three environment weaknesses that
+motivated it — midweek, blanks, clean-sheet-heavy weeks — are all statistically
+indistinguishable from a normal gameweek once each gameweek is treated as one
+observation (p = 0.315, 1.000, 0.818). The minutes model already carries
+`days_since_last` and `fixtures_14d`, and short rest moves the re-start rate
+only 79.4% → 75.0%. There was no problem to fix.
+
+### What is actually left
+
+* **Free Hit** is the one chip still unimplemented — a one-week squad that
+  reverts. Bench Boost, Triple Captain and Wildcard are done.
+* **Attacker under-projection**, −1.62 a start for forwards and −1.11 for
+  midfielders conditional on playing. The clearest remaining defect with a
+  known sign, and untouched.
+* **More seasons.** Every result here rests on four. The engine backtest needs
+  team xG, which starts in 2022-23; FotMob now supplies six seasons of shots,
+  so extending the pools back to 2020-21 is a data task rather than a
+  modelling one, and would put the 4-of-4 results on six.

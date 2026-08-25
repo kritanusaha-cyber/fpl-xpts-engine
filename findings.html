@@ -3250,7 +3250,68 @@ points-per-appearance benchmark ranked highest:</p>
 </tr>
 </tbody>
 </table></div>
-<p>Three environments where the edge disappears:</p>
+<p><strong>These three gaps are not real.</strong> Corrected 2026-08-21: treating each gameweek
+as one observation, none of the three is distinguishable from the normal
+gameweek result.</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>slice</th>
+<th>gameweeks</th>
+<th>mean gain</th>
+<th>95% CI</th>
+<th>p vs zero</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>normal (20 teams)</td>
+<td>80</td>
+<td>+0.514</td>
+<td>+0.22 to +0.80</td>
+<td><strong>0.001</strong></td>
+</tr>
+<tr>
+<td>blank (≤18 teams)</td>
+<td>11</td>
+<td>+0.000</td>
+<td>−0.87 to +0.87</td>
+<td>1.000</td>
+</tr>
+<tr>
+<td>double (&gt;20 teams)</td>
+<td>21</td>
+<td>+0.119</td>
+<td>−0.35 to +0.59</td>
+<td>0.625</td>
+</tr>
+<tr>
+<td>midweek rounds</td>
+<td>16</td>
+<td>+0.044</td>
+<td>−0.68 to +0.77</td>
+<td>0.907</td>
+</tr>
+<tr>
+<td>clean-sheet-rich</td>
+<td>36</td>
+<td>+0.056</td>
+<td>−0.41 to +0.52</td>
+<td>0.818</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every one of those confidence intervals contains the +0.51 of a normal
+gameweek. Weekend rounds against midweek gives a Welch p of 0.315. <strong>The
+correct statement is that these slices are too small to measure, not that the
+edge disappears in them</strong> — 11 blank gameweeks in four seasons cannot resolve
+an effect of this size.</p>
+<p>This mattered practically: it was about to justify building a congestion
+feature to fix a phantom. The minutes model already carries <code>days_since_last</code>
+and <code>fixtures_14d</code>, and short rest moves the re-start rate only from 79.4% to
+75.0%. There was no problem to fix.</p>
+<p>The original, over-read version follows.</p>
+<p>Three environments where the edge <em>appeared</em> to disappear:</p>
 <p><strong>Blank gameweeks.</strong> Exactly zero. When the pool shrinks, the engine's top ten
 and the benchmark's top ten are worth the same.</p>
 <p><strong>Midweek rounds.</strong> +0.04 against +0.45 at weekends. Midweek is rotation, and
@@ -3290,10 +3351,15 @@ concentrate in threshold events the model caps at 0.40 by its own admission.</p>
 where it barely beats a rolling average anywhere. That is consistent with the
 DefCon component being the weakest part of the engine.</p>
 <h2 id="the-honest-summary">The honest summary</h2>
-<p>The projections are robust across environments. The <em>decisions</em> are not. Anyone
-using this should discount it in midweek rounds, in blank gameweeks, and when
-defences are on top — which are, unhelpfully, three of the moments a manager
-most wants help.</p>
+<p>The projections are robust across environments, and the selection edge is
+established only for normal gameweeks (+0.51, p = 0.001), which are 80 of the
+112 measured. For blanks, doubles, midweek rounds and clean-sheet-heavy weeks
+the honest answer is that four seasons do not contain enough of them to say
+either way.</p>
+<p>The lesson is the same one this file keeps recording. A point estimate computed
+on a slice is not a finding until it is compared against the noise of that
+slice, and the smaller the slice the louder the temptation to explain the
+number.</p>
 <hr />
 <h1 id="self-audit-2026-08-21">Self-audit, 2026-08-21</h1>
 <p>Every headline number from this session was recomputed from source. Four
@@ -3361,4 +3427,258 @@ runs when nobody checks. None changed a conclusion. The habit worth keeping is
 that every number in a summary should be recomputed from source before it is
 published, because the errors were all in <em>summaries</em> — the per-season tables
 were right in every case, and the sentence underneath them was wrong.</p>
+<hr />
+<h1 id="chips-build-3-139-over-four-seasons">Chips — Build 3, +139 over four seasons</h1>
+<p>Four chip types, two half-season windows, valued on the projection alone.</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>season</th>
+<th>no chips</th>
+<th>with chips</th>
+<th>gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022-23</td>
+<td>1422</td>
+<td>1488</td>
+<td><strong>+66</strong></td>
+</tr>
+<tr>
+<td>2023-24</td>
+<td>1525</td>
+<td>1570</td>
+<td><strong>+45</strong></td>
+</tr>
+<tr>
+<td>2024-25</td>
+<td>1502</td>
+<td>1536</td>
+<td><strong>+34</strong></td>
+</tr>
+<tr>
+<td>2025-26</td>
+<td>1596</td>
+<td>1590</td>
+<td>−6</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>+139 total, mean +35 a season, 3 of 4 improved.</strong></p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>chip</th>
+<th>plays</th>
+<th>total</th>
+<th>per play</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wildcard</td>
+<td>4</td>
+<td>+108</td>
+<td><strong>+27.0</strong></td>
+</tr>
+<tr>
+<td>Triple Captain</td>
+<td>8</td>
+<td>+56</td>
+<td>+7.0</td>
+</tr>
+<tr>
+<td>Bench Boost</td>
+<td>8</td>
+<td>+51</td>
+<td>+6.4</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="the-rule-and-the-mistake-in-the-first-version">The rule, and the mistake in the first version</h2>
+<p>A chip must clear a bar set by what a typical gameweek in its window is worth.
+Patience is barely rewarded — swept, the bar scored +116 at 1.15 and +115 at
+1.00, falling away above 1.3 — because a chip held for a better week is a chip
+at risk of expiring.</p>
+<p>The first version collapsed the bar to zero on the window's final gameweek, on
+the reasoning that any positive value beats expiry. <strong>That is true only for
+chips that cannot lose points.</strong> Bench Boost and Triple Captain add a
+multiplier to players already owned. Wildcard and Free Hit <em>replace the squad</em>,
+and a squad re-solved on noisy projections can be worse than the one held.</p>
+<p>Forcing a wildcard at the 2025-26 deadline cost that season 44 points — and the
+immediate gain that gameweek was only −2, with the rest arriving over the
+following weeks. It is the optimiser's curse again, the same mechanism that
+made transfer hits unprofitable: re-solving selects the largest <em>estimate</em>, and
+the largest estimate in a noisy set is biased upward.</p>
+<p>Restricting the deadline collapse to additive chips cut the worst season from
+−44 to −6. It also cost the good seasons — the unrestricted rule scored +192
+against this rule's +139, because wildcards now play four times across four
+seasons rather than eight, and a window's wildcard often expires unused.</p>
+<p><strong>Shipped the safer rule.</strong> +35 a season with a −6 worst case beats +48 a season
+with a −44 worst case, on a project whose recurring finding is that seasonal
+variance swamps structural edges. Expiring a wildcard unused is the correct
+outcome when nothing clears the bar.</p>
+<p>One caveat worth stating: the threshold was swept on the same four seasons it is
+reported on. The effect is large enough that the sign is not in doubt, but the
+magnitude is fitted.</p>
+<hr />
+<h1 id="defcon-tail-cap-raised-from-040-to-070-build-4">DefCon tail cap raised from 0.40 to 0.70 — Build 4</h1>
+<p>The cap was a data problem wearing a model problem's clothes.</p>
+<p>The original reasoning was correct on the evidence available. After isotonic
+recalibration the p &gt; 0.5 band read <strong>0.606 predicted against 0.188 realised</strong>,
+and on that a refusal to emit high-confidence DefCon calls was right. But the
+sample was <strong>n = 16</strong>, because per-match defensive counts existed for one
+season and were reconstructed for the rest.</p>
+<p>Six seasons of real components from FotMob remove the collapse entirely.
+Walk-forward over 41,989 player-matches:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>predicted band</th>
+<th>n</th>
+<th>predicted</th>
+<th>realised</th>
+<th>gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.2 – 0.3</td>
+<td>5,213</td>
+<td>0.245</td>
+<td>0.284</td>
+<td>+0.039</td>
+</tr>
+<tr>
+<td>0.3 – 0.4</td>
+<td>3,148</td>
+<td>0.345</td>
+<td>0.395</td>
+<td>+0.050</td>
+</tr>
+<tr>
+<td>0.4 – 0.5</td>
+<td>2,003</td>
+<td>0.446</td>
+<td>0.488</td>
+<td>+0.043</td>
+</tr>
+<tr>
+<td><strong>0.5 – 0.6</strong></td>
+<td>1,149</td>
+<td>0.545</td>
+<td><strong>0.548</strong></td>
+<td><strong>+0.003</strong></td>
+</tr>
+<tr>
+<td><strong>0.6 +</strong></td>
+<td>808</td>
+<td>0.688</td>
+<td><strong>0.682</strong></td>
+<td><strong>−0.006</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The tail is now the best-calibrated part of the distribution. The residual
+error is mild <em>under</em>-prediction in the middle, which isotonic handles.</p>
+<p>At 0.40 the cap had become actively harmful:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>cap</th>
+<th>Brier</th>
+<th>predictions flattened</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>no calibration at all</td>
+<td>0.12479</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>0.40</strong></td>
+<td><strong>0.12601</strong></td>
+<td><strong>2,667</strong></td>
+</tr>
+<tr>
+<td>0.55</td>
+<td>0.12418</td>
+<td>358</td>
+</tr>
+<tr>
+<td><strong>0.70</strong></td>
+<td><strong>0.12408</strong></td>
+<td><strong>107</strong></td>
+</tr>
+<tr>
+<td>1.00</td>
+<td>0.12410</td>
+<td>1</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Capping at 0.40 was worse than not calibrating at all.</strong> Shipped 0.70.</p>
+<p>Duels won, newly available from the six-season parse, add nothing: Brier
+0.12429 against 0.12431 with them.</p>
+<p>One structural fix alongside: <code>assemble_fixture.py</code> restated the cap as a
+hardcoded 0.40 with a comment pointing at the calibration module, so changing
+it in one place left the simulation using the old value. It now imports.</p>
+<p><strong>A cap fitted to compensate for thin data has to be revisited when the data
+stops being thin, or it silently becomes the constraint it was invented to
+protect against.</strong></p>
+<hr />
+<h1 id="fixture-aware-transfers-no-measurable-gain">Fixture-aware transfers — no measurable gain</h1>
+<p>The transfer planner values a swap as gain × <code>hold_weeks</code>, treating every
+coming gameweek as identical to this one. It is not: a club about to blank is
+worth less over the hold than its single-gameweek projection says.</p>
+<p>The fixture list is published months ahead, so reading the schedule forward is
+not hindsight — reading the <em>projections</em> for those gameweeks would be, since
+they are built from data that has not happened yet at decision time. Only the
+schedule is used, scored on opponent strength from matches already played.</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>season</th>
+<th>flat hold</th>
+<th>fixture-aware</th>
+<th>gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022-23</td>
+<td>1488</td>
+<td>1472</td>
+<td>−16</td>
+</tr>
+<tr>
+<td>2023-24</td>
+<td>1570</td>
+<td>1575</td>
+<td>+5</td>
+</tr>
+<tr>
+<td>2024-25</td>
+<td>1536</td>
+<td>1561</td>
+<td>+25</td>
+</tr>
+<tr>
+<td>2025-26</td>
+<td>1590</td>
+<td>1590</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>+14 across four seasons, 2 of 4.</strong> That is noise against seasons that swing
+±25 on their own, and it does not meet the bar the rank result had to clear.</p>
+<p>The reason is structural rather than a flaw in the idea: blanks occur two or
+three times a season, so the weighting only separates clubs in the few weeks
+around them. The code is kept and defaults to <strong>off</strong>, because it costs nothing
+and the reasoning is sound — but it is not a demonstrated improvement and is
+not claimed as one.</p>
 </div></body></html>
