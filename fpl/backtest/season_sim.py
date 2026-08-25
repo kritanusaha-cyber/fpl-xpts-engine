@@ -103,6 +103,37 @@ def score_xi(pool: pd.DataFrame, squad: set, pred: str) -> float:
     return float(df.total_points.sum() + df.loc[capt, "total_points"])
 
 
+def xi_of(pool: pd.DataFrame, squad: set, pred: str) -> tuple[set, int | None]:
+    """The XI and captain score_xi would choose, without scoring them.
+
+    Chips need to know who is on the bench and who is captained before the
+    gameweek is played, and duplicating the selection logic is how the two
+    drift apart.
+    """
+    s = pool[pool.element.isin(squad)].copy()
+    if s.empty:
+        return set(), None
+    s[pred] = pd.to_numeric(s[pred], errors="coerce").fillna(0.0)
+    s = s.sort_values(pred, ascending=False)
+    xi, counts = [], {k: 0 for k in XI_MAX}
+    for _, r in s.iterrows():
+        if len(xi) >= 11:
+            break
+        if counts[r.position] < XI_MAX[r.position]:
+            xi.append(r); counts[r.position] += 1
+    for pos, need in XI_MIN.items():
+        while counts[pos] < need:
+            cand = s[(s.position == pos) & (~s.element.isin([r.element for r in xi]))]
+            if cand.empty:
+                break
+            xi.append(cand.iloc[0]); counts[pos] += 1
+            xi = xi[:11]
+    if not xi:
+        return set(), None
+    df = pd.DataFrame(xi).head(11)
+    return set(df.element), int(df.loc[df[pred].idxmax(), "element"])
+
+
 def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
                start_gw: int | None = None, rank_k: float = 0.0,
                gamma: float = 0.0, plain_var: bool = False) -> pd.DataFrame:
@@ -148,7 +179,8 @@ def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
 
 def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4.0,
                        max_hits: int = 0, rank_k: float = 0.0, gamma: float = 0.0,
-                       start_gw: int | None = None, hit_margin: float = 1.0) -> pd.DataFrame:
+                       start_gw: int | None = None, hit_margin: float = 1.0,
+                       chips: bool = False) -> pd.DataFrame:
     """Season with real transfer economics: banked FTs, horizon-valued hits,
     and sell-price path dependency. Compare against run_season, which re-picks
     greedily each week and cannot represent saving a transfer.
@@ -158,7 +190,10 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
     the damage only disappears when hits are abandoned entirely. See FINDINGS.md
     -- the mechanism is the optimiser's curse, not the four-point fee."""
     from fpl.optimize.transfers import Squad, plan_transfers, MAX_BANKED
+    from fpl.optimize.chips import ChipPlan, wildcard_value
 
+    plan = ChipPlan()
+    hist_pts: list[float] = []
     gws = sorted(preds.gw.dropna().unique())
     if start_gw:
         gws = [g for g in gws if g >= start_gw]
@@ -197,6 +232,53 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
                 squad.free_transfers - used + 1, 1, MAX_BANKED))
 
         pts = score_xi(pool, set(squad.players), sel_col) - hits * HIT_COST
+
+        # --- chips -------------------------------------------------------
+        # Valued on the projection and compared against what a typical
+        # gameweek in this window has been worth, so the decision uses only
+        # what was knowable beforehand.
+        chip_played, chip_gain = None, 0.0
+        if chips:
+            xi, capt = xi_of(pool, set(squad.players), sel_col)
+            bench = set(squad.players) - xi
+            proj = pd.to_numeric(pool.set_index("element")[sel_col],
+                                 errors="coerce").fillna(0.0)
+            real = pool.set_index("element")["total_points"]
+
+            bb_proj = float(proj.reindex(list(bench)).fillna(0.0).sum())
+            tc_proj = float(proj.get(capt, 0.0)) if capt is not None else 0.0
+            base = float(np.mean(hist_pts)) if hist_pts else 50.0
+
+            # Wildcard first: it changes the squad the other two would act on,
+            # so evaluating it after them would price them off a squad that no
+            # longer exists.
+            wc_proj = wildcard_value(pool, set(squad.players), sel_col,
+                                     pick_squad, sel_col)
+            if plan.consider(gw, "wildcard", wc_proj, base / 11.0 * 2.0):
+                # A wildcard is free transfers, not free money: the new squad
+                # still has to be affordable from what the old one sells for.
+                budget = squad.value(prices)
+                fresh = pick_squad(pool, sel_col, budget=budget)
+                if fresh and sum(prices.get(e, 0.0) for e in fresh) <= budget + 1e-9:
+                    before = pts
+                    squad.players = {e: prices.get(e, 0.0) for e in fresh}
+                    squad.bank = round(budget - sum(prices.get(e, 0.0) for e in fresh), 1)
+                    squad.free_transfers = 1
+                    pts = score_xi(pool, set(squad.players), sel_col)
+                    chip_played, chip_gain = "wildcard", pts - before
+                    xi, capt = xi_of(pool, set(squad.players), sel_col)
+                    bench = set(squad.players) - xi
+            elif plan.consider(gw, "bench_boost", bb_proj, base / 11.0 * 4.0):
+                chip_played, chip_gain = "bench_boost", float(
+                    real.reindex(list(bench)).fillna(0.0).sum())
+                pts += chip_gain
+            elif plan.consider(gw, "triple_captain", tc_proj, base / 11.0):
+                chip_played, chip_gain = "triple_captain", float(
+                    real.get(capt, 0.0) or 0.0)
+                pts += chip_gain
+        hist_pts.append(pts - chip_gain)
+
         rows.append({"gw": gw, "points": pts, "hits": hits,
+                     "chip": chip_played, "chip_gain": round(chip_gain, 1),
                      "ft": squad.free_transfers, "bank": squad.bank})
     return pd.DataFrame(rows)

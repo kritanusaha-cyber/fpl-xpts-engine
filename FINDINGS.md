@@ -1879,3 +1879,57 @@ runs when nobody checks. None changed a conclusion. The habit worth keeping is
 that every number in a summary should be recomputed from source before it is
 published, because the errors were all in *summaries* — the per-season tables
 were right in every case, and the sentence underneath them was wrong.
+
+---
+
+# Chips — Build 3, +139 over four seasons
+
+Four chip types, two half-season windows, valued on the projection alone.
+
+| season | no chips | with chips | gain |
+|---|---|---|---|
+| 2022-23 | 1422 | 1488 | **+66** |
+| 2023-24 | 1525 | 1570 | **+45** |
+| 2024-25 | 1502 | 1536 | **+34** |
+| 2025-26 | 1596 | 1590 | −6 |
+
+**+139 total, mean +35 a season, 3 of 4 improved.**
+
+| chip | plays | total | per play |
+|---|---|---|---|
+| Wildcard | 4 | +108 | **+27.0** |
+| Triple Captain | 8 | +56 | +7.0 |
+| Bench Boost | 8 | +51 | +6.4 |
+
+## The rule, and the mistake in the first version
+
+A chip must clear a bar set by what a typical gameweek in its window is worth.
+Patience is barely rewarded — swept, the bar scored +116 at 1.15 and +115 at
+1.00, falling away above 1.3 — because a chip held for a better week is a chip
+at risk of expiring.
+
+The first version collapsed the bar to zero on the window's final gameweek, on
+the reasoning that any positive value beats expiry. **That is true only for
+chips that cannot lose points.** Bench Boost and Triple Captain add a
+multiplier to players already owned. Wildcard and Free Hit *replace the squad*,
+and a squad re-solved on noisy projections can be worse than the one held.
+
+Forcing a wildcard at the 2025-26 deadline cost that season 44 points — and the
+immediate gain that gameweek was only −2, with the rest arriving over the
+following weeks. It is the optimiser's curse again, the same mechanism that
+made transfer hits unprofitable: re-solving selects the largest *estimate*, and
+the largest estimate in a noisy set is biased upward.
+
+Restricting the deadline collapse to additive chips cut the worst season from
+−44 to −6. It also cost the good seasons — the unrestricted rule scored +192
+against this rule's +139, because wildcards now play four times across four
+seasons rather than eight, and a window's wildcard often expires unused.
+
+**Shipped the safer rule.** +35 a season with a −6 worst case beats +48 a season
+with a −44 worst case, on a project whose recurring finding is that seasonal
+variance swamps structural edges. Expiring a wildcard unused is the correct
+outcome when nothing clears the bar.
+
+One caveat worth stating: the threshold was swept on the same four seasons it is
+reported on. The effect is large enough that the sign is not in doubt, but the
+magnitude is fitted.
