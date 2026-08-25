@@ -1601,3 +1601,45 @@ the build plan named, and it is now in hand.
 A defender at home to a possession side is a materially different DefCon bet
 from the same defender away at a team that sits deep. The model presently
 treats them alike.
+
+---
+
+# Possession does not improve DefCon — Build 4 closed
+
+The build plan named opponent possession share as the covariate DefCon was
+missing, and recorded it as unreachable outside FBref. It is in the FotMob team
+block, now ingested for six seasons with 100% coverage and validated: possession
+sums to 100 in every one of 4,560 team-matches.
+
+The raw relationship is exactly as advertised. Over 47,585 player-matches, an
+outfielder whose opponent holds 60% or more of the ball reaches the DefCon
+threshold **34.4%** of the time; at 40% or less, **17.4%**. The rate doubles.
+
+Possession is also forecastable, which goals are not. Team means correlate 0.77
+to 0.91 season to season and 0.85 from the first ten matches to the rest. A
+rating difference plus a home term predicts a fixture at r = 0.71 walk-forward,
+against 10.3 points of error for assuming an even split. Forecast rather than
+actual possession still moves the DefCon hit rate from 17.5% to 32.1%.
+
+**And it adds nothing to the model.**
+
+| features | Brier | log-loss | vs no-opponent baseline |
+|---|---|---|---|
+| form only | 0.14293 | 0.44139 | — |
+| + opp_strength *(current)* | **0.14161** | **0.43795** | **+0.92%** |
+| + expected opponent possession | 0.14297 | 0.44135 | −0.03% |
+| + both | 0.14181 | 0.43838 | +0.78% |
+
+Walk-forward on 2025-26, 6,120 scored player-gameweeks, 60-minute appearances.
+
+Not collinearity — `opp_strength` and expected possession correlate only 0.112.
+The information is already in the player's own history. `dc_ewm5` and
+`dc_ewm10` are a direct measurement of how much defending this player does; a
+player at a low-possession club already carries a high rolling average. A
+team-level possession forecast is a noisy proxy for something the player's own
+record states outright.
+
+**Build 4 moves from blocked to tested and rejected.** The covariate is real,
+the football reasoning was sound, and the model does not want it. The possession
+data stays ingested — it cost nothing to keep and may serve clean sheets, where
+no equivalent player-level history exists.

@@ -1,8 +1,25 @@
-"""Cold start for a season with zero played gameweeks.
+"""Cold start, and the first blend of live-season data into it.
 
-2026/27 has not kicked off, so every current-season feature is undefined. The
-blend the doc describes (prior -> current data, weight shifting by ~GW8-10) is
-therefore at weight 1.0 on priors right now. This module builds those priors.
+2026/27 has now played a gameweek. One gameweek is a tiny sample, but it is not
+a uniformly tiny sample -- it says very different amounts about different
+things, and the weights below are measured rather than assumed.
+
+Fitted over six seasons of first gameweeks (`GW1_WEIGHT`), predicting gameweeks
+2 to 7:
+
+  * MINUTES. Who started GW1 predicts who starts next better than all of last
+    season does -- MAE 0.188 against 0.228. The optimal blend puts **0.65** on
+    the single gameweek, and **1.00** for goalkeepers, where the man who starts
+    the opener is simply the keeper. This is the pecking order the manager has
+    actually chosen, after a summer of signings and a preseason no prior can
+    see.
+
+  * SCORING RATE. The opposite. GW1 points alone predict forward points per
+    start at MAE 2.45 against the prior season's 1.29, and the optimal blend is
+    **0.10**. One match of finishing is noise.
+
+A single weight for "current-season data" would be wrong in both directions at
+once: far too timid about the team sheet, far too eager about the goals.
 
 Two distinct cold-start problems:
 
@@ -81,6 +98,12 @@ PENALTY_XG = 0.79
 # sigma2_within / sigma2_between for xG share, estimated on 2022/23-2025/26.
 # See fpl/backtest/fit_shrinkage.py.
 SHRINK_K = {"GKP": 12.0, "DEF": 15.7, "MID": 6.5, "FWD": 15.7}
+
+# Weight on gameweek 1 when blending it against the prior-season estimate.
+# Fitted on 2020-21 through 2025-26 by minimising MAE against gameweeks 2-7.
+# Keepers sit at 1.0 because the choice is binary and the manager has made it.
+GW1_WEIGHT = {"minutes": {"GKP": 1.00, "DEF": 0.65, "MID": 0.60, "FWD": 0.65},
+              "rate": 0.10}
 
 
 def _strip_penalty_xg(hist: pd.DataFrame, season: str) -> pd.DataFrame:
@@ -321,6 +344,91 @@ def _attach_role(d: pd.DataFrame) -> pd.DataFrame:
     return d.drop(columns=["role_xg_share_"])
 
 
+
+def _element_to_code() -> dict[int, int]:
+    """Current season's element id -> stable FPL code, from the latest snapshot."""
+    f = sorted(glob.glob("data/raw/snapshots/bootstrap/date=*/*.json.gz"))[-1]
+    b = json.load(gzip.open(f))
+    return {e["id"]: e["code"] for e in b["elements"]}
+
+
+def live_season(db: str = "data/fpl.duckdb", season: str = "2026-27") -> pd.DataFrame:
+    """Per-player aggregates from the gameweeks the live season has played.
+
+    Returns an empty frame before the season starts, so the caller keeps
+    working on priors alone without a special case.
+    """
+    con = duckdb.connect(db, read_only=True)
+    try:
+        d = con.execute(f"""
+            SELECT element, position, count(*) AS gws,
+                   sum(minutes) AS mins,
+                   avg(CASE WHEN minutes >= 60 THEN 1.0 ELSE 0.0 END) AS starts60,
+                   sum(total_points) AS pts,
+                   sum(CASE WHEN minutes > 0 THEN 1 ELSE 0 END) AS apps,
+                   sum(defcon) AS defcon, sum(saves) AS saves
+            FROM player_gw WHERE season = '{season}'
+            GROUP BY element, position
+        """).df()
+    except Exception:
+        d = pd.DataFrame()
+    finally:
+        con.close()
+    if d.empty:
+        return d
+    # player_gw keys on the element id, which FPL reassigns every season. The
+    # stable code has to come from the current bootstrap, and everything
+    # downstream joins on it.
+    d["code"] = d["element"].map(_element_to_code())
+    d = d.dropna(subset=["code"])
+    d["code"] = d["code"].astype(int)
+    # Points per start, undefined for a player who has not started. Left null
+    # rather than zeroed -- an unused substitute has no scoring rate, and
+    # filling zero would drag his blended rate down for not playing, which the
+    # minutes model already accounts for separately.
+    d["ppg_start"] = np.where(d.apps > 0, d.pts / d.apps.clip(lower=1), np.nan)
+    d["dc_per90"] = d.defcon / (d.mins / 90).clip(lower=0.1)
+    d["save_per90"] = d.saves / (d.mins / 90).clip(lower=0.1)
+    return d
+
+
+def _blend_live(d: pd.DataFrame, db: str, season: str = "2026-27") -> pd.DataFrame:
+    """Fold the played gameweeks into the priors at the fitted weights.
+
+    The weight rises with the number of gameweeks played: one gameweek gets the
+    fitted GW1 weight, and by roughly gameweek 8 the live season should carry
+    essentially all of it. Interpolating on n/(n+2) reaches 0.8 by GW8 while
+    starting at the measured GW1 value.
+    """
+    live = live_season(db, season)
+    d["live_gws"] = 0
+    if live.empty:
+        return d
+
+    n = int(live.gws.max())
+    d = d.merge(live[["code", "starts60", "ppg_start", "dc_per90", "save_per90"]]
+                  .rename(columns={c: f"live_{c}" for c in
+                                   ("starts60", "ppg_start", "dc_per90", "save_per90")}),
+                on="code", how="left")
+    d["live_gws"] = n
+
+    # Minutes. The fitted GW1 weight is the floor; more gameweeks only add.
+    wm = d["position"].map(GW1_WEIGHT["minutes"]).fillna(0.65)
+    if n > 1:
+        wm = np.maximum(wm, n / (n + 2.0))
+    has = d["live_starts60"].notna()
+    d.loc[has, "starts60"] = (wm[has] * d.loc[has, "live_starts60"]
+                              + (1 - wm[has]) * d.loc[has, "starts60"])
+
+    # Rates. One gameweek of finishing is noise, so the weight starts at 0.10
+    # and climbs on the same schedule.
+    wr = GW1_WEIGHT["rate"] if n <= 1 else max(GW1_WEIGHT["rate"], n / (n + 8.0))
+    for col in ("dc_per90", "save_per90"):
+        h = d[f"live_{col}"].notna() & (d["live_starts60"] > 0)
+        d.loc[h, col] = wr * d.loc[h, f"live_{col}"] + (1 - wr) * d.loc[h, col]
+    return d
+
+
 def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
     squad = current_squad()
     priors = player_priors(db)
@@ -368,6 +476,10 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
         k = d["position"].map(SHRINK_K).fillna(10.0)
         w = d["n90"] / (d["n90"] + k)
         d[col] = w * d[col].fillna(base) + (1 - w) * base
+    # Live-season data folded in last, so it overrides the priors rather than
+    # being averaged into them, and before depth normalisation so the squad
+    # constraint applies to the blended numbers.
+    d = _blend_live(d, db)
     d = _normalise_squad_depth(d)
     return d
 
