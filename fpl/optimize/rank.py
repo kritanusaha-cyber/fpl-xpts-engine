@@ -28,9 +28,29 @@ a linear surrogate of that, tunable by one parameter:
     rank_value_i = xpts_i * (1 + k * (1 - EO_i))
 
 k = 0 recovers pure expected points. k > 0 pays a premium for the same projected
-points held by fewer rivals. k is not assumed -- it is swept on four seasons of
-walk-forward data, and if no k beats the template the honest answer is that the
-template is close to unbeatable under FPL's constraints.
+points held by fewer rivals.
+
+THE TILT LOSES. THE EXACT OBJECTIVE WINS, AND IN THE OTHER DIRECTION
+
+Swept on four seasons, every k > 0 was worse than k = 0, and monotonically so.
+Paying for scarcity destroys points.
+
+Replacing the surrogate with the exact objective -- see `rank_value_mv` --
+reversed the sign of the answer. Margin variance is linear in the squad choice
+with weight (1 - 2*EO), and the best setting is **gamma = -0.05**: penalise
+variance in players the field does not own, and *reward* it in players it does.
+
+    season      2022-23  2023-24  2024-25  2025-26   total
+    expected pts    -27      -77      +46      +69     +11   (2 of 4)
+    gamma = -0.05   +78      +43      +49     +119    +289   (4 of 4)
+
+Four seasons from four, on strictly pre-deadline ownership. The folk wisdom
+that differentials win rank is backwards under these constraints. A blank from
+a player nobody owns costs rank; a blank from a player everybody owns costs
+nothing, because the field blanks with you. **Take risk where the field takes
+it with you, and be conservative where you are alone.**
+
+SHIPPED DEFAULT: gamma = -0.05, ownership lagged to the deadline.
 """
 
 from __future__ import annotations
@@ -84,3 +104,60 @@ def margin_stats(squad_pts: np.ndarray, template_pts: np.ndarray) -> dict:
         "q90": float(np.percentile(d, 90)),
         "q10": float(np.percentile(d, 10)),
     }
+
+# --- the exact objective, rather than a surrogate -------------------------
+
+def margin_variance_weight(eo: pd.Series) -> pd.Series:
+    """How much owning a player changes the VARIANCE of your margin.
+
+    The margin over the field is SUM_i (own_i - EO_i) * points_i. Treating
+    players as independent, its variance is
+
+        Var = SUM_i (own_i - EO_i)^2 * var_i
+
+    which looks quadratic in the decision and therefore outside a linear
+    programme. It is not. own_i is binary, so own_i^2 = own_i, and
+
+        (own_i - EO_i)^2 = own_i * (1 - 2*EO_i) + EO_i^2
+
+    The second term is a constant. **Margin variance is linear in the squad
+    choice**, with weight (1 - 2*EO_i), and the LP can carry it exactly.
+
+    The sign is the interesting part. A player owned by more than half the field
+    has a negative weight: holding him *reduces* your margin variance, because
+    his hauls and blanks move you and the field together. A differential carries
+    the full weight. This is the hedging structure of the game, stated exactly,
+    and it is what the linear tilt was only gesturing at.
+    """
+    return 1.0 - 2.0 * eo
+
+
+def rank_value_mv(gw_pool: pd.DataFrame, gamma: float, pred_col: str = "xpts",
+                  sd_col: str = "sd", own_col: str = "owned") -> pd.Series:
+    """Mean-variance objective on the margin: E[margin] + gamma * Var[margin].
+
+    gamma = 0 is expected points. gamma > 0 buys variance, which is what gets a
+    squad into the upper tail of the rank distribution; gamma < 0 sells it,
+    which is what protects a lead.
+    """
+    eo = effective_ownership(gw_pool, own_col, pred_col)
+    pred = pd.to_numeric(gw_pool[pred_col], errors="coerce").fillna(0.0)
+    sd = pd.to_numeric(gw_pool.get(sd_col, 0.0), errors="coerce").fillna(0.0)
+    return pred + gamma * margin_variance_weight(eo) * sd ** 2
+
+
+def rank_value_plain_var(gw_pool: pd.DataFrame, gamma: float, pred_col: str = "xpts",
+                         sd_col: str = "sd") -> pd.Series:
+    """Control for the mean-variance objective: variance with no ownership term.
+
+    `rank_value_mv` weights variance by (1 - 2*EO), which is the hedging claim:
+    a template player's swings move you and the field together, so they are not
+    really risk to your rank. This drops the weight and penalises variance flat.
+
+    If the flat version does as well, the ownership structure is doing nothing
+    and the honest claim is the duller one -- prefer consistent players, a
+    statement about FPL scoring rather than about the field.
+    """
+    pred = pd.to_numeric(gw_pool[pred_col], errors="coerce").fillna(0.0)
+    sd = pd.to_numeric(gw_pool.get(sd_col, 0.0), errors="coerce").fillna(0.0)
+    return pred + gamma * sd ** 2

@@ -104,7 +104,8 @@ def score_xi(pool: pd.DataFrame, squad: set, pred: str) -> float:
 
 
 def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
-               start_gw: int | None = None, rank_k: float = 0.0) -> pd.DataFrame:
+               start_gw: int | None = None, rank_k: float = 0.0,
+               gamma: float = 0.0, plain_var: bool = False) -> pd.DataFrame:
     """Play the season with one free transfer a week and -4 for extras."""
     gws = sorted(preds.gw.dropna().unique())
     if start_gw:
@@ -119,7 +120,12 @@ def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
         # field already holds him. Selection and captaincy both use it; scoring
         # still uses realised points, so nothing here peeks at the outcome.
         sel_col = pred_col
-        if rank_k > 0:
+        if gamma != 0.0:
+            from fpl.optimize.rank import rank_value_mv, rank_value_plain_var
+            f = rank_value_plain_var if plain_var else rank_value_mv
+            pool["_rank_val"] = f(pool, gamma, pred_col=pred_col)
+            sel_col = "_rank_val"
+        elif rank_k > 0:
             from fpl.optimize.rank import rank_value
             pool["_rank_val"] = rank_value(pool, rank_k, pred_col=pred_col)
             sel_col = "_rank_val"
@@ -141,7 +147,7 @@ def run_season(preds: pd.DataFrame, pred_col: str, free_transfers: int = 1,
 
 
 def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4.0,
-                       max_hits: int = 0, rank_k: float = 0.0,
+                       max_hits: int = 0, rank_k: float = 0.0, gamma: float = 0.0,
                        start_gw: int | None = None, hit_margin: float = 1.0) -> pd.DataFrame:
     """Season with real transfer economics: banked FTs, horizon-valued hits,
     and sell-price path dependency. Compare against run_season, which re-picks
@@ -164,7 +170,11 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
         if pool.empty:
             continue
         sel_col = pred_col
-        if rank_k > 0:
+        if gamma != 0.0:
+            from fpl.optimize.rank import rank_value_mv
+            pool["_rv"] = rank_value_mv(pool, gamma, pred_col=pred_col)
+            sel_col = "_rv"
+        elif rank_k > 0:
             from fpl.optimize.rank import rank_value
             pool["_rv"] = rank_value(pool, rank_k, pred_col=pred_col)
             sel_col = "_rv"

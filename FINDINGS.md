@@ -1643,3 +1643,72 @@ record states outright.
 the football reasoning was sound, and the model does not want it. The possession
 data stays ingested — it cost nothing to keep and may serve clean sheets, where
 no equivalent player-level history exists.
+
+---
+
+# Rank optimisation lands — the first squad-level win
+
+Build 1 in the plan, and the only item four seasons of evidence pointed at.
+
+## The surrogate was wrong, and wrong in its sign
+
+The existing module tilted value toward scarce players: `xpts * (1 + k(1 - EO))`.
+Swept, **every k > 0 lost, monotonically** — k = 0.15 gave −141 and k = 1.0 gave
+−856. Paying for scarcity destroys points.
+
+## The exact objective is linear, which the surrogate existed to avoid
+
+Margin over the field is `SUM_i (own_i - EO_i) * points_i`. Its variance looks
+quadratic in the decision and therefore outside a linear programme. It is not.
+`own_i` is binary, so `own_i^2 = own_i`, and
+
+    (own_i - EO_i)^2 = own_i * (1 - 2*EO_i) + EO_i^2
+
+The second term is constant. **Margin variance is linear in the squad choice**,
+weight `(1 - 2*EO_i)`, and the LP carries it exactly. No surrogate needed.
+
+The sign of that weight is the whole finding. A player owned by more than half
+the field carries a *negative* weight: holding him reduces margin variance,
+because his hauls and blanks move you and the field together.
+
+## Result
+
+| objective | 22-23 | 23-24 | 24-25 | 25-26 | total | wins |
+|---|---|---|---|---|---|---|
+| expected points | −27 | −77 | +46 | +69 | +11 | 2 of 4 |
+| **gamma = −0.05** | **+78** | **+43** | **+49** | **+119** | **+289** | **4 of 4** |
+| gamma = +0.05 | −311 | −324 | −38 | −183 | −856 | 0 of 4 |
+
+Points against the template. Sign test on 4 of 4 gives p = 0.06; mean +72 a
+season. The optimum is sharp — gamma = −0.20 falls to +152, and any positive
+gamma collapses.
+
+## Two controls, because 4 of 4 demands them
+
+**Is it just risk aversion?** Penalising variance flat, with the ownership
+weight removed, scores **−711 and wins 1 of 4**. The ownership structure is
+doing the work, not a preference for consistent players.
+
+| | total | wins |
+|---|---|---|
+| mean-variance, EO-weighted | **+357** | 4 |
+| variance only, no ownership | −711 | 1 |
+| expected points | +11 | 2 |
+
+**Is it leakage?** `owned` moves during a gameweek and correlates a little more
+with that week's points than its lag does (0.336 against 0.318). Re-run on
+strictly pre-deadline ownership the result holds: **+289, still 4 of 4**. About
+68 points of the headline was that contamination; the finding is not.
+
+## What it means in football terms
+
+The folk wisdom is that differentials win rank. Under FPL's constraints it is
+backwards. A blank from a player nobody owns costs you rank. A blank from a
+player everybody owns costs nothing, because the field blanks alongside you.
+**Take your risk where the field takes it with you, and be conservative where
+you are alone.**
+
+This is also the first result in this file to beat the template on season points
+in more than two seasons. Every previous structural intervention was worth tens
+of points against seasonal variance worth hundreds. This one is worth +72 a
+season, four times from four.
