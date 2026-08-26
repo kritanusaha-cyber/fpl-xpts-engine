@@ -2388,3 +2388,66 @@ It plans against **fixtures only**. Injuries, form, rotation and price changes
 are not forecast. This is not a season plan, it is the fixture-driven part of
 one — the part that can be known in August. A plan that shuffled your forwards
 would be chasing an effect a seventh the size of the gap between forwards.
+
+---
+
+# Fair price was measuring the quota, not the players
+
+Reported by eye: every forward was called overvalued. That cannot be acted on,
+because the game makes you field three of them.
+
+| position | must own | median fair − price | called underpriced |
+|---|---|---|---|
+| GKP | 2 | +0.60 | 85% |
+| DEF | 5 | +1.05 | **89%** |
+| MID | 5 | −0.25 | 29% |
+| FWD | 3 | −1.70 | **8%** |
+
+A forward is never chosen against the whole market, only against other
+forwards. A verdict that every forward is dear and every defender cheap is a
+restatement of the positional quota wearing the clothes of a valuation.
+
+**This project already learned this once.** The LP surplus was meaningless until
+the positional dual μ_P was added, and omitting it had produced "positive
+valuations for 76% of goalkeepers against 1% of forwards, a statement about the
+constraint rather than about the players" — the paper's words. Fair price
+bypasses the dual entirely, and had drifted into the identical failure by a
+different route.
+
+Each position's curve is now recentred on the players actually selectable from
+it:
+
+| position | median fair − price | called underpriced | spread |
+|---|---|---|---|
+| GKP | +0.00 | 40% | 0.39 |
+| DEF | +0.10 | 56% | 0.59 |
+| MID | −0.10 | 36% | 1.02 |
+| FWD | −0.60 | 47% | 2.43 |
+
+From a range of 8%–89% to 36%–56%. Forwards keep the widest spread, which is
+correct — they are the most dispersed position in the game — and the median sits
+below zero only because that spread is skewed, not because they are still
+being judged against defenders.
+
+The output now discriminates where it previously did not. Among forwards,
+Thiago (+5.6) and Mateta (+5.2) are cheap; Gyokeres (−3.3) and Marmoush (−3.0)
+are dear. Before recentring, all four were "overvalued".
+
+## What is given up
+
+**Fair prices are no longer comparable across positions**, deliberately. A
+defender 1.5m underpriced and a forward 1.5m underpriced are each good value
+within their own group, not interchangeable. They never were interchangeable —
+the previous number implied a comparison the rules do not permit.
+
+## Two bugs found while fixing it
+
+The first pass shifted the intercept using a correction solved at the median
+price, which under-corrects a wide price range because the intercept-to-price
+mapping is exponential. Goalkeepers, defenders and midfielders landed exactly
+on zero; forwards, whose prices run 4.5 to 15.5, stopped 1.25 short.
+
+The second pass iterated but with the shift inverted, which diverged — forwards
+went to 0% underpriced and defenders to 96%, worse than the original. The
+correct term is `a += b·log(median_fair / median_price)`; iterating that
+converges.

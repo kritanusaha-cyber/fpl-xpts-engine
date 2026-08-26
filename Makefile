@@ -103,14 +103,24 @@ roles:             ## k-means role clusters over the horizon projection
 	  assign_all(pd.read_parquet('data/features/horizon_projection.parquet')) \
 	    .to_parquet('data/features/horizon_roles.parquet', index=False)"
 
-# Order matters and is not obvious. `live` must precede `coldstart`, which
-# blends played gameweeks into the priors; `coldstart` must precede `horizon`,
-# which simulates from them; and `roles` must sit between `horizon` and
-# `dashboard`, because the clusters are fitted on the projection the dashboard
-# then displays. Running these out of order produces a dashboard that is stale
-# in a way nothing errors on.
+# Order matters, is not obvious, and got it wrong once already.
+#
+# `facts` DROPS and recreates player_gw from the historical files, which carry
+# nothing for the running season. So `live` has to come AFTER it -- with `live`
+# first, facts silently deleted every row it had just written and the whole
+# 2026-27 season vanished from the warehouse while every step reported success.
+#
+# After that: `coldstart` blends the played gameweeks into the priors, so it
+# follows `live`; `horizon` simulates from those priors; `roles` fits clusters
+# on the projection the dashboard displays, so it sits between the two;
+# `season` re-runs the 38-gameweek projection the calendar, term structure and
+# transfer planner all read, which would otherwise keep serving a stale season
+# while the six-gameweek numbers moved.
 refresh:           ## full weekly refresh: data -> models -> dashboard
-	$(MAKE) snapshot live facts team-match coldstart horizon roles log dashboard dist
+	$(MAKE) snapshot facts live team-match coldstart horizon season roles log dashboard dist
+
+season:            ## 38-gameweek projection behind the calendar and planner
+	$(PY) scripts/season_projection.py
 
 # `deploy` republishes the page from whatever is already computed, which is
 # what you want after editing the template. The watcher must not use it: a feed

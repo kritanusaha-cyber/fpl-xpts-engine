@@ -4230,4 +4230,112 @@ also discards most candidates early.</p>
 are not forecast. This is not a season plan, it is the fixture-driven part of
 one — the part that can be known in August. A plan that shuffled your forwards
 would be chasing an effect a seventh the size of the gap between forwards.</p>
+<hr />
+<h1 id="fair-price-was-measuring-the-quota-not-the-players">Fair price was measuring the quota, not the players</h1>
+<p>Reported by eye: every forward was called overvalued. That cannot be acted on,
+because the game makes you field three of them.</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>position</th>
+<th>must own</th>
+<th>median fair − price</th>
+<th>called underpriced</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GKP</td>
+<td>2</td>
+<td>+0.60</td>
+<td>85%</td>
+</tr>
+<tr>
+<td>DEF</td>
+<td>5</td>
+<td>+1.05</td>
+<td><strong>89%</strong></td>
+</tr>
+<tr>
+<td>MID</td>
+<td>5</td>
+<td>−0.25</td>
+<td>29%</td>
+</tr>
+<tr>
+<td>FWD</td>
+<td>3</td>
+<td>−1.70</td>
+<td><strong>8%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>A forward is never chosen against the whole market, only against other
+forwards. A verdict that every forward is dear and every defender cheap is a
+restatement of the positional quota wearing the clothes of a valuation.</p>
+<p><strong>This project already learned this once.</strong> The LP surplus was meaningless until
+the positional dual μ_P was added, and omitting it had produced "positive
+valuations for 76% of goalkeepers against 1% of forwards, a statement about the
+constraint rather than about the players" — the paper's words. Fair price
+bypasses the dual entirely, and had drifted into the identical failure by a
+different route.</p>
+<p>Each position's curve is now recentred on the players actually selectable from
+it:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>position</th>
+<th>median fair − price</th>
+<th>called underpriced</th>
+<th>spread</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GKP</td>
+<td>+0.00</td>
+<td>40%</td>
+<td>0.39</td>
+</tr>
+<tr>
+<td>DEF</td>
+<td>+0.10</td>
+<td>56%</td>
+<td>0.59</td>
+</tr>
+<tr>
+<td>MID</td>
+<td>−0.10</td>
+<td>36%</td>
+<td>1.02</td>
+</tr>
+<tr>
+<td>FWD</td>
+<td>−0.60</td>
+<td>47%</td>
+<td>2.43</td>
+</tr>
+</tbody>
+</table></div>
+<p>From a range of 8%–89% to 36%–56%. Forwards keep the widest spread, which is
+correct — they are the most dispersed position in the game — and the median sits
+below zero only because that spread is skewed, not because they are still
+being judged against defenders.</p>
+<p>The output now discriminates where it previously did not. Among forwards,
+Thiago (+5.6) and Mateta (+5.2) are cheap; Gyokeres (−3.3) and Marmoush (−3.0)
+are dear. Before recentring, all four were "overvalued".</p>
+<h2 id="what-is-given-up">What is given up</h2>
+<p><strong>Fair prices are no longer comparable across positions</strong>, deliberately. A
+defender 1.5m underpriced and a forward 1.5m underpriced are each good value
+within their own group, not interchangeable. They never were interchangeable —
+the previous number implied a comparison the rules do not permit.</p>
+<h2 id="two-bugs-found-while-fixing-it">Two bugs found while fixing it</h2>
+<p>The first pass shifted the intercept using a correction solved at the median
+price, which under-corrects a wide price range because the intercept-to-price
+mapping is exponential. Goalkeepers, defenders and midfielders landed exactly
+on zero; forwards, whose prices run 4.5 to 15.5, stopped 1.25 short.</p>
+<p>The second pass iterated but with the shift inverted, which diverged — forwards
+went to 0% underpriced and defenders to 96%, worse than the original. The
+correct term is <code>a += b·log(median_fair / median_price)</code>; iterating that
+converges.</p>
 </div></body></html>

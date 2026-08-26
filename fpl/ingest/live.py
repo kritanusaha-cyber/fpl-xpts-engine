@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 
 import duckdb
+import numpy as np
 import pandas as pd
 import requests
 
@@ -39,6 +40,32 @@ def _get(url: str, retries: int = 3) -> dict:
 def finished_gameweeks() -> list[int]:
     b = _get(f"{API}/bootstrap-static/")
     return [e["id"] for e in b["events"] if e["finished"] and e["data_checked"]]
+
+
+def fixtures() -> pd.DataFrame:
+    """The fixture list, which the live endpoint does not carry.
+
+    `event/{gw}/live/` gives a player's stat line and the fixture id, and
+    nothing about the fixture itself -- no opponent, no venue, no scoreline, no
+    kickoff. Those are exactly the columns `team_match` is built from, so
+    without them the live season lands in the warehouse looking complete and
+    breaks the next step with a null it cannot cast.
+    """
+    f = pd.DataFrame(_get(f"{API}/fixtures/"))
+    keep = ["id", "event", "team_h", "team_a", "team_h_score", "team_a_score",
+            "kickoff_time", "finished"]
+    return f[[c for c in keep if c in f.columns]]
+
+
+def attach_fixture(d: pd.DataFrame, fx: pd.DataFrame) -> pd.DataFrame:
+    """Venue, opponent, scoreline and kickoff, from the player's fixture id."""
+    if fx.empty or "fixture" not in d.columns:
+        return d
+    m = d.merge(fx.rename(columns={"id": "fixture"}), on="fixture", how="left")
+    home = m["team"] == m["team_h"]
+    m["was_home"] = home.fillna(False).astype(bool)
+    m["opponent_team"] = np.where(home, m["team_a"], m["team_h"])
+    return m
 
 
 def gameweek(gw: int, boot: dict | None = None) -> pd.DataFrame:
@@ -78,6 +105,7 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
         print("no finished gameweeks yet")
         return pd.DataFrame()
     d = pd.concat([gameweek(g, b) for g in gws], ignore_index=True)
+    d = attach_fixture(d, fixtures())
 
     out = Path("data/raw/live")
     out.mkdir(parents=True, exist_ok=True)

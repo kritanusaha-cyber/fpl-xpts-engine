@@ -69,6 +69,63 @@ class PriceCurve:
                              FPL_MIN_PRICE, FPL_MAX_PRICE))
 
 
+
+    def recentre(self, d, pos_col: str = "position", price_col: str = "price",
+                 ppg_col: str = "ppg_proj", min_n: int = 8) -> "PriceCurve":
+        """Shift each position's intercept so the position is priced against itself.
+
+        FPL forces a 2/5/5/3 squad, so a forward is never chosen against the
+        whole market -- only against other forwards. A verdict that every
+        forward is dear and every defender cheap is therefore not a valuation,
+        it is a restatement of the quota, and it is unusable: a manager who
+        must field three forwards cannot act on "all forwards are expensive".
+
+        This project already learned that once. The LP surplus was meaningless
+        until the positional dual was added, and omitting it had produced
+        positive valuations for 76% of goalkeepers against 1% of forwards. Fair
+        price bypasses the dual entirely and had drifted into the same failure:
+        89% of defenders underpriced against 8% of forwards.
+
+        Recentring makes the statement explicitly relative. The median player in
+        a position comes out fairly priced, and what remains is the only
+        comparison the constraint permits -- which forwards are cheap FOR A
+        FORWARD.
+
+        The cost is real and worth stating: cross-position comparison of fair
+        price is given up. It was never sound anyway, since positions cannot be
+        substituted for one another.
+        """
+        import numpy as _np
+        for pos, g in d.groupby(pos_col):
+            if pos not in self.coef or len(g) < min_n:
+                continue
+            price = g[price_col].to_numpy(dtype=float)
+            ppg = g[ppg_col].to_numpy(dtype=float)
+            # Iterated, because the intercept-to-price mapping is exponential:
+            # a shift solved at the median price does not move a 4.5m forward
+            # and a 15.5m one by the same amount, so one pass left forwards
+            # 1.25 short while the narrower positions landed exactly. A handful
+            # of passes converges; the clip at the price bounds means the gap
+            # cannot always reach zero, so it also stops when it stops improving.
+            prev = None
+            for _ in range(12):
+                fair = _np.array([self.price_for(pos, v) for v in ppg])
+                gap = float(_np.median(fair - price))
+                if not _np.isfinite(gap) or abs(gap) < 0.02:
+                    break
+                if prev is not None and abs(gap) >= abs(prev) - 1e-6:
+                    break
+                prev = gap
+                a, b = self.coef[pos]
+                med_fair, med_price = float(_np.median(fair)), float(_np.median(price))
+                if med_price <= 0 or med_fair <= 0 or abs(b) < 1e-9:
+                    break
+                # fair = exp((ppg - a)/b), so moving the median fair price onto
+                # the median actual price needs a += b*log(med_fair/med_price).
+                self.coef[pos] = (a + b * _np.log(med_fair / med_price), b)
+        return self
+
+
 def fit(db: str = "data/fpl.duckdb", seasons: tuple = ("2022-23", "2023-24",
                                                        "2024-25", "2025-26")) -> PriceCurve:
     con = duckdb.connect(db)

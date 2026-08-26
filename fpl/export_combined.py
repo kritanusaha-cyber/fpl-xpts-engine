@@ -98,6 +98,13 @@ def build() -> dict:
     # rate of output, for this position?
     curve = fit_price_curve()
     d["ppg_proj"] = d["xpts"] / max(horizon_n, 1)
+    # Recentred within position, on the players actually selectable. FPL forces
+    # a 2/5/5/3 squad, so a forward competes only with forwards -- and before
+    # this, the page called 89% of defenders underpriced and 8% of forwards,
+    # which describes the quota rather than the players. Fair price is now a
+    # statement about a position against itself, and deliberately not
+    # comparable across positions.
+    curve.recentre(d[starters] if starters.any() else d)
     d["fair_price"] = [curve.price_for(pos, v)
                        for pos, v in zip(d["position"], d["ppg_proj"])]
     d["mispricing"] = d["fair_price"] - d["price"]
