@@ -112,6 +112,16 @@ roles:             ## k-means role clusters over the horizon projection
 refresh:           ## full weekly refresh: data -> models -> dashboard
 	$(MAKE) snapshot live facts team-match coldstart horizon roles log dashboard dist
 
+# `deploy` republishes the page from whatever is already computed, which is
+# what you want after editing the template. The watcher must not use it: a feed
+# change means the MODEL has to be refitted, and re-exporting alone produced a
+# page that looked freshly built from yesterday's projections.
+auto:              ## full refresh from live data, then publish
+	$(MAKE) refresh
+	$(PY) scripts/build_findings.py
+	@git add -A && git commit -q -m "Auto-refresh from live data" || echo "  (nothing changed)"
+	@git push -q origin main && echo "pushed -- Pages rebuilds in ~30s"
+
 watch:             ## poll the FPL feed; rebuild only if something changed
 	$(PY) fpl/ingest/watch.py
 

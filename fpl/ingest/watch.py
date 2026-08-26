@@ -125,7 +125,14 @@ def main(argv: list[str]) -> int:
 
     # A rebuild that fails must not advance the fingerprint, or the change is
     # lost and the next poll sees nothing to do.
-    target = "deploy" if deploy else "refresh"
+    #
+    # `auto`, not `deploy`. `deploy` republishes the page from whatever is
+    # already computed -- correct after a template edit, wrong here. A feed
+    # change means the model has to be refitted, and pointing the watcher at
+    # `deploy` produced a page that looked freshly built while carrying
+    # yesterday's projections: dashboard.html rewritten, horizon_projection
+    # untouched.
+    target = "auto" if deploy else "refresh"
     r = subprocess.run(["make", target], capture_output=True, text=True)
     if r.returncode != 0:
         log(f"make {target} FAILED, state not advanced\n{r.stdout[-800:]}\n{r.stderr[-800:]}")
