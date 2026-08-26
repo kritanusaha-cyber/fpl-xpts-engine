@@ -72,58 +72,66 @@ class PriceCurve:
 
     def recentre(self, d, pos_col: str = "position", price_col: str = "price",
                  ppg_col: str = "ppg_proj", min_n: int = 8) -> "PriceCurve":
-        """Shift each position's intercept so the position is priced against itself.
+        """Centre each position on itself, additively, and shrink to the market.
 
-        FPL forces a 2/5/5/3 squad, so a forward is never chosen against the
-        whole market -- only against other forwards. A verdict that every
-        forward is dear and every defender cheap is therefore not a valuation,
-        it is a restatement of the quota, and it is unusable: a manager who
-        must field three forwards cannot act on "all forwards are expensive".
+        WHY WITHIN POSITION. FPL forces a 2/5/5/3 squad, so a forward is never
+        chosen against the whole market -- only against other forwards. A
+        verdict that every forward is dear and every defender cheap restates
+        the quota rather than valuing anyone, and a manager who must field
+        three forwards cannot act on it. The LP surplus needed the positional
+        dual for exactly this reason; fair price bypasses the dual and needs
+        the same correction by another route.
 
-        This project already learned that once. The LP surplus was meaningless
-        until the positional dual was added, and omitting it had produced
-        positive valuations for 76% of goalkeepers against 1% of forwards. Fair
-        price bypasses the dual entirely and had drifted into the same failure:
-        89% of defenders underpriced against 8% of forwards.
+        WHY ADDITIVELY. The first version centred by shifting the intercept,
+        and fair price is exp((ppg - a)/b), so an intercept shift MULTIPLIES
+        every price. Centring the median forward by 1.4 multiplied the whole
+        curve by 1.62 -- which added 2.3 at the median and 5.2 at the top,
+        putting Igor Thiago at 13.6 against a listed 8.0. The correction landed
+        hardest exactly where it was least wanted. An offset in price space
+        moves every player by the same amount, which is what "the median should
+        be fairly priced" actually means.
 
-        Recentring makes the statement explicitly relative. The median player in
-        a position comes out fairly priced, and what remains is the only
-        comparison the constraint permits -- which forwards are cheap FOR A
-        FORWARD.
-
-        The cost is real and worth stating: cross-position comparison of fair
-        price is given up. It was never sound anyway, since positions cannot be
-        substituted for one another.
+        WHY SHRINK. Fair price inverts a fitted relationship, and inverting a
+        weak one amplifies its error. These curves explain 0.18 to 0.44 of the
+        variance in points against price, so most of what separates two
+        similarly priced players is not on the curve at all. The listed price
+        is itself an estimate of a player's worth, made by people with more
+        information than points-per-pound. So the curve is trusted in
+        proportion to what it explains and the rest stays with the market --
+        the same empirical-Bayes shape used for player priors, where a thin
+        sample is pulled toward its prior rather than believed outright.
         """
         import numpy as _np
+        self.offset = getattr(self, "offset", {})
+        self.shrink = getattr(self, "shrink", {})
         for pos, g in d.groupby(pos_col):
             if pos not in self.coef or len(g) < min_n:
                 continue
             price = g[price_col].to_numpy(dtype=float)
-            ppg = g[ppg_col].to_numpy(dtype=float)
-            # Iterated, because the intercept-to-price mapping is exponential:
-            # a shift solved at the median price does not move a 4.5m forward
-            # and a 15.5m one by the same amount, so one pass left forwards
-            # 1.25 short while the narrower positions landed exactly. A handful
-            # of passes converges; the clip at the price bounds means the gap
-            # cannot always reach zero, so it also stops when it stops improving.
-            prev = None
-            for _ in range(12):
-                fair = _np.array([self.price_for(pos, v) for v in ppg])
-                gap = float(_np.median(fair - price))
-                if not _np.isfinite(gap) or abs(gap) < 0.02:
-                    break
-                if prev is not None and abs(gap) >= abs(prev) - 1e-6:
-                    break
-                prev = gap
-                a, b = self.coef[pos]
-                med_fair, med_price = float(_np.median(fair)), float(_np.median(price))
-                if med_price <= 0 or med_fair <= 0 or abs(b) < 1e-9:
-                    break
-                # fair = exp((ppg - a)/b), so moving the median fair price onto
-                # the median actual price needs a += b*log(med_fair/med_price).
-                self.coef[pos] = (a + b * _np.log(med_fair / med_price), b)
+            fair = _np.array([self.price_for(pos, v) for v in g[ppg_col]])
+            self.offset[pos] = float(_np.median(price) - _np.median(fair))
+            # The correlation, not r-squared. r-squared is the right weight
+            # when shrinking toward a MEAN; here the curve is being blended
+            # with the listed price, which is another estimate of the same
+            # quantity made by people with more information than
+            # points-per-pound. The correlation is how closely the curve tracks
+            # the truth, which is the question being asked.
+            #
+            # It also matters in practice. At r-squared the weights are 0.18 to
+            # 0.44 and goalkeepers collapse to a spread of 0.09, which is not a
+            # valuation anyone can use; at the correlation they are 0.42 to
+            # 0.67 and keepers keep 0.20. This is a judgement between two
+            # defensible weights and is recorded as one.
+            self.shrink[pos] = float(_np.sqrt(_np.clip(self.r2.get(pos, 0.0), 0.0, 1.0)))
         return self
+
+    def fair(self, position: str, points_per_gw: float, listed: float) -> float:
+        """Fair price as shipped: centred within position, shrunk to the market."""
+        raw = self.price_for(position, points_per_gw)
+        raw += getattr(self, "offset", {}).get(position, 0.0)
+        w = getattr(self, "shrink", {}).get(position, 1.0)
+        return float(np.clip(listed + w * (raw - listed),
+                             FPL_MIN_PRICE, FPL_MAX_PRICE))
 
 
 def fit(db: str = "data/fpl.duckdb", seasons: tuple = ("2022-23", "2023-24",

@@ -105,8 +105,8 @@ def build() -> dict:
     # statement about a position against itself, and deliberately not
     # comparable across positions.
     curve.recentre(d[starters] if starters.any() else d)
-    d["fair_price"] = [curve.price_for(pos, v)
-                       for pos, v in zip(d["position"], d["ppg_proj"])]
+    d["fair_price"] = [curve.fair(pos, v, pr) for pos, v, pr
+                       in zip(d["position"], d["ppg_proj"], d["price"])]
     d["mispricing"] = d["fair_price"] - d["price"]
     d["is_starter"] = starters
     d["role_rank"] = (d.where(starters).groupby("role")["surplus_role"]
