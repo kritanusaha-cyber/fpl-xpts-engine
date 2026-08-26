@@ -4338,4 +4338,140 @@ on zero; forwards, whose prices run 4.5 to 15.5, stopped 1.25 short.</p>
 went to 0% underpriced and defenders to 96%, worse than the original. The
 correct term is <code>a += b·log(median_fair / median_price)</code>; iterating that
 converges.</p>
+<hr />
+<h1 id="fair-price-tuned-additive-centring-and-shrinkage-to-the-market">Fair price, tuned: additive centring and shrinkage to the market</h1>
+<p>Reported by eye: Igor Thiago's fair price of £13.6 against a listed £8.0 looked
+too high. It was, and the projection was not the reason.</p>
+<h2 id="the-projection-was-right-the-inversion-was-wrong">The projection was right; the inversion was wrong</h2>
+<p>Thiago scored 22 goals in 3,282 minutes last season — 181 points, <strong>4.76 per
+team-gameweek</strong>. The model projects <strong>4.43</strong>, slightly <em>below</em> what he actually
+delivered. Nothing to fix there.</p>
+<h2 id="bug-one-centring-multiplicatively">Bug one: centring multiplicatively</h2>
+<p>The within-position recentring shifted the curve's intercept. Fair price is
+<code>exp((ppg − a) / b)</code>, so <strong>an intercept shift multiplies every price</strong>.
+Centring the median forward by 1.4 multiplied the whole forward curve by 1.62:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>ppg</th>
+<th>raw fair</th>
+<th>recentred</th>
+<th>added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.00 <em>(median forward)</em></td>
+<td>3.8</td>
+<td>6.1</td>
+<td>+2.3</td>
+</tr>
+<tr>
+<td>3.00</td>
+<td>5.2</td>
+<td>8.5</td>
+<td>+3.3</td>
+</tr>
+<tr>
+<td><strong>4.43</strong> <em>(Thiago)</em></td>
+<td>8.4</td>
+<td><strong>13.6</strong></td>
+<td><strong>+5.2</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>A correction meant to move the median by 1.4 added 5.2 at the top. It landed
+hardest exactly where it was least wanted. The offset is now applied in price
+space, so every player moves by the same amount — which is what "the median
+should be fairly priced" actually means.</p>
+<h2 id="bug-two-inverting-a-weak-fit">Bug two: inverting a weak fit</h2>
+<p>These curves explain little. Per position, r² is <strong>0.18 (GKP), 0.27 (DEF), 0.40
+(MID), 0.44 (FWD)</strong> — most of what separates two similarly priced players is
+not on the curve at all. Inverting that and reporting the result as a price
+treats a weak relationship as an exact one.</p>
+<p>The listed price is itself an estimate, made by people with more information
+than points-per-pound. So the curve is now trusted in proportion to how closely
+it tracks the truth and the rest stays with the market:</p>
+<pre><code>fair = listed + w × (curve_price − listed)
+</code></pre>
+<p><strong>w is the correlation, not r².</strong> r² is the right weight when shrinking toward
+a <em>mean</em>; here the curve is blended with another estimate of the same quantity.
+The practical difference decides it:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>weight</th>
+<th>values</th>
+<th>GKP spread</th>
+<th>Thiago</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>r²</td>
+<td>0.18–0.44</td>
+<td>0.09</td>
+<td>+1.1</td>
+</tr>
+<tr>
+<td><strong>√r² — shipped</strong></td>
+<td><strong>0.42–0.67</strong></td>
+<td><strong>0.20</strong></td>
+<td><strong>+1.7</strong></td>
+</tr>
+<tr>
+<td>none</td>
+<td>1.00</td>
+<td>0.40</td>
+<td>+2.5</td>
+</tr>
+</tbody>
+</table></div>
+<p>At r² goalkeepers collapse to a spread of 0.09, which is not a valuation anyone
+can use. This is a judgement between two defensible weights and is recorded as
+one.</p>
+<h2 id="result_1">Result</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>position</th>
+<th>median</th>
+<th>underpriced</th>
+<th>range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GKP</td>
+<td>+0.00</td>
+<td>30%</td>
+<td>−0.5 to +0.3</td>
+</tr>
+<tr>
+<td>DEF</td>
+<td>+0.10</td>
+<td>51%</td>
+<td>−1.1 to +0.8</td>
+</tr>
+<tr>
+<td>MID</td>
+<td>−0.10</td>
+<td>36%</td>
+<td>−1.9 to +1.9</td>
+</tr>
+<tr>
+<td>FWD</td>
+<td>+0.30</td>
+<td>68%</td>
+<td>−1.7 to +1.9</td>
+</tr>
+</tbody>
+</table></div>
+<p>Thiago comes out at <strong>£9.7 against a listed £8.0</strong> — cheap, which a 181-point
+striker at £8.0 ought to be, but no longer priced like Haaland. Mateta (+1.9)
+and Calvert-Lewin (+1.7) lead the forwards; Haaland (−1.7) and Watkins (−1.4)
+are the dear ones.</p>
+<p><strong>Fair price now spans about ±2 rather than ±5.6.</strong> That is the honest range
+for a quantity derived by inverting a fit that explains under half the
+variance.</p>
 </div></body></html>

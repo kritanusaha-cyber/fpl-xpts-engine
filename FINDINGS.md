@@ -2451,3 +2451,78 @@ The second pass iterated but with the shift inverted, which diverged — forward
 went to 0% underpriced and defenders to 96%, worse than the original. The
 correct term is `a += b·log(median_fair / median_price)`; iterating that
 converges.
+
+---
+
+# Fair price, tuned: additive centring and shrinkage to the market
+
+Reported by eye: Igor Thiago's fair price of £13.6 against a listed £8.0 looked
+too high. It was, and the projection was not the reason.
+
+## The projection was right; the inversion was wrong
+
+Thiago scored 22 goals in 3,282 minutes last season — 181 points, **4.76 per
+team-gameweek**. The model projects **4.43**, slightly *below* what he actually
+delivered. Nothing to fix there.
+
+## Bug one: centring multiplicatively
+
+The within-position recentring shifted the curve's intercept. Fair price is
+`exp((ppg − a) / b)`, so **an intercept shift multiplies every price**.
+Centring the median forward by 1.4 multiplied the whole forward curve by 1.62:
+
+| ppg | raw fair | recentred | added |
+|---|---|---|---|
+| 2.00 *(median forward)* | 3.8 | 6.1 | +2.3 |
+| 3.00 | 5.2 | 8.5 | +3.3 |
+| **4.43** *(Thiago)* | 8.4 | **13.6** | **+5.2** |
+
+A correction meant to move the median by 1.4 added 5.2 at the top. It landed
+hardest exactly where it was least wanted. The offset is now applied in price
+space, so every player moves by the same amount — which is what "the median
+should be fairly priced" actually means.
+
+## Bug two: inverting a weak fit
+
+These curves explain little. Per position, r² is **0.18 (GKP), 0.27 (DEF), 0.40
+(MID), 0.44 (FWD)** — most of what separates two similarly priced players is
+not on the curve at all. Inverting that and reporting the result as a price
+treats a weak relationship as an exact one.
+
+The listed price is itself an estimate, made by people with more information
+than points-per-pound. So the curve is now trusted in proportion to how closely
+it tracks the truth and the rest stays with the market:
+
+    fair = listed + w × (curve_price − listed)
+
+**w is the correlation, not r².** r² is the right weight when shrinking toward
+a *mean*; here the curve is blended with another estimate of the same quantity.
+The practical difference decides it:
+
+| weight | values | GKP spread | Thiago |
+|---|---|---|---|
+| r² | 0.18–0.44 | 0.09 | +1.1 |
+| **√r² — shipped** | **0.42–0.67** | **0.20** | **+1.7** |
+| none | 1.00 | 0.40 | +2.5 |
+
+At r² goalkeepers collapse to a spread of 0.09, which is not a valuation anyone
+can use. This is a judgement between two defensible weights and is recorded as
+one.
+
+## Result
+
+| position | median | underpriced | range |
+|---|---|---|---|
+| GKP | +0.00 | 30% | −0.5 to +0.3 |
+| DEF | +0.10 | 51% | −1.1 to +0.8 |
+| MID | −0.10 | 36% | −1.9 to +1.9 |
+| FWD | +0.30 | 68% | −1.7 to +1.9 |
+
+Thiago comes out at **£9.7 against a listed £8.0** — cheap, which a 181-point
+striker at £8.0 ought to be, but no longer priced like Haaland. Mateta (+1.9)
+and Calvert-Lewin (+1.7) lead the forwards; Haaland (−1.7) and Watkins (−1.4)
+are the dear ones.
+
+**Fair price now spans about ±2 rather than ±5.6.** That is the honest range
+for a quantity derived by inverting a fit that explains under half the
+variance.
