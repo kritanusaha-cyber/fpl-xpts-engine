@@ -3812,4 +3812,107 @@ matched, every multiplier stayed at 1.0, and the correction appeared to run
 while doing nothing — Anderson's multiplier read exactly 1.000. Keyed on the
 club code it re-bases 34 players instead of 11. Same failure mode as the
 element-id collisions: <strong>join on codes, never on names.</strong></p>
+<hr />
+<h1 id="three-valuation-bugs-found-by-inspection-2026-08-21">Three valuation bugs found by inspection, 2026-08-21</h1>
+<p>All three were reported by eye — the projections looked high and one player
+looked mispriced — and all three were real.</p>
+<h2 id="1-the-positional-correction-was-applied-to-the-wrong-thing">1. The positional correction was applied to the wrong thing</h2>
+<p>The factors (FWD 1.31, MID 1.23) are worth +130 points across three held-out
+seasons, so they were applied to <code>xpts</code>. That was wrong, and the shape is why:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>projected band</th>
+<th>n</th>
+<th>actual/projected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 – 0.5</td>
+<td>75,858</td>
+<td>1.024</td>
+</tr>
+<tr>
+<td>0.5 – 1</td>
+<td>11,955</td>
+<td><strong>1.451</strong></td>
+</tr>
+<tr>
+<td>1 – 2</td>
+<td>20,349</td>
+<td>1.413</td>
+</tr>
+<tr>
+<td>2 – 3</td>
+<td>23,895</td>
+<td>1.172</td>
+</tr>
+<tr>
+<td>3 – 4</td>
+<td>4,801</td>
+<td><strong>1.095</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>A flat multiplier fitted on totals is dominated by the 76,000 near-zero rows
+where the ratio is 1.45, then applied to the few high projections where it is
+1.10. It inflated <strong>exactly the top of the list a squad is picked from</strong>: the
+optimal squad read 64.1 points a gameweek against an FPL average of 50, and
+against 54.9 from summing the same page's own per-gameweek figures — which were
+left uncorrected, so the headline and the detail disagreed by 17%.</p>
+<p>Isotonic calibration by level was tried and is worse still at the top (+0.71
+against the flat factor's +0.28), because the high bins are thin.</p>
+<p><strong>The raw projection is nearly unbiased where it matters</strong> (−0.34 on a mean of
+3.34 for projections above 3). The under-prediction sits in the middle of the
+distribution, which does not drive selection.</p>
+<p>So the factors now apply to <strong>selection only</strong>, beside the rank term, and never
+to the displayed projection. What they encode is that the model under-rates
+attacking returns relative to defensive ones — a statement about which players
+to pick, not about how many points they will score. Squad now reads 53.7 a
+gameweek against 54.9 from the per-gameweek detail.</p>
+<h2 id="2-the-price-curve-was-fitted-on-the-wrong-population">2. The price curve was fitted on the wrong population</h2>
+<p>76% of starters were called underpriced, 95% of defenders and 100% of
+goalkeepers. A calibrated curve splits about evenly.</p>
+<p>The curve was fitted on players clearing 900 minutes — a population averaging
+<strong>2.30</strong> points per team-gameweek — and applied to players the model projects
+at <strong>2.91</strong>. Every starter landed high on a curve built from a weaker group.
+That is not a valuation, it is an offset.</p>
+<p>Raising the floor to 1900 minutes matches the fitted population to the applied
+one: <strong>53% underpriced, median gap +0.10</strong>.</p>
+<h2 id="3-elliot-anderson-end-to-end">3. Elliot Anderson, end to end</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>stage</th>
+<th>fair price</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>before any correction</td>
+<td>£9.2</td>
+</tr>
+<tr>
+<td>after re-basing DefCon onto Manchester City</td>
+<td>£8.5</td>
+</tr>
+<tr>
+<td>after the calibration fix</td>
+<td>£8.5</td>
+</tr>
+<tr>
+<td>after the price-curve fix</td>
+<td><strong>£7.4</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Against an actual £6.5. His projection fell from 31.17 to 23.63 over six
+gameweeks and he sits 11th of 80 starting midfielders rather than near the top.</p>
+<h2 id="known-residual">Known residual</h2>
+<p>Fair price is centred overall but not within position: defenders still read 89%
+underpriced and forwards 8%. That is the measured positional bias — the model
+over-projects defenders and under-projects forwards — flowing into valuation
+now that the flat correction no longer masks it. It is a real remaining defect
+with a known sign, and the flat multiplier was the wrong instrument for it.</p>
 </div></body></html>
