@@ -2338,3 +2338,53 @@ no Premier League history — promoted clubs. Both are built from the fixture
 list and have nothing to do with a player's record, so they now render for
 everyone. Ipswich's defenders have the steepest curves in the league and none
 of them could see it.
+
+---
+
+# Transfer simulation in the builder
+
+The builder scored a squad. It now plays that squad forward to the end of the
+season, making one transfer a week where a transfer is worth making, and shows
+the schedule.
+
+The policy is the one four seasons of backtesting settled on: one free transfer
+a week banked up to five, **no hits** — taking them on the obvious rule cost 349
+points across four seasons and the damage only disappears when they are
+abandoned entirely — and a swap valued over the four gameweeks you would hold
+it rather than over the next one.
+
+## Two squads, and what the plan does to each
+
+| | hold all season | transfer on the plan | gain | transfers |
+|---|---|---|---|---|
+| the model's own squad | 1966 | 1999 | **+33** | 23 |
+| the template squad | 1884 | 1992 | **+108** | 25 |
+
+**A good squad has less to fix.** The template gains three times as much and
+still finishes slightly behind, which is the sensible shape: transfers narrow
+the gap between a strong start and an average one without closing it.
+
+And the plan moves what the schedule analysis said it should. Of 23 transfers
+from the model's squad, **19 are goalkeepers and defenders** and one is a
+forward. Nothing instructed it to do that; it falls out of clean sheets being
+the fixture-sensitive part of the scoring.
+
+## A bug worth recording
+
+The first version valued a swap as the incoming player's four-gameweek total
+minus the outgoing player's. That is wrong, and wrong in a way that looks
+plausible: it opened by "gaining" 10.1 points swapping one piece of bench fodder
+for another. **A bench player who is upgraded and still does not start is worth
+nothing**, and the squad is only ever worth its best eleven.
+
+Valuing each swap on the projected XI instead — the whole squad re-scored with
+and without the move — cut the plan from 34 transfers to 23, raised the gain
+from +27 to +33, and ran faster, because the shortlist that makes it affordable
+also discards most candidates early.
+
+## What it cannot do
+
+It plans against **fixtures only**. Injuries, form, rotation and price changes
+are not forecast. This is not a season plan, it is the fixture-driven part of
+one — the part that can be known in August. A plan that shuffled your forwards
+would be chasing an effect a seventh the size of the gap between forwards.

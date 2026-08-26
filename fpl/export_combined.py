@@ -349,6 +349,22 @@ def build() -> dict:
     else:
         ts_meta = {}
 
+    # Per-gameweek projections for the whole season, so the builder can plan
+    # transfers rather than only score the next six gameweeks. A blank is a
+    # genuine zero here, not a missing value -- a player whose club does not
+    # play that week scores nothing and the planner has to see that.
+    if sg.exists():
+        allg = sorted(int(x) for x in bg.gw.unique())
+        piv = (bg.pivot_table(index="element", columns="gw", values="xpts")
+                 .reindex(columns=allg))
+        season_gws = allg
+        for row in players:
+            if row["id"] in piv.index:
+                v = piv.loc[row["id"]]
+                row["sgw"] = [0.0 if pd.isna(x) else round(float(x), 1) for x in v]
+    else:
+        season_gws = []
+
     players.sort(key=lambda x: -x["xpts"])
 
     return {
@@ -369,6 +385,7 @@ def build() -> dict:
         "components": COMPONENTS,
         "cal_starts": data_starts,
         "ts": ts_meta,
+        "season_gws": season_gws,
         "cal_window": 6,
         "n_players": len(players),
         "players": players,

@@ -1103,6 +1103,128 @@ function bValid(){
 }
 
 
+
+/* ================= season transfer simulation =================
+   Plays your squad forward to the end of the season, making one transfer a
+   week where a transfer is worth making, and reports the schedule.
+
+   The rules are the game's and the policy is the one the four-season backtest
+   settled on:
+
+     * one free transfer a week, banked up to five
+     * NO HITS. Taking them on the obvious rule cost 349 points across four
+       seasons, and the damage only disappears when they are abandoned
+       entirely. It is the optimiser's curse -- the move with the largest
+       ESTIMATED gain is the one whose estimate is most inflated.
+     * a swap is valued over the following HOLD gameweeks, not the next one,
+       because you keep what you buy
+     * selling recovers the purchase price plus half of any rise, which is
+       what makes the budget path-dependent
+
+   What this cannot do is the important caveat. It plans against FIXTURES.
+   Injuries, form, rotation and price changes are not forecast, so this is not
+   a season plan -- it is the fixture-driven part of one, which is the part
+   that can be known now. */
+const HOLD=4, MAX_BANK=5, SELL_TAX=0.5;
+
+function seasonSim(ids, opts){
+  const o=Object.assign({from:1, hold:HOLD}, opts||{});
+  const G=D.season_gws||[];
+  if(!G.length || !ids.length) return null;
+  const gwIdx=g=>G.indexOf(g);
+  const val=(p,g)=>{const i=gwIdx(g); return (i<0||!p.sgw)?0:(p.sgw[i]||0);};
+  /* value of holding a player from gameweek g for the next `hold` weeks */
+  const hold=(p,g)=>{let t=0,n=0;
+    for(let k=0;k<o.hold;k++){const gg=g+k; if(gwIdx(gg)<0) break; t+=val(p,gg); n++;}
+    return n?t:0;};
+
+  /* What a squad is actually worth over the hold window: the best XI each
+     week, captain doubled. A swap has to be judged on this and not on the two
+     players' own totals, because upgrading a bench player who still will not
+     start is worth nothing. Valued the naive way, the planner opened by
+     "gaining" ten points swapping one piece of bench fodder for another. */
+  const xiWeek=(sq,g)=>{
+    const ps=sq.map(i=>byId.get(i)).filter(p=>p.sgw);
+    const sc=ps.map(p=>({p, v:val(p,g)})).sort((a,b)=>b.v-a.v);
+    const xi=[];
+    for(const pos of POS_ORDER)
+      sc.filter(x=>x.p.pos===pos).slice(0,XI_MIN[pos]).forEach(x=>xi.push(x));
+    for(const x of sc){ if(xi.length>=11) break;
+      if(xi.includes(x)||x.p.pos==='GKP') continue; xi.push(x); }
+    const c=xi.slice().sort((a,b)=>b.v-a.v)[0];
+    return xi.reduce((t,x)=>t+x.v,0)+(c?c.v:0);
+  };
+  const squadHold=(sq,g)=>{let t=0;
+    for(let k=0;k<o.hold;k++){const gg=g+k; if(gwIdx(gg)<0) break; t+=xiWeek(sq,gg);}
+    return t;};
+
+  let squad=ids.slice(), bank=0, free=1;
+  const paid={};                       /* what you paid, for the sell price */
+  squad.forEach(i=>paid[i]=byId.get(i).price);
+  const log=[]; let total=0;
+
+  for(const g of G){
+    if(g<o.from) continue;
+    /* ---- transfer decision, taken before the gameweek is played ---- */
+    let made=0;
+    while(free>0){
+      let best=null;
+      const clubs={}; squad.forEach(i=>{const c=byId.get(i).club; clubs[c]=(clubs[c]||0)+1;});
+      const nowVal=squadHold(squad,g);
+      /* Shortlist by the player's own hold value first, then price the survivors
+         properly on the XI. Scoring every legal swap on the XI would be some
+         thousands of squad evaluations a week; the shortlist keeps it to a few
+         dozen and cannot miss a move worth making, because a player who does
+         not beat the man he replaces on his own cannot improve the XI. */
+      const cands=[];
+      for(const out of squad){
+        const po=byId.get(out);
+        const sell=paid[out]+Math.floor(Math.max(0,po.price-paid[out])/0.2)*0.1;
+        const outHold=hold(po,g);
+        for(const pin of D.players){
+          if(squad.includes(pin.id) || pin.pos!==po.pos || !pin.sgw) continue;
+          if(pin.price>sell+bank+1e-9) continue;
+          const c=(clubs[pin.club]||0)-(pin.club===po.club?1:0);
+          if(c>=CLUB_MAX) continue;
+          const raw=hold(pin,g)-outHold;
+          if(raw>0) cands.push({out, in:pin.id, raw, sell, cost:pin.price});
+        }
+      }
+      cands.sort((a,b)=>b.raw-a.raw);
+      for(const c of cands.slice(0,40)){
+        const trial=squad.filter(x=>x!==c.out).concat(c.in);
+        const gain=squadHold(trial,g)-nowVal;
+        if(gain>0.75 && (!best||gain>best.gain)) best={...c, gain};
+      }
+      if(!best) break;
+      squad=squad.filter(x=>x!==best.out).concat(best.in);
+      bank=Math.round((bank+best.sell-best.cost)*10)/10;
+      paid[best.in]=best.cost; delete paid[best.out];
+      free--; made++;
+      log.push({gw:g, out:byId.get(best.out).name, in:byId.get(best.in).name,
+                gain:best.gain, bank});
+      if(made>=2) break;             /* two in a week is already unusual */
+    }
+    free=Math.max(1, Math.min(MAX_BANK, free+1));
+
+    /* ---- score the best XI for this gameweek ---- */
+    const ps=squad.map(i=>byId.get(i)).filter(p=>p.sgw);
+    const scored=ps.map(p=>({p, v:val(p,g)})).sort((a,b)=>b.v-a.v);
+    const xi=[], cnt={GKP:0,DEF:0,MID:0,FWD:0};
+    for(const pos of POS_ORDER){
+      scored.filter(x=>x.p.pos===pos).slice(0,XI_MIN[pos]).forEach(x=>{xi.push(x);cnt[pos]++;});
+    }
+    for(const x of scored){
+      if(xi.length>=11) break;
+      if(xi.includes(x)||x.p.pos==='GKP') continue;
+      xi.push(x); cnt[x.p.pos]++;
+    }
+    const capt=xi.slice().sort((a,b)=>b.v-a.v)[0];
+    total+=xi.reduce((t,x)=>t+x.v,0)+(capt?capt.v:0);
+  }
+  return {total, log, squad, bank, from:o.from};
+}
+
 /* ---- builder rendering ---- */
 function bRenderSquad(){
   const spend=bSpend(), left=BUDGET-spend;
@@ -1190,6 +1312,53 @@ function chipAdvice(proj){
       cannot field eleven; Wildcard for a squad that is lastingly wrong.</div>`;
 }
 
+
+function simPanel(proj){
+  if(!D.season_gws || !D.season_gws.length || bSquad.length<15) return '';
+  const from=(D.ts&&D.ts.from_gw)||1;
+  const withT=seasonSim(bSquad,{from});
+  const noT=(()=>{ const g=D.season_gws.filter(x=>x>=from);
+    let t=0;
+    for(const gg of g){
+      const ps=bSquad.map(i=>byId.get(i)).filter(p=>p.sgw);
+      const sc=ps.map(p=>({p,v:p.sgw[D.season_gws.indexOf(gg)]||0})).sort((a,b)=>b.v-a.v);
+      const xi=[],cnt={GKP:0,DEF:0,MID:0,FWD:0};
+      for(const pos of POS_ORDER)
+        sc.filter(x=>x.p.pos===pos).slice(0,XI_MIN[pos]).forEach(x=>{xi.push(x);cnt[pos]++;});
+      for(const x of sc){ if(xi.length>=11) break; if(xi.includes(x)||x.p.pos==='GKP') continue; xi.push(x); }
+      const c=xi.slice().sort((a,b)=>b.v-a.v)[0];
+      t+=xi.reduce((a,x)=>a+x.v,0)+(c?c.v:0);
+    }
+    return t; })();
+  if(!withT) return '';
+  const gain=withT.total-noT, n=withT.log.length;
+  const byPos={};
+  withT.log.forEach(l=>{const p=D.players.find(x=>x.name===l.out);
+    if(p) byPos[p.pos]=(byPos[p.pos]||0)+1;});
+  const posLine=POS_ORDER.filter(k=>byPos[k]).map(k=>`${byPos[k]} ${k}`).join(', ')||'none';
+  const rows=withT.log.slice(0,14).map(l=>
+    `<div class="brow"><span class="bc">GW${l.gw}</span>
+      <span class="bn">${l.out} &rarr; ${l.in}</span>
+      <span class="bx">+${l.gain.toFixed(1)}</span></div>`).join('');
+  return `<div class="dh">Transfer plan &middot; GW${from} to ${D.season_gws[D.season_gws.length-1]}</div>
+    <div class="zwhy">One free transfer a week, banked up to five, never taking a hit &mdash; the
+      policy the four-season backtest settled on. A swap has to be worth more than 0.75 points over
+      the ${HOLD} gameweeks you would hold it.</div>
+    <div class="bcmp"><span>Holding this squad all season</span><span class="v">${noT.toFixed(0)}</span></div>
+    <div class="bcmp"><span>Transferring on the plan</span><span class="v">${withT.total.toFixed(0)}</span></div>
+    <div class="bcmp"><span><b>Difference</b></span>
+      <span class="v" style="color:${gain>=0?'var(--pos)':'var(--neg)'}">
+        ${gain>=0?'+':''}${gain.toFixed(0)}</span></div>
+    <div class="bcmp"><span>Transfers made</span><span class="v">${n} &middot; ${posLine}</span></div>
+    ${n?`<div class="dh sub">the schedule${n>14?' (first 14)':''}</div>
+      <div class="zwrap">${rows}</div>`:''}
+    <p class="zwhy" style="margin-top:8px">This plans against <b>fixtures only</b>. Injuries, form,
+      rotation and price changes are not forecast, so it is not a season plan &mdash; it is the part
+      of one that can be known in August. Expect it to move goalkeepers and defenders, whose points
+      turn on clean sheets and therefore on the opponent; a plan that shuffles your forwards is
+      chasing an effect a seventh the size of the gap between forwards.</p>`;
+}
+
 function bRenderProj(proj){
   const el=document.getElementById('b-proj');
   if(!proj||bSquad.length===0){
@@ -1235,6 +1404,8 @@ function bRenderProj(proj){
         ${(proj.total-opt.total>=0?'+':'')}${(proj.total-opt.total).toFixed(1)}</span></div>`:''}
 
     ${chipAdvice(proj)}
+
+    ${simPanel(proj)}
 
     ${proj.bench.length?`<div class="dh">Bench</div>
       <div style="font-size:11.5px;color:var(--muted)">
