@@ -112,6 +112,29 @@ roles:             ## k-means role clusters over the horizon projection
 refresh:           ## full weekly refresh: data -> models -> dashboard
 	$(MAKE) snapshot live facts team-match coldstart horizon roles log dashboard dist
 
+watch:             ## poll the FPL feed; rebuild only if something changed
+	$(PY) fpl/ingest/watch.py
+
+watch-deploy:      ## same, and publish when it rebuilds
+	$(PY) fpl/ingest/watch.py --deploy
+
+watch-check:       ## report whether anything changed, without rebuilding
+	$(PY) fpl/ingest/watch.py --check-only
+
+install-watch:     ## run the watcher every 20 minutes via launchd
+	@sed 's|__FPL_ROOT__|$(CURDIR)|g' scripts/com.fpl.watch.plist \
+	  > $(HOME)/Library/LaunchAgents/com.fpl.watch.plist
+	@launchctl unload $(HOME)/Library/LaunchAgents/com.fpl.watch.plist 2>/dev/null || true
+	@launchctl load $(HOME)/Library/LaunchAgents/com.fpl.watch.plist
+	@echo "watcher installed -- polls every 20 min, deploys on change"
+	@echo "  log:      tail -f $(CURDIR)/data/raw/watch.log"
+	@echo "  stop:     make uninstall-watch"
+
+uninstall-watch:
+	@launchctl unload $(HOME)/Library/LaunchAgents/com.fpl.watch.plist 2>/dev/null || true
+	@rm -f $(HOME)/Library/LaunchAgents/com.fpl.watch.plist
+	@echo "watcher removed"
+
 log:               ## record projection vs outcome, so calibration can refit
 	$(PY) scripts/log_projection.py
 

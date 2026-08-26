@@ -31,6 +31,28 @@ COMPONENTS = ["minutes", "goals", "assists", "clean_sheet", "defcon",
               "bonus", "saves", "conceded", "cards"]
 
 
+
+def _live_meta() -> dict:
+    """Which gameweeks are in, and when the feed was last seen to change."""
+    out = {"built": pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%SZ")}
+    try:
+        con = duckdb.connect(DB, read_only=True)
+        r = con.execute("SELECT max(gw), count(DISTINCT gw) FROM player_gw "
+                        "WHERE season='2026-27'").fetchone()
+        con.close()
+        out["last_gw"] = int(r[0]) if r and r[0] else 0
+        out["gws_in"] = int(r[1]) if r and r[1] else 0
+    except Exception:
+        out["last_gw"], out["gws_in"] = 0, 0
+    w = Path("data/raw/watch_state.json")
+    if w.exists():
+        try:
+            out["feed_seen"] = json.loads(w.read_text()).get("seen")
+        except Exception:
+            pass
+    return out
+
+
 def build() -> dict:
     gw1 = pd.read_parquet("data/features/gw1_projection.parquet")
     hz = pd.read_parquet("data/features/horizon_roles.parquet")
@@ -385,6 +407,9 @@ def build() -> dict:
         "components": COMPONENTS,
         "cal_starts": data_starts,
         "ts": ts_meta,
+        # What the page was built from, so it can say how fresh it is rather
+        # than leaving the reader to guess whether a number is from today.
+        "live": _live_meta(),
         "season_gws": season_gws,
         "cal_window": 6,
         "n_players": len(players),

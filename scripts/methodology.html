@@ -459,7 +459,22 @@ information, which is why neither is used on its own.</p>
 history. That was tried and it failed &mdash; a new signing's price already tells you what the club
 thinks it is buying, and it tells you more than the profile of the man he replaces.</p>
 
-<h3>XIV. What the model gets right</h3>
+<h3>XIV. Keeping up with the data</h3>
+<p>The numbers here move for three reasons: a gameweek finishes, bonus points land, or prices and
+injury news change overnight. All three matter, and all three are worth rebuilding for.</p>
+<p>A watcher checks the game's feed every twenty minutes and compares it against what it saw last
+time. Almost always nothing has moved and it does nothing, which is the point &mdash; the check costs
+two small requests, while a rebuild re-simulates all 38 gameweeks. When something has moved, the whole
+chain runs and the page republishes on its own.</p>
+<p>Ownership is deliberately left out of that trigger. It drifts every few minutes and would fire the
+rebuild constantly, and only the squad-selection objective reads it.</p>
+<p>This cannot run inside your browser. The game's API refuses cross-origin requests, so a page cannot
+fetch its own live data &mdash; the work has to happen before the page is served rather than inside
+it. The consequence worth knowing: <b>the page is only as fresh as the last rebuild</b>. So it says so.
+The line under the title gives the age of the build and turns red past a day and a half, because a
+stale projection looks exactly like a current one otherwise.</p>
+
+<h3>XV. What the model gets right</h3>
 <p>The scoring engine reconstructs <b>109,681 player-matches exactly</b>, across ten seasons. The
 single mismatch it ever produced was a real rule change: goalkeeper goals used to pay 6 and now pay
 10. The engine found that from data alone.</p>
@@ -473,7 +488,7 @@ single mismatch it ever produced was a real rule change: goalkeeper goals used t
 points-to-date average in four of four. Aggregate gain: <b>31% on MAE, 46% on ranking</b>, over
 roughly 95,000 player-gameweeks.</p>
 
-<h3>XV. What the model does not do</h3>
+<h3>XVI. What the model does not do</h3>
 <p>Better projections do not produce more points. The model played four full seasons under the real
 constraints &mdash; budget, one free transfer, &minus;4 for the second:</p>
 <div class="tscroll"><table><tr><th>Season</th><th>Engine</th><th>Template</th><th>Margin</th></tr>
@@ -490,7 +505,7 @@ toward the same squads. And the template is not a soft target. Millions of manag
 together, and it already sits near the ceiling the rules allow. A 31% edge in projection error
 compresses into less than one week's noise.</div>
 
-<h3>XVI. What failed</h3>
+<h3>XVII. What failed</h3>
 <h4>A. xGOT as a skill measure</h4>
 <p>xGOT should measure finishing. It does not persist.</p>
 <div class="tscroll"><table><tr><th>Signal</th><th>r, first half &rarr; second</th><th>t</th></tr>
@@ -524,7 +539,7 @@ largest <em>estimated</em> gain, and the largest estimate in a noisy set is too 
 points to buy estimation error. Raising the bar does not fix it, because the bar filters on the same
 bad estimate.</p>
 
-<h3>XVII. Known limits</h3>
+<h3>XVIII. Known limits</h3>
 <ul>
 <li>Forwards project <b>0.30 points low</b> per gameweek and midfielders 0.18. Defenders are
 unbiased. The model overall runs 0.12 low, about 10% of the mean.</li>

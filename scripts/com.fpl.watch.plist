@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template. Run `make install-watch`, which substitutes __FPL_ROOT__ with
+     this checkout's path before installing. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fpl.watch</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__FPL_ROOT__/.venv/bin/python</string>
+    <string>__FPL_ROOT__/fpl/ingest/watch.py</string>
+    <string>--deploy</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__FPL_ROOT__</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONPATH</key><string>__FPL_ROOT__</string>
+    <!-- launchd starts with a bare PATH, and the job shells out to `make`,
+         `git` and `python`. Without this the rebuild fails at the first
+         subprocess with a message that looks nothing like the real cause. -->
+    <key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- Every 20 minutes. The poll costs two small API calls and does nothing
+       unless the feed's fingerprint moved, so the interval is set by how soon
+       you want to see a change rather than by what the rebuild costs. Twenty
+       minutes catches a price change well before anyone acts on it and picks
+       up a finished gameweek shortly after bonus is applied. -->
+  <key>StartInterval</key>
+  <integer>1200</integer>
+
+  <!-- launchd rather than cron for the same reason as the snapshotter: if the
+       Mac was asleep this fires on wake instead of skipping the window. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>__FPL_ROOT__/data/raw/watch.out</string>
+  <key>StandardErrorPath</key>
+  <string>__FPL_ROOT__/data/raw/watch.err</string>
+</dict>
+</plist>
