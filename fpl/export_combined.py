@@ -283,6 +283,29 @@ def build() -> dict:
                       for k in keys if f"z_{k}" in r0.index},
             }
 
+    # Season fixture calendar: one value per six-gameweek window, expressed as
+    # points above or below that player's own average window. Relative to
+    # himself, so the strip reads "when are HIS fixtures good" rather than
+    # re-stating who is expensive.
+    sw = Path("data/features/season_windows.parquet")
+    if sw.exists():
+        wdf = pd.read_parquet(sw)
+        wdf = wdf.sort_values(["element", "start"])
+        starts = sorted(wdf.start.unique())
+        by_el = {e: g.set_index("start")["vs_own"].reindex(starts).round(1).tolist()
+                 for e, g in wdf.groupby("element")}
+        abs_el = {e: g.set_index("start")["xpts"].reindex(starts).round(1).tolist()
+                  for e, g in wdf.groupby("element")}
+        for row in players:
+            v = by_el.get(row["id"])
+            if v is None:
+                continue
+            row["cal"] = [None if pd.isna(x) else float(x) for x in v]
+            row["calabs"] = [None if pd.isna(x) else float(x) for x in abs_el[row["id"]]]
+        data_starts = [int(x) for x in starts]
+    else:
+        data_starts = []
+
     players.sort(key=lambda x: -x["xpts"])
 
     return {
@@ -301,6 +324,8 @@ def build() -> dict:
         "hist_edges": [int(x) for x in hz.hist_edges.iloc[0]],
         "roles": sorted(d.role.unique().tolist()),
         "components": COMPONENTS,
+        "cal_starts": data_starts,
+        "cal_window": 6,
         "n_players": len(players),
         "players": players,
     }

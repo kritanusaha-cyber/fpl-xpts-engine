@@ -2193,3 +2193,65 @@ underpriced and forwards 8%. That is the measured positional bias — the model
 over-projects defenders and under-projects forwards — flowing into valuation
 now that the flat correction no longer masks it. It is a real remaining defect
 with a known sign, and the flat multiplier was the wrong instrument for it.
+
+---
+
+# The season schedule: when fixtures are worth planning around
+
+The dashboard answered "who is worth owning over the next six gameweeks". For
+planning transfers that is the wrong question, because the answer moves as the
+fixtures turn and a six-gameweek view cannot see past its own window.
+
+So the whole season is now simulated — 38 gameweeks, every six-gameweek run
+scored separately, 33 windows. Only fixtures vary; form, injury and price are
+what the weekly refresh is for. This isolates the part of a transfer plan that
+is knowable in August.
+
+## The headline is a negative one, and it is useful
+
+**The best pick barely moves.** Across 33 windows there is one leading forward
+all season, two leading defenders, two leading midfielders. Player quality
+dominates fixture variation by a wide margin.
+
+Setting the average player's fixture swing — his best six-gameweek run minus
+his worst — against how far apart players in that position are to begin with:
+
+| position | fixture swing | spread between players | ratio |
+|---|---|---|---|
+| **GKP** | 3.3 | 2.6 | **1.25** |
+| **DEF** | 2.9 | 4.4 | **0.67** |
+| MID | 1.5 | 5.3 | 0.28 |
+| FWD | 1.1 | 7.9 | 0.14 |
+
+**For goalkeepers the fixture swing is larger than the gap between goalkeepers.**
+Rotating them on fixtures is not a marginal optimisation, it is the main lever
+available. Defenders are close behind.
+
+For midfielders and forwards the swing is a fifth to a seventh of the spread.
+**Rotating attackers on fixtures means giving up a better player to chase a
+smaller effect.** It breaks ties and nothing more.
+
+This matches how strong managers actually play — cheap rotating keepers and
+defenders, premium attackers held through bad runs — and it is now measured
+rather than folklore.
+
+## Where the calendar does decide
+
+Among defenders of similar overall value the order genuinely flips:
+
+* Guehi leads Thiaw by 3.1 points at GW24 and trails by 3.2 at GW30
+* Calafiori leads Thiaw by 2.8 at GW17 and trails by 2.0 at GW32
+* Mosquera leads Senesi by 3.3 at GW14 and trails by 2.0 at GW9
+
+Those crossings are where a transfer belongs. A swing of three points over six
+gameweeks does not justify a hit, but it comfortably decides a free transfer
+between two players you rate equally.
+
+## In the product
+
+Every player carries a 33-cell fixture strip in his detail panel, coloured
+against **his own** season average rather than an absolute scale — otherwise
+every window just redraws the price list. A Schedule tab steps through the
+windows and ranks players within each, showing both the projection and the
+swing, with the weighting table above so the reader knows how much to trust it
+per position.

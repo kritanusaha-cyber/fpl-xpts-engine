@@ -271,6 +271,7 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-model" aria-selected="true" aria-controls="panel-model">Players</button>
     <button role="tab" id="tab-build" aria-selected="false" aria-controls="panel-build">Build a team</button>
+    <button role="tab" id="tab-sched" aria-selected="false" aria-controls="panel-sched">Schedule</button>
     <button role="tab" id="tab-method" aria-selected="false" aria-controls="panel-method">Methodology</button>
   </div>
   <div id="panel-model" role="tabpanel" aria-labelledby="tab-model">
@@ -362,6 +363,27 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
       <div>
         <div class="card bldcard" id="b-proj"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="panel-sched" role="tabpanel" aria-labelledby="tab-sched" hidden>
+    <p class="hint" style="margin-top:14px">
+      Every six-gameweek run of the season, simulated separately. Only the fixtures vary here &mdash;
+      form, injuries and price changes are what the weekly refresh is for. This is the part of a
+      transfer plan that can be known in advance: <b>when a player's fixtures turn</b>.
+    </p>
+    <div class="card bldcard">
+      <div class="bldhead">
+        <span class="dh" style="margin:0">Window</span>
+        <span id="s-label" class="bldbud" style="margin:0"></span>
+      </div>
+      <input id="s-range" type="range" min="0" max="0" value="0" step="1"
+             style="width:100%;margin:10px 0" aria-label="Choose a six-gameweek window">
+      <div id="s-body"></div>
+    </div>
+    <div class="card bldcard" style="margin-top:12px">
+      <div class="dh" style="margin:0 0 6px">How much should this change your team?</div>
+      <div id="s-weight"></div>
     </div>
   </div>
 
@@ -747,6 +769,39 @@ function heatPanel(p){
     <div class="zwrap">${rows}</div>`;
 }
 
+
+/* ---- season fixture calendar ----
+   One cell per six-gameweek window, coloured by how that stretch compares with
+   this player's own average. Relative to himself on purpose: an absolute scale
+   would just redraw the price list in every window. */
+function calStrip(p){
+  if(!p.cal || !D.cal_starts) return '';
+  const st=D.cal_starts, w=D.cal_window||6;
+  const vals=p.cal.filter(v=>v!=null);
+  if(!vals.length) return '';
+  const mx=Math.max(0.4,...vals.map(Math.abs));
+  const W=330,H=44,PAD=1,cw=W/st.length;
+  const cells=st.map((g,i)=>{
+    const v=p.cal[i], abs=p.calabs?p.calabs[i]:null;
+    if(v==null) return '';
+    const t=Math.min(1,Math.abs(v)/mx);
+    const col=v>=0?`rgba(47,107,58,${(0.12+0.72*t).toFixed(2)})`
+                  :`rgba(154,52,18,${(0.12+0.72*t).toFixed(2)})`;
+    return `<rect x="${i*cw+PAD}" y="6" width="${cw-PAD*2}" height="22" fill="${col}">
+      <title>GW${g}-${g+w-1}: ${abs!=null?abs.toFixed(1)+' pts':''}${
+        v>=0?' (+':' ('}${v.toFixed(1)} vs his average)</title></rect>`;
+  }).join('');
+  const ticks=st.map((g,i)=> (g%6===1||i===st.length-1)
+    ? `<text x="${i*cw+cw/2}" y="40" class="tk" text-anchor="middle" fill="var(--muted)">${g}</text>`:'').join('');
+  const best=st[p.cal.indexOf(Math.max(...vals))], worst=st[p.cal.indexOf(Math.min(...vals))];
+  return `<div class="dh" style="margin-top:14px">Fixture calendar
+      <span style="font-weight:400;color:var(--muted)">&middot; each cell is a ${w}-gameweek run</span></div>
+    <div class="zwhy">Green where his fixtures are kinder than his own season average, red where they
+      are harder. Best run starts GW${best}, worst GW${worst}.</div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fixture difficulty by gameweek window">
+      ${cells}${ticks}</svg>`;
+}
+
 function zonalPanel(p){
   if(!p.zon) return `<div class="dh" style="margin-top:14px">Territory</div>
     <div class="zwhy">${p.hist_pl
@@ -776,7 +831,7 @@ function zonalPanel(p){
     ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
   const gk = keeperPanel(p);
-  if (gk) return gk + heatPanel(p);
+  if (gk) return gk + calStrip(p) + heatPanel(p);
   // With no minutes floor a rate can come off a single substitute appearance,
   // so say how thin the sample is instead of presenting it at full confidence.
   const thin = z.thin
@@ -785,7 +840,7 @@ function zonalPanel(p){
   const terr = rows
     ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>${thin}
        <div class="zwrap">${rows}</div>` : '';
-  return `${heatPanel(p)}${grid}${terr}`;
+  return `${calStrip(p)}${heatPanel(p)}${grid}${terr}`;
 }
 
 /* ---------------- table ---------------- */
@@ -1171,7 +1226,80 @@ document.getElementById('b-tmpl').addEventListener('click',()=>{
 });
 bRenderSquad();
 
-const tabs=[['tab-model','panel-model'],['tab-build','panel-build'],['tab-method','panel-method']];
+
+/* ================= schedule ================= */
+const SPOS=['GKP','DEF','MID','FWD'];
+function sIdx(){ return +document.getElementById('s-range').value; }
+
+function sRender(){
+  const st=D.cal_starts, w=D.cal_window||6, i=sIdx(), g=st[i];
+  document.getElementById('s-label').innerHTML=
+    `<span>Gameweeks <b>${g}</b> to <b>${g+w-1}</b></span>`;
+  const have=D.players.filter(p=>p.calabs && p.calabs[i]!=null && p.starter);
+  let html='';
+  for(const pos of SPOS){
+    const list=have.filter(p=>p.pos===pos)
+      .map(p=>({p, v:p.calabs[i], rel:p.cal[i]}))
+      .sort((a,b)=>b.v-a.v).slice(0,6);
+    if(!list.length) continue;
+    html+=`<div class="bpos"><div class="bposh">${pos}</div>`;
+    for(const r of list){
+      const col=r.rel>=0.3?'var(--pos)':(r.rel<=-0.3?'var(--neg)':'var(--muted)');
+      html+=`<div class="brow">
+        <span class="bn">${r.p.name}</span>
+        <span class="bc">${r.p.club}</span>
+        <span class="bp">&pound;${r.p.price.toFixed(1)}</span>
+        <span class="bx">${r.v.toFixed(1)}</span>
+        <span class="bp" style="color:${col}">${r.rel>=0?'+':''}${r.rel.toFixed(1)}</span>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  document.getElementById('s-body').innerHTML=
+    `<div class="zwhy">Projected points across the run, and how that compares with the same
+      player's own season average &mdash; the second number is the fixture swing.</div>${html}`;
+}
+
+/* How much weight the calendar deserves, per position. Measured, not asserted:
+   the average player's best run beats his worst by this much, set against how
+   far apart players are in the first place. */
+function sWeight(){
+  const st=D.cal_starts;
+  const rows=SPOS.map(pos=>{
+    const ps=D.players.filter(p=>p.pos===pos && p.starter && p.calabs);
+    if(ps.length<6) return null;
+    const swings=ps.map(p=>{const v=p.calabs.filter(x=>x!=null);
+                            return v.length?Math.max(...v)-Math.min(...v):0});
+    const means=ps.map(p=>{const v=p.calabs.filter(x=>x!=null);
+                           return v.reduce((a,b)=>a+b,0)/Math.max(v.length,1)});
+    const mu=means.reduce((a,b)=>a+b,0)/means.length;
+    const sd=Math.sqrt(means.reduce((a,b)=>a+(b-mu)*(b-mu),0)/means.length);
+    const sw=swings.reduce((a,b)=>a+b,0)/swings.length;
+    return {pos, sw, sd, ratio: sw/Math.max(sd,0.01)};
+  }).filter(Boolean);
+  const body=rows.map(r=>{
+    const verdict = r.ratio>=0.9 ? 'fixtures decide it'
+                  : r.ratio>=0.6 ? 'fixtures matter a lot'
+                  : 'fixtures only break ties';
+    return `<div class="bcmp"><span>${r.pos} <span style="color:var(--muted)">&middot;
+      swing ${r.sw.toFixed(1)} vs spread ${r.sd.toFixed(1)}</span></span>
+      <span class="v">${r.ratio.toFixed(2)} &mdash; ${verdict}</span></div>`;}).join('');
+  document.getElementById('s-weight').innerHTML=body+
+    `<p class="zwhy" style="margin-top:8px">A fixture swing is how much a player's best six-gameweek
+     run beats his worst. The spread is how far apart players in that position are to begin with. Where
+     the ratio is near or above one, rotating on fixtures is worth doing; where it is well below,
+     you are better off holding the better player and ignoring the calendar. <b>Goalkeepers and
+     defenders are worth rotating. Midfielders and forwards are not.</b></p>`;
+}
+
+if(D.cal_starts && D.cal_starts.length){
+  const r=document.getElementById('s-range');
+  r.max=String(D.cal_starts.length-1);
+  r.addEventListener('input',sRender);
+  sRender(); sWeight();
+}
+
+const tabs=[['tab-model','panel-model'],['tab-build','panel-build'],['tab-sched','panel-sched'],['tab-method','panel-method']];
 tabs.forEach(([t,pn])=>document.getElementById(t).addEventListener('click',()=>{
   tabs.forEach(([t2,p2])=>{
     document.getElementById(t2).setAttribute('aria-selected',String(t2===t));
