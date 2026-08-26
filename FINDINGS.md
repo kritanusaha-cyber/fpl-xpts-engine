@@ -2120,3 +2120,76 @@ matched, every multiplier stayed at 1.0, and the correction appeared to run
 while doing nothing — Anderson's multiplier read exactly 1.000. Keyed on the
 club code it re-bases 34 players instead of 11. Same failure mode as the
 element-id collisions: **join on codes, never on names.**
+
+---
+
+# Three valuation bugs found by inspection, 2026-08-21
+
+All three were reported by eye — the projections looked high and one player
+looked mispriced — and all three were real.
+
+## 1. The positional correction was applied to the wrong thing
+
+The factors (FWD 1.31, MID 1.23) are worth +130 points across three held-out
+seasons, so they were applied to `xpts`. That was wrong, and the shape is why:
+
+| projected band | n | actual/projected |
+|---|---|---|
+| 0 – 0.5 | 75,858 | 1.024 |
+| 0.5 – 1 | 11,955 | **1.451** |
+| 1 – 2 | 20,349 | 1.413 |
+| 2 – 3 | 23,895 | 1.172 |
+| 3 – 4 | 4,801 | **1.095** |
+
+A flat multiplier fitted on totals is dominated by the 76,000 near-zero rows
+where the ratio is 1.45, then applied to the few high projections where it is
+1.10. It inflated **exactly the top of the list a squad is picked from**: the
+optimal squad read 64.1 points a gameweek against an FPL average of 50, and
+against 54.9 from summing the same page's own per-gameweek figures — which were
+left uncorrected, so the headline and the detail disagreed by 17%.
+
+Isotonic calibration by level was tried and is worse still at the top (+0.71
+against the flat factor's +0.28), because the high bins are thin.
+
+**The raw projection is nearly unbiased where it matters** (−0.34 on a mean of
+3.34 for projections above 3). The under-prediction sits in the middle of the
+distribution, which does not drive selection.
+
+So the factors now apply to **selection only**, beside the rank term, and never
+to the displayed projection. What they encode is that the model under-rates
+attacking returns relative to defensive ones — a statement about which players
+to pick, not about how many points they will score. Squad now reads 53.7 a
+gameweek against 54.9 from the per-gameweek detail.
+
+## 2. The price curve was fitted on the wrong population
+
+76% of starters were called underpriced, 95% of defenders and 100% of
+goalkeepers. A calibrated curve splits about evenly.
+
+The curve was fitted on players clearing 900 minutes — a population averaging
+**2.30** points per team-gameweek — and applied to players the model projects
+at **2.91**. Every starter landed high on a curve built from a weaker group.
+That is not a valuation, it is an offset.
+
+Raising the floor to 1900 minutes matches the fitted population to the applied
+one: **53% underpriced, median gap +0.10**.
+
+## 3. Elliot Anderson, end to end
+
+| stage | fair price |
+|---|---|
+| before any correction | £9.2 |
+| after re-basing DefCon onto Manchester City | £8.5 |
+| after the calibration fix | £8.5 |
+| after the price-curve fix | **£7.4** |
+
+Against an actual £6.5. His projection fell from 31.17 to 23.63 over six
+gameweeks and he sits 11th of 80 starting midfielders rather than near the top.
+
+## Known residual
+
+Fair price is centred overall but not within position: defenders still read 89%
+underpriced and forwards 8%. That is the measured positional bias — the model
+over-projects defenders and under-projects forwards — flowing into valuation
+now that the flat correction no longer masks it. It is a real remaining defect
+with a known sign, and the flat multiplier was the wrong instrument for it.

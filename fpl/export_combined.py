@@ -159,17 +159,35 @@ def build() -> dict:
     # horizon without rescaling. Expected points and variance both scale
     # linearly in H for independent gameweeks, so the objective is H times the
     # weekly one and the argmax is unchanged.
-    # Positional bias correction before anything reads xpts. Forwards were
-    # projected 0.29 points a gameweek low and midfielders 0.21, while
-    # defenders ran high; correcting it was worth +130 across three held-out
-    # seasons. Applied here so the table, the optimiser and the builder all
-    # see the same corrected number.
-    from fpl.models.position_calibration import SEASON_FACTORS
-    _f = d["position"].map(SEASON_FACTORS).fillna(1.0)
-    d["xpts"] = d["xpts"] * _f
-    d["sd_h"] = d["sd_h"] * _f
+    # Positional bias correction, applied to SELECTION only and never to the
+    # displayed projection.
+    #
+    # The factors are worth +130 points across three held-out seasons, but they
+    # are the wrong shape to use as a projection. Fitted on totals they are
+    # dominated by the many near-zero rows, where actual-over-projected is
+    # 1.45, and then applied to the few high projections where the true ratio
+    # is 1.10. Applied to xpts they put the optimal squad at 64.1 points a
+    # gameweek against a per-gameweek sum of 54.9 and an FPL average of 50 --
+    # and they disagreed with the per-gameweek figures on the same page,
+    # because those were left uncorrected.
+    #
+    # What the factors actually encode is that the model under-rates attacking
+    # returns relative to defensive ones. That is a statement about which
+    # players to pick, not about how many points they will score, so it belongs
+    # in the objective beside the rank term and nowhere else.
+    from fpl.models.position_calibration import season_factors
+    _live = None
+    _log = Path("data/features/projection_log.parquet")
+    if _log.exists():
+        try:
+            _live = pd.read_parquet(_log)
+        except Exception:
+            _live = None
+    _fac = season_factors(_live)
+
     from fpl.optimize.rank import RANK_GAMMA, rank_value_live
-    d["rank_val"] = rank_value_live(d, RANK_GAMMA, sd_col="sd_h")
+    d["rank_val"] = rank_value_live(d, RANK_GAMMA, sd_col="sd_h") \
+                    * d["position"].map(_fac).fillna(1.0)
     r = optimise(d, cfg, xpts_col="rank_val")
     picked = set(r["squad"].element)
     xi = set(r["squad"][r["squad"].in_xi].element)

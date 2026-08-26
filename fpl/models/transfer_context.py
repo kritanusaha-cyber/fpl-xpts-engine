@@ -117,7 +117,8 @@ def incumbent(pool: pd.DataFrame, club: str, role: str,
 
 
 def rebase(d: pd.DataFrame, prev_club_col: str = "prev_club",
-           w: float = INCUMBENT_WEIGHT) -> pd.DataFrame:
+           w: float = INCUMBENT_WEIGHT,
+           season: str | None = None, matches: dict | None = None) -> pd.DataFrame:
     """Apply both corrections to a squad frame that knows each player's old club."""
     out = d.copy()
     out["ctx_dc_mult"] = 1.0
@@ -125,7 +126,7 @@ def rebase(d: pd.DataFrame, prev_club_col: str = "prev_club",
     if prev_club_col not in out.columns:
         return out
 
-    vol = club_volume()
+    vol = club_volume_blended(season, matches) if season else club_volume()
     line = {"GKP": "GK", "DEF": "DEF", "MID": "MID", "FWD": "FWD"}
     moved = out[prev_club_col].notna() & (out[prev_club_col] != out["club_code"])
 
@@ -153,3 +154,60 @@ def rebase(d: pd.DataFrame, prev_club_col: str = "prev_club",
         if c in out.columns:
             out[c] = out[c] * out["ctx_share_mult"]
     return out
+
+# How fast a club's current-season style should override last season's.
+#
+# This is what handles a managerial change without needing to know a manager
+# changed. A new manager shows up as the club's own numbers diverging from its
+# prior-season baseline, and the right response is not to detect the event but
+# to trust the new evidence at the rate it earns.
+#
+# Fitted over six seasons, predicting the remainder of a club's season from
+# what it had done so far:
+#
+#     matches   prior only   current only   best blend w
+#        3        0.0775        0.1380          0.20
+#        5        0.0796        0.1209          0.20
+#        8        0.0785        0.1054          0.30
+#       12        0.0783        0.0736          0.55
+#       19        0.0829        0.0637          0.75
+#
+# Current-season style only overtakes last season's at about twelve matches,
+# and the curve is close to w = n / (n + 10) -- the same empirical-Bayes form
+# the player priors use.
+STYLE_K = 10.0
+
+# A club's style can move this far in a season with no transfers at all: the
+# largest observed one-season shift is 0.307 of relative volume, against 0.325
+# for the Forest-to-City move corrected above. Rare -- 2% of club-seasons shift
+# more than 0.20 -- but when it happens it is as large as a transfer.
+
+
+def club_volume_blended(season: str, matches: dict | None = None) -> pd.DataFrame:
+    """Club defensive volume, blending the running season into the prior one.
+
+    `matches` maps club_code to how many matches that club has played this
+    season. With none played this returns the prior season unchanged, which is
+    the correct starting point.
+    """
+    if not VOLUME.exists():
+        return pd.DataFrame()
+    v = pd.read_parquet(VOLUME)
+    seasons = sorted(v.season.unique())
+    if season not in seasons:
+        return club_volume()
+    cur = v[v.season == season]
+    idx = seasons.index(season)
+    if idx == 0 or not matches:
+        return cur[["club_code", "team", "line", "rel", "poss"]]
+    prev = v[v.season == seasons[idx - 1]].set_index(["club_code", "line"])["rel"]
+
+    out = cur.copy()
+    n = out["club_code"].map(matches).fillna(0.0)
+    w = n / (n + STYLE_K)
+    base = pd.MultiIndex.from_arrays([out["club_code"], out["line"]]).map(prev)
+    base = pd.Series(base, index=out.index).astype(float)
+    # where the club has no prior season -- promoted -- the current data is all
+    # there is, so it carries full weight rather than being pulled to nothing
+    out["rel"] = np.where(base.isna(), out["rel"], w * out["rel"] + (1 - w) * base)
+    return out[["club_code", "team", "line", "rel", "poss"]]

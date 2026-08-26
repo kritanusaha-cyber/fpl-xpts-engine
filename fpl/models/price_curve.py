@@ -32,7 +32,20 @@ import duckdb
 import numpy as np
 import pandas as pd
 
-MIN_MINUTES = 900          # roughly ten full games; below this price is noise
+# Twenty-one full games, not ten.
+#
+# The curve is applied to players the model projects as regular starters, so it
+# has to be fitted on players who were regular starters. At a 900-minute floor
+# the fitted population averages 2.30 points per team-gameweek while the model
+# projects its starters at 2.91 -- so every starter landed high on the curve and
+# came out underpriced. 76% of them, and 95% of defenders, which is not a
+# valuation, it is an offset.
+#
+# At 1900 the fitted population matches the population it is applied to and the
+# split centres: 55% underpriced, median gap +0.13. The cost is a smaller fit
+# sample, which is the right trade -- a curve fitted on the wrong population is
+# precise about the wrong thing.
+MIN_MINUTES = 1900
 FPL_MIN_PRICE, FPL_MAX_PRICE = 3.8, 16.0
 
 

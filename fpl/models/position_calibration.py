@@ -64,3 +64,73 @@ class PositionCalibrator:
     def transform(self, d: pd.DataFrame, pred: str = "xpts") -> pd.Series:
         f = d["position"].map(self.factors).fillna(1.0)
         return pd.to_numeric(d[pred], errors="coerce").fillna(0.0) * f
+
+# How fast the running season's own bias should override the fitted prior.
+# Same empirical-Bayes form as everywhere else: with n player-gameweeks of
+# evidence the running season carries n / (n + PRIOR_N) of the weight.
+# PRIOR_N is set so that a full gameweek of ~600 rows moves the factor about
+# 5%, and half a season is needed before the live data dominates.
+PRIOR_N = 12000.0
+
+
+def season_factors(live: pd.DataFrame | None = None,
+                   pred: str = "xpts", actual: str = "total_points") -> dict:
+    """Positional factors for the running season.
+
+    Returns the fitted priors before a ball is kicked, and blends the running
+    season in as it accumulates. Without this the factors are frozen at last
+    season's values for the whole campaign -- correct in August and stale by
+    December, with nothing to signal that it has gone wrong.
+    """
+    if live is None or live.empty:
+        return dict(SEASON_FACTORS)
+    out = dict(SEASON_FACTORS)
+    g = live.dropna(subset=[pred, actual])
+    for pos, sub in g.groupby("position"):
+        p = sub[pred].sum()
+        if p <= 0:
+            continue
+        obs = float(np.clip(sub[actual].sum() / p, *CLAMP))
+        w = len(sub) / (len(sub) + PRIOR_N)
+        out[pos] = float(np.clip(w * obs + (1 - w) * SEASON_FACTORS.get(pos, 1.0), *CLAMP))
+    return out
+
+class LevelCalibrator:
+    """Isotonic calibration per position, which a flat multiplier is not.
+
+    A single multiplier per position is the wrong shape. Fitted on totals it is
+    dominated by the many near-zero rows, where the actual-to-projected ratio
+    is 1.45, and then applied to the handful of high projections where the true
+    ratio is 1.10. The result inflates precisely the top of the list a squad is
+    picked from -- the shipped flat factors put the optimal squad at 64.1 points
+    a gameweek against a displayed per-gameweek sum of 54.9 and an FPL average
+    of 50.
+
+    Isotonic keeps the ordering, so nothing about selection is disturbed, while
+    letting the correction differ by level. Same machinery already used to
+    calibrate DefCon.
+    """
+
+    def __init__(self, min_obs: int = MIN_OBS) -> None:
+        self.models: dict = {}
+        self.min_obs = min_obs
+
+    def fit(self, d: pd.DataFrame, pred: str = "xpts",
+            actual: str = "total_points") -> "LevelCalibrator":
+        from sklearn.isotonic import IsotonicRegression
+        g = d.dropna(subset=[pred, actual])
+        for pos, sub in g.groupby("position"):
+            if len(sub) < self.min_obs:
+                continue
+            iso = IsotonicRegression(out_of_bounds="clip", increasing=True)
+            iso.fit(sub[pred].to_numpy(float), sub[actual].to_numpy(float))
+            self.models[pos] = iso
+        return self
+
+    def transform(self, d: pd.DataFrame, pred: str = "xpts") -> pd.Series:
+        out = pd.to_numeric(d[pred], errors="coerce").fillna(0.0).copy()
+        for pos, iso in self.models.items():
+            m = (d["position"] == pos).to_numpy()
+            if m.any():
+                out.loc[m] = iso.predict(out[m].to_numpy(float))
+        return out

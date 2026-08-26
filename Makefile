@@ -110,7 +110,10 @@ roles:             ## k-means role clusters over the horizon projection
 # then displays. Running these out of order produces a dashboard that is stale
 # in a way nothing errors on.
 refresh:           ## full weekly refresh: data -> models -> dashboard
-	$(MAKE) snapshot live facts team-match coldstart horizon roles dashboard dist
+	$(MAKE) snapshot live facts team-match coldstart horizon roles log dashboard dist
+
+log:               ## record projection vs outcome, so calibration can refit
+	$(PY) scripts/log_projection.py
 
 deploy:            ## rebuild the dashboard and publish to GitHub Pages
 	$(MAKE) dashboard

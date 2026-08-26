@@ -19,7 +19,9 @@ from scipy.stats import spearmanr
 
 from fpl.backtest.engine_backtest import run
 
-SEASONS = ["2022-23", "2023-24", "2024-25", "2025-26"]
+# Six seasons since the team-xG backfill from FotMob. Previously four, because
+# the warehouse only carried expected goals from 2022-23.
+SEASONS = ["2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26"]
 
 
 def references(d: pd.DataFrame) -> pd.DataFrame:

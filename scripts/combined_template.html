@@ -994,6 +994,41 @@ function bBar(vals,w,h){
   </svg>`;
 }
 
+
+/* ---- chip advice ----
+   The same rule the four-season backtest used, applied to the squad on screen.
+   A chip must clear a bar set by what a typical gameweek is worth; the bar
+   exists because a chip played on an ordinary week is a chip not played on a
+   good one. Worth +139 across four seasons -- see Findings. */
+const CHIP_BAR = 1.15;
+function chipAdvice(proj){
+  if(!proj || !proj.xi.length) return '';
+  const gw1 = a => { const r=(a.runs||[])[0]; return r?r.xpts:(a.xpts/H); };
+  /* a typical gameweek for this XI, which is what the bar is set against */
+  const typical = proj.xi.reduce((t,p)=>t+gw1(p),0);
+  const bench = proj.bench.reduce((t,p)=>t+gw1(p),0);
+  const capt  = proj.capt ? gw1(proj.capt) : 0;
+  const rows = [
+    {chip:'Bench Boost', value:bench, bar:typical/11*4*CHIP_BAR,
+     what:'your four bench players score next gameweek'},
+    {chip:'Triple Captain', value:capt, bar:typical/11*CHIP_BAR,
+     what:`a third multiple on ${proj.capt?proj.capt.name:'your captain'}`},
+  ];
+  return `<div class="dh" style="margin-top:14px">Chips</div>
+    <div class="zwhy">A chip should clear what a typical gameweek is worth, or it is spent on an
+      ordinary week instead of a good one. Bars are the rule the backtest used.</div>
+    ${rows.map(r=>{
+      const on = r.value > r.bar;
+      return `<div class="bcmp"><span>${r.chip}
+        <span style="color:var(--muted)">&middot; ${r.what}</span></span>
+        <span class="v" style="color:${on?'var(--pos)':'var(--muted)'}">
+          ${r.value.toFixed(1)} vs ${r.bar.toFixed(1)} ${on?'&mdash; play it':'&mdash; hold'}</span></div>`;
+    }).join('')}
+    <div class="zwhy" style="margin-top:4px">Wildcard and Free Hit depend on the squad you are stuck
+      with rather than this one, so they are not advised here. Free Hit is for a gameweek your squad
+      cannot field eleven; Wildcard for a squad that is lastingly wrong.</div>`;
+}
+
 function bRenderProj(proj){
   const el=document.getElementById('b-proj');
   if(!proj||bSquad.length===0){
@@ -1037,6 +1072,8 @@ function bRenderProj(proj){
       <div class="bcmp"><span><b>Difference</b></span>
         <span class="v" style="color:${proj.total>=opt.total?'var(--pos)':'var(--neg)'}">
         ${(proj.total-opt.total>=0?'+':'')}${(proj.total-opt.total).toFixed(1)}</span></div>`:''}
+
+    ${chipAdvice(proj)}
 
     ${proj.bench.length?`<div class="dh" style="margin-top:14px">Bench</div>
       <div style="font-size:11.5px;color:var(--muted)">
