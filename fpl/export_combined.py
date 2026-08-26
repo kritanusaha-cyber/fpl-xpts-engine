@@ -17,8 +17,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import duckdb
 import numpy as np
 import pandas as pd
+
+DB = "data/fpl.duckdb"
 
 from fpl.optimize.duals import squad_duals
 from fpl.models.price_curve import fit as fit_price_curve
@@ -306,6 +309,46 @@ def build() -> dict:
     else:
         data_starts = []
 
+    # Term structure: expected points per gameweek against how long you hold.
+    # `ts` is the curve from the next gameweek; `tsev` is the 3-vs-12 spread
+    # computed from every starting gameweek, which is the curve moving through
+    # the season rather than a single snapshot of it.
+    sg = Path("data/features/season_by_gw.parquet")
+    if sg.exists():
+        from fpl.models.term_structure import curve, spread, evolution, TENORS, SHORT, LONG
+        bg = pd.read_parquet(sg)
+        nxt = int(bg.gw.min())
+        try:
+            _con = duckdb.connect(DB, read_only=True)
+            _done = _con.execute("SELECT max(gw) FROM player_gw WHERE season='2026-27'").fetchone()[0]
+            _con.close()
+            nxt = int(_done) + 1 if _done else nxt
+        except Exception:
+            pass
+        cv = curve(bg, nxt)
+        if not cv.empty:
+            cv["sp"] = spread(cv)
+            cmap = {int(r.element): [round(float(r[f"y{t}"]), 2) for t in TENORS
+                                     if f"y{t}" in cv.columns]
+                    for _, r in cv.iterrows()}
+            spmap = dict(zip(cv.element.astype(int), cv.sp.round(2)))
+            ev = evolution(bg)
+            evmap = {e: g.sort_values("start").spread.round(2).tolist()
+                     for e, g in ev.groupby("element")} if not ev.empty else {}
+            ev_starts = sorted(ev.start.unique().tolist()) if not ev.empty else []
+            for row in players:
+                if row["id"] in cmap:
+                    row["ts"] = cmap[row["id"]]
+                    row["tsp"] = float(spmap.get(row["id"], 0.0))
+                    if row["id"] in evmap:
+                        row["tsev"] = [float(x) for x in evmap[row["id"]]]
+            ts_meta = {"tenors": TENORS, "from_gw": nxt,
+                       "short": SHORT, "long": LONG, "ev_starts": ev_starts}
+        else:
+            ts_meta = {}
+    else:
+        ts_meta = {}
+
     players.sort(key=lambda x: -x["xpts"])
 
     return {
@@ -325,6 +368,7 @@ def build() -> dict:
         "roles": sorted(d.role.unique().tolist()),
         "components": COMPONENTS,
         "cal_starts": data_starts,
+        "ts": ts_meta,
         "cal_window": 6,
         "n_players": len(players),
         "players": players,

@@ -2255,3 +2255,86 @@ every window just redraws the price list. A Schedule tab steps through the
 windows and ranks players within each, showing both the projection and the
 swing, with the weighting table above so the reader knows how much to trust it
 per position.
+
+---
+
+# Term structure: a yield curve for expected points
+
+A yield curve plots return against how long you hold. The same object exists
+here and nobody draws it. A player's expected points **per gameweek** depends
+on how long you intend to keep him, because the fixtures he plays in the next
+three weeks are not the ones he plays in the next twelve.
+
+    yield(g, h) = mean expected points per gameweek over gameweeks g .. g+h-1
+
+Read exactly as a rates curve is read:
+
+* **Upward sloping** — long yield above short. His fixtures improve. Hold, or
+  buy before the run arrives.
+* **Inverted** — short above long. He is at his best now. Own the run and plan
+  the exit.
+* **Flat** — the calendar is not the reason to do anything about him.
+
+The **term spread**, long minus short, is the single number — the 12s3s.
+
+## The curve from gameweek 2
+
+The market curve is flat, as it must be: aggregate fixture difficulty nets out.
+
+| position | 1gw | 3gw | 6gw | 12gw | 12s3s |
+|---|---|---|---|---|---|
+| GKP | 3.52 | 3.47 | 3.45 | 3.45 | −0.02 |
+| DEF | 3.36 | 3.33 | 3.33 | 3.32 | −0.01 |
+| MID | 3.17 | 3.18 | 3.18 | 3.17 | −0.02 |
+| FWD | 3.11 | 3.17 | 3.17 | 3.16 | −0.01 |
+
+Individual curves are where the information is.
+
+**Most inverted — at their best right now:**
+
+| player | 3gw | 12gw | spread |
+|---|---|---|---|
+| Virgil (LIV, DEF) | 5.18 | 4.58 | **−0.60** |
+| Jacquet (LIV, DEF) | 4.13 | 3.63 | −0.50 |
+| A.Becker (LIV, GKP) | 4.22 | 3.75 | −0.47 |
+
+**Steepest — fixtures improve:**
+
+| player | 3gw | 12gw | spread |
+|---|---|---|---|
+| Greaves (IPS, DEF) | 2.84 | 3.14 | **+0.30** |
+| Scherpen (IPS, GKP) | 2.22 | 2.51 | +0.29 |
+| Donnarumma (MCI, GKP) | 3.57 | 3.78 | +0.21 |
+
+Liverpool's whole defence is inverted and Ipswich's whole defence is steep,
+which is what a fixture-driven curve should produce: **the curve is a team
+property expressed through its players.**
+
+## How much curve there is, by position
+
+| position | sd of spread | range |
+|---|---|---|
+| GKP | 0.172 | −0.47 to +0.29 |
+| DEF | 0.160 | −0.60 to +0.30 |
+| MID | 0.096 | −0.30 to +0.14 |
+| FWD | 0.102 | −0.27 to +0.12 |
+
+Consistent with the schedule finding, and it carries the same caution. **An
+inverted curve on a striker is noise dressed as a signal** — a forward's whole
+fixture swing is a seventh of the spread between forwards. It is keepers and
+defenders, whose points come from clean sheets, where the curve means anything.
+
+## Moving through the season
+
+The spread is also computed from every starting gameweek, which turns the chart
+into a surface: the same player's curve inverts and re-steepens as the season
+turns, and **where it crosses zero is where holding him stops paying**.
+
+## A bug this surfaced
+
+`zonalPanel` returned early for players with no territory data, so the curve
+and the fixture calendar were silently swallowed for exactly the players with
+no Premier League history — promoted clubs. Both are built from the fixture
+list and have nothing to do with a player's record, so they now render for
+everyone. Ipswich's defenders have the steepest curves in the league and none
+of them could see it.

@@ -802,8 +802,83 @@ function calStrip(p){
       ${cells}${ticks}</svg>`;
 }
 
+
+/* ---- term structure ----
+   Expected points per gameweek against how long you hold, drawn the way a
+   rates curve is drawn. Upward sloping means his fixtures improve; inverted
+   means he is at his best now and the return decays from here. */
+function tsCurve(p){
+  if(!p.ts || !D.ts || !D.ts.tenors) return '';
+  const T=D.ts.tenors, v=p.ts, n=Math.min(T.length,v.length);
+  if(n<3) return '';
+  const W=330,H=118,L=30,R=8,TP=10,B=22;
+  const xs=i=>L+(Math.log(T[i])/Math.log(T[n-1]))*(W-L-R);
+  const lo=Math.min(...v.slice(0,n)), hi=Math.max(...v.slice(0,n));
+  const pad=Math.max(0.25,(hi-lo)*0.35), y0=lo-pad, y1=hi+pad;
+  const ys=y=>TP+(1-(y-y0)/(y1-y0))*(H-TP-B);
+  const pts=Array.from({length:n},(_,i)=>`${xs(i)},${ys(v[i])}`).join(' ');
+  const sp=p.tsp||0;
+  const col=sp>0.08?'var(--pos)':(sp<-0.08?'var(--neg)':'var(--accent)');
+  const verdict = sp>0.08 ? 'upward sloping &mdash; his fixtures improve, so holding pays'
+                : sp<-0.08 ? 'inverted &mdash; he is at his best now, so own the run and plan the exit'
+                : 'flat &mdash; the calendar says nothing either way about him';
+  const flat = Array.from({length:n},(_,i)=>`${xs(i)},${ys(v[n-1])}`).join(' ');
+  return `<div class="dh" style="margin-top:14px">Term structure
+      <span style="font-weight:400;color:var(--muted)">&middot; points per gameweek by how long you hold</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Expected points per gameweek against holding length">
+      <line x1="${L}" y1="${ys(v[n-1])}" x2="${W-R}" y2="${ys(v[n-1])}"
+            stroke="var(--line)" stroke-dasharray="3 3"/>
+      <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"
+                stroke-linejoin="round"/>
+      ${Array.from({length:n},(_,i)=>`<circle cx="${xs(i)}" cy="${ys(v[i])}" r="2.6" fill="${col}">
+        <title>hold ${T[i]} gameweek${T[i]>1?'s':''}: ${v[i].toFixed(2)} pts per gameweek</title></circle>`).join('')}
+      ${Array.from({length:n},(_,i)=>(T[i]===1||T[i]===3||T[i]===6||T[i]===12||i===n-1)
+        ? `<text x="${xs(i)}" y="${H-7}" class="tk" text-anchor="middle" fill="var(--muted)">${T[i]}</text>`:'').join('')}
+      <text x="2" y="${ys(y1)+9}" class="tk" fill="var(--muted)">${y1.toFixed(1)}</text>
+      <text x="2" y="${ys(y0)}" class="tk" fill="var(--muted)">${y0.toFixed(1)}</text>
+      <text x="${W/2}" y="${H-0.5}" class="tk" text-anchor="middle" fill="var(--muted)">gameweeks held</text>
+    </svg>
+    <div class="zwhy">${D.ts.long}gw minus ${D.ts.short}gw =
+      <b style="color:${col}">${sp>=0?'+':''}${sp.toFixed(2)}</b> &mdash; ${verdict}</div>
+    ${tsEvo(p)}`;
+}
+
+/* The curve moving through the season: the same spread computed from every
+   starting gameweek. Where it crosses zero is where holding him stops paying
+   and starts costing. */
+function tsEvo(p){
+  if(!p.tsev || !D.ts.ev_starts) return '';
+  const v=p.tsev, st=D.ts.ev_starts, n=Math.min(v.length,st.length);
+  if(n<6) return '';
+  const W=330,H=70,L=26,R=8,TP=8,B=16;
+  const mx=Math.max(0.25,...v.slice(0,n).map(Math.abs));
+  const xs=i=>L+(i/(n-1))*(W-L-R), ys=y=>TP+(1-(y+mx)/(2*mx))*(H-TP-B);
+  const bars=Array.from({length:n},(_,i)=>{
+    const y=ys(v[i]), z=ys(0);
+    const col=v[i]>=0?'var(--pos)':'var(--neg)';
+    return `<rect x="${xs(i)-1.6}" y="${Math.min(y,z)}" width="3.2"
+      height="${Math.max(1,Math.abs(z-y))}" fill="${col}" opacity=".8">
+      <title>from GW${st[i]}: ${v[i]>=0?'+':''}${v[i].toFixed(2)}</title></rect>`;}).join('');
+  return `<div class="dh" style="margin-top:12px">and how that spread moves through the season</div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Term spread by starting gameweek">
+      <line x1="${L}" y1="${ys(0)}" x2="${W-R}" y2="${ys(0)}" stroke="var(--line-2)"/>
+      ${bars}
+      <text x="${L}" y="${H-4}" class="tk" fill="var(--muted)">GW${st[0]}</text>
+      <text x="${W-R}" y="${H-4}" class="tk" text-anchor="end" fill="var(--muted)">GW${st[n-1]}</text>
+      <text x="2" y="${TP+7}" class="tk" fill="var(--muted)">+</text>
+      <text x="2" y="${H-B}" class="tk" fill="var(--muted)">&minus;</text>
+    </svg>
+    <div class="zwhy">Green where the long horizon beats the short from that point on, red where it
+      does not. Bars near zero mean the calendar is not telling you anything at that point.</div>`;
+}
+
 function zonalPanel(p){
-  if(!p.zon) return `<div class="dh" style="margin-top:14px">Territory</div>
+  /* The term structure and the fixture calendar come from the fixture list, not
+     from a player's history, so they exist for everyone -- including promoted
+     clubs with no Premier League record. They are emitted before the early
+     return below, which previously swallowed them for exactly those players. */
+  const always = tsCurve(p) + calStrip(p);
+  if(!p.zon) return always + `<div class="dh" style="margin-top:14px">Territory</div>
     <div class="zwhy">${p.hist_pl
       ? 'No FotMob event data for this player last season.'
       : 'No Premier League appearances last season.'}</div>`;
@@ -831,7 +906,7 @@ function zonalPanel(p){
     ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
   const gk = keeperPanel(p);
-  if (gk) return gk + calStrip(p) + heatPanel(p);
+  if (gk) return gk + always + heatPanel(p);
   // With no minutes floor a rate can come off a single substitute appearance,
   // so say how thin the sample is instead of presenting it at full confidence.
   const thin = z.thin
@@ -840,7 +915,7 @@ function zonalPanel(p){
   const terr = rows
     ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>${thin}
        <div class="zwrap">${rows}</div>` : '';
-  return `${calStrip(p)}${heatPanel(p)}${grid}${terr}`;
+  return `${always}${heatPanel(p)}${grid}${terr}`;
 }
 
 /* ---------------- table ---------------- */
