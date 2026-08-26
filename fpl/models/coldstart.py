@@ -429,6 +429,31 @@ def _blend_live(d: pd.DataFrame, db: str, season: str = "2026-27") -> pd.DataFra
     return d
 
 
+def _attach_prev_club(d: pd.DataFrame, season: str = "2025-26") -> pd.DataFrame:
+    """Which club each player played for last season, by stable code.
+
+    Needed because a player's rates were earned somewhere, and where matters.
+    Joined on `code` rather than element id, since element ids are reassigned
+    between seasons and would silently attach the wrong club.
+    """
+    try:
+        pl = pd.read_parquet(f"data/raw/vaastav/players_raw/season={season}.parquet")
+        tm = pd.read_parquet("data/features/club_names.parquet")
+    except Exception:
+        d["prev_club"] = pd.NA
+        return d
+    if "team_code" in pl.columns:
+        # The previous club is carried as its code, not its name -- the two
+        # sources spell clubs differently and a name join matches nothing.
+        pl = pl[["code", "team_code"]].copy()
+        pl["prev_club"] = pl["team_code"]
+    else:
+        d["prev_club"] = pd.NA
+        return d
+    d = d.merge(pl[["code", "prev_club"]].drop_duplicates("code"), on="code", how="left")
+    return d
+
+
 def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
     squad = current_squad()
     priors = player_priors(db)
@@ -480,6 +505,14 @@ def build(db: str = "data/fpl.duckdb") -> pd.DataFrame:
     # being averaged into them, and before depth normalisation so the squad
     # constraint applies to the blended numbers.
     d = _blend_live(d, db)
+    # Re-base a moved player's rates onto his new club before depth
+    # normalisation, so the squad constraint applies to corrected numbers.
+    d = _attach_prev_club(d)
+    try:
+        from fpl.models.transfer_context import rebase
+        d = rebase(d)
+    except Exception as e:                      # never lose the build to this
+        print(f"  transfer context skipped: {type(e).__name__}: {e}")
     d = _normalise_squad_depth(d)
     return d
 

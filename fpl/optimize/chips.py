@@ -27,6 +27,16 @@ WINDOWS = [(1, 19), (20, 38)]
 # Chips that can only add points. The rest replace the squad and can subtract.
 ADDITIVE = {"bench_boost", "triple_captain"}
 
+# Free Hit is implemented and works -- it fires on blank gameweeks, where the
+# squad cannot field eleven, and is worth +13.5 a play. It is off by default
+# anyway, because it competes with Wildcard for gameweeks inside a window and
+# crowds it out: across four seasons the chip set scores +139 without Free Hit
+# and +109 with it, Wildcard falling from four plays worth +108 to three worth
+# +37. The difference is inside the noise of four seasons, so this is a
+# preference for the better-measured configuration rather than a finding that
+# Free Hit is bad.
+ENABLE_FREE_HIT = False
+
 # How much better than the window's typical gameweek a chip play must look
 # before it is taken. Swept; see scripts/chip_sweep.py.
 # Swept over four seasons: 1.15 scored +116 and 1.00 scored +115, with the

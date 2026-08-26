@@ -2042,3 +2042,81 @@ three times a season, so the weighting only separates clubs in the few weeks
 around them. The code is kept and defaults to **off**, because it costs nothing
 and the reasoning is sound — but it is not a demonstrated improvement and is
 not claimed as one.
+
+---
+
+# Transfer context: re-basing a player onto his new club
+
+## The case
+
+Elliot Anderson at Nottingham Forest was a good pick — cheap, eight goals and
+assists, and he hit the defensive-contribution threshold consistently because
+Forest sit deep and their midfielders defend a great deal. He is now at
+Manchester City, playing behind the ball in a side that holds it.
+
+The model was projecting him at **0.67 DefCon points a gameweek, the second
+highest of any player**, carrying Forest's rate into City unchanged.
+
+## Defensive volume is a property of the team
+
+Over six seasons and 360 club-seasons, a club's midfielders make defensive
+actions at a rate correlating **−0.46** with the club's possession, and the
+spread between clubs is wider than possession alone explains:
+
+| club (2025-26) | possession | midfield DefCon vs league |
+|---|---|---|
+| Fulham | 51.7% | **0.78×** |
+| Manchester City | 60.6% | **0.85×** |
+| Nottingham Forest | 46.8% | **1.10×** |
+| Manchester United | 51.8% | 1.10× |
+
+So a Forest → City move carries a multiplier of 0.85 / 1.10 = **0.775**.
+
+For Anderson that is 12.51 defensive actions per 90 down to 9.69, and
+
+| | dc/90 | P(threshold) | over 6 gameweeks |
+|---|---|---|---|
+| Forest rate, uncorrected | 12.51 | **0.595** | 7.14 pts |
+| City rate, corrected | 9.69 | **0.268** | 3.22 pts |
+
+**His probability of hitting the threshold more than halves.** Net of minutes
+and calibration his projection falls 31.17 → 29.06 and his fair price £9.2 →
+£8.5.
+
+## Attacking share is a property of the role
+
+His old share says what he did when the alternatives were his old team-mates.
+The incumbent in the slot he is joining says what that slot is worth at the new
+club. Tested on 55 players who changed club with 900+ minutes on both sides,
+predicting the share they actually went on to achieve:
+
+| weight on the incumbent | MAE | r |
+|---|---|---|
+| 0.00 — his own share alone | 0.0442 | 0.742 |
+| 0.35 | 0.0373 | 0.783 |
+| **0.50 — shipped** | **0.0358** | **0.788** |
+| 0.70 | 0.0350 | 0.776 |
+| 1.00 — the incumbent alone | 0.0369 | 0.717 |
+
+**Both extremes lose.** A 21% error reduction over using his own record, and
+the blend beats either component on its own — which is the signature of two
+genuinely different pieces of information rather than one dressed up as two.
+
+## What this does not do
+
+It does not apply role inheritance to players with **no** Premier League
+history. That was tested on 244 debutants and rejected: a position-by-price-tier
+prior beat it, because the listing price already encodes the club's own view of
+a signing. This module only re-bases players who have a record to re-base.
+
+34 players in the current squad are corrected, with defensive multipliers from
+0.72 to 1.35 and share multipliers from 0.55 to 1.60.
+
+## The bug this nearly shipped with
+
+The first version joined clubs by **name**. FPL writes "Man City" and "Nott'm
+Forest"; FotMob writes "Manchester City" and "Nottingham Forest". Nothing
+matched, every multiplier stayed at 1.0, and the correction appeared to run
+while doing nothing — Anderson's multiplier read exactly 1.000. Keyed on the
+club code it re-bases 34 players instead of 11. Same failure mode as the
+element-id collisions: **join on codes, never on names.**

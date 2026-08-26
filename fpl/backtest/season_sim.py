@@ -190,7 +190,7 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
     the damage only disappears when hits are abandoned entirely. See FINDINGS.md
     -- the mechanism is the optimiser's curse, not the four-point fee."""
     from fpl.optimize.transfers import Squad, plan_transfers, MAX_BANKED, fixture_weights
-    from fpl.optimize.chips import ChipPlan, wildcard_value
+    from fpl.optimize.chips import ChipPlan, wildcard_value, ENABLE_FREE_HIT
 
     plan = ChipPlan()
     hist_pts: list[float] = []
@@ -248,6 +248,18 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
             real = pool.set_index("element")["total_points"]
 
             bb_proj = float(proj.reindex(list(bench)).fillna(0.0).sum())
+            # Free Hit and Wildcard were competing for the same signal, and
+            # Wildcard -- evaluated first, with a lower bar -- always won, so
+            # Free Hit never fired in four seasons. They are not
+            # interchangeable: a Wildcard fixes a squad that is lastingly
+            # wrong, a Free Hit covers a single gameweek the squad cannot
+            # field. So Free Hit triggers on that specific problem -- fewer
+            # than eleven of your players have a fixture -- and is worth
+            # nothing otherwise.
+            playing = len(set(squad.players) & set(pool.element))
+            fh_proj = (wildcard_value(pool, set(squad.players), sel_col,
+                                      pick_squad, sel_col)
+                       if playing < 11 else 0.0)
             tc_proj = float(proj.get(capt, 0.0)) if capt is not None else 0.0
             base = float(np.mean(hist_pts)) if hist_pts else 50.0
 
@@ -256,7 +268,14 @@ def run_season_managed(preds: pd.DataFrame, pred_col: str, hold_weeks: float = 4
             # longer exists.
             wc_proj = wildcard_value(pool, set(squad.players), sel_col,
                                      pick_squad, sel_col)
-            if plan.consider(gw, "wildcard", wc_proj, base / 11.0 * 2.0):
+            if (ENABLE_FREE_HIT and playing < 11
+                    and plan.consider(gw, "free_hit", fh_proj, base / 11.0)):
+                fresh = pick_squad(pool, sel_col, budget=squad.value(prices))
+                if fresh:
+                    chip_played = "free_hit"
+                    chip_gain = score_xi(pool, set(fresh), sel_col) - pts
+                    pts += chip_gain
+            elif plan.consider(gw, "wildcard", wc_proj, base / 11.0 * 2.0):
                 # A wildcard is free transfers, not free money: the new squad
                 # still has to be affordable from what the old one sells for.
                 budget = squad.value(prices)
