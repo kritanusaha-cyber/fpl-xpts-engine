@@ -67,6 +67,7 @@ h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut
 .tabs{overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 @media (max-width:520px){.tabs button{padding:8px 10px;font-size:12.5px}}
+@media (max-width:360px){.tabs button{padding:8px 6px;font-size:12px;letter-spacing:-.01em}}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .m h3{font-size:14.5px;margin:26px 0 6px;color:var(--ink)}
 .m h4{font-size:12.5px;margin:16px 0 4px;color:var(--ink-2);font-weight:600}
@@ -157,13 +158,43 @@ tbody td.l{text-align:left;font-family:var(--sans);font-size:13px}
 .bar2{position:relative;width:96px;height:14px;display:inline-block;vertical-align:middle}
 .bar2 i{position:absolute;top:2px;bottom:2px;border-radius:1px}
 .bar2 .mid{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line)}
-.detail td{padding:0;border-bottom:1px solid var(--line)}
+/* The detail row lives inside the player table, which is wider than a phone
+   and scrolls sideways. Left alone, the cell inherits that scroll width and
+   every chart in it renders at the table's width -- 1030px inside a 287px
+   viewport -- so the reader has to scroll horizontally to see a chart that
+   would have fitted. Pinning the content to the left edge and capping it at
+   the viewport keeps the charts where they can be read, while the table
+   columns above still scroll normally. */
+/* The detail panel sits in a tbody cell, so it inherits the table's cell
+   styling -- including white-space:nowrap, which keeps numeric columns on one
+   line. Prose does not want that: headings and explanatory notes had correctly
+   sized boxes (203px) whose text simply refused to wrap and spilled off the
+   right of the screen. The panel resets the cell defaults it should not have
+   inherited. */
+.detail td{padding:0;border-bottom:1px solid var(--line);white-space:normal;
+  text-align:left;font-family:var(--sans);font-size:13px}
+.detail .dwrap{min-width:0}
+
 .dbox{padding:15px 14px 17px;background:var(--ground);position:sticky;left:0;
   width:min(100%,calc(100vw - 56px));display:grid;
   grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:20px}
-@media (max-width:900px){.dbox{grid-template-columns:1fr}}
+/* minmax(0,1fr), not 1fr. A plain 1fr track has min-width:auto, so a grid item
+   is allowed to exceed it when its content asks -- and an SVG with a viewBox
+   and no width does ask, at its full intrinsic size. That blew every chart in
+   the detail panel out to the table's scroll width (1030px inside a 287px
+   viewport) while the desktop rule, which does use minmax, was fine. */
+@media (max-width:900px){.dbox{grid-template-columns:minmax(0,1fr)}}
+/* Section headings inside a detail panel. The spacing lives here rather than
+   in four different inline margin-top values, which is what it had drifted to:
+   0, 8, 12 and 14 pixels between otherwise identical headings. */
 .dh{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
-  margin-bottom:8px}
+  margin:20px 0 8px}
+.dh:first-child{margin-top:0}
+/* A continuation of the section above it, not a new one. */
+.dh.sub{margin-top:12px;text-transform:none;letter-spacing:.02em;font-size:11px;
+  font-style:italic;opacity:.85}
+/* Sits inside a flex header rather than starting a section of its own. */
+.dh.inline{margin:0}
 .bar{display:flex;height:24px;border-radius:2px;overflow:hidden;border:1px solid var(--line)}
 .negbar{display:flex;height:7px;margin-top:3px;border-radius:2px;overflow:hidden}
 .clegend{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:9px}
@@ -270,9 +301,9 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
   <div class="sub" id="sub"></div>
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-model" aria-selected="true" aria-controls="panel-model">Players</button>
-    <button role="tab" id="tab-build" aria-selected="false" aria-controls="panel-build">Build a team</button>
+    <button role="tab" id="tab-build" aria-selected="false" aria-controls="panel-build">Build</button>
     <button role="tab" id="tab-sched" aria-selected="false" aria-controls="panel-sched">Schedule</button>
-    <button role="tab" id="tab-method" aria-selected="false" aria-controls="panel-method">Methodology</button>
+    <button role="tab" id="tab-method" aria-selected="false" aria-controls="panel-method">Method</button>
   </div>
   <div id="panel-model" role="tabpanel" aria-labelledby="tab-model">
   <div class="summary" id="summary"></div>
@@ -340,7 +371,7 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
       <div>
         <div class="card bldcard">
           <div class="bldhead">
-            <span class="dh" style="margin:0">Your squad</span>
+            <span class="dh inline">Your squad</span>
             <span class="bldbtns">
               <button type="button" id="b-opt" class="bbtn">Fill optimal</button>
               <button type="button" id="b-tmpl" class="bbtn">Fill template</button>
@@ -353,7 +384,7 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
         </div>
 
         <div class="card bldcard" style="margin-top:12px">
-          <div class="dh" style="margin:0 0 8px">Add a player</div>
+          <div class="dh">Add a player</div>
           <input id="b-q" class="bldinput" type="search" placeholder="Search by name or club&hellip;"
                  autocomplete="off" aria-label="Search players to add">
           <div id="b-results" class="bldres"></div>
@@ -374,7 +405,7 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
     </p>
     <div class="card bldcard">
       <div class="bldhead">
-        <span class="dh" style="margin:0">Window</span>
+        <span class="dh inline">Window</span>
         <span id="s-label" class="bldbud" style="margin:0"></span>
       </div>
       <input id="s-range" type="range" min="0" max="0" value="0" step="1"
@@ -382,7 +413,7 @@ footer{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:76ch}
       <div id="s-body"></div>
     </div>
     <div class="card bldcard" style="margin-top:12px">
-      <div class="dh" style="margin:0 0 6px">How much should this change your team?</div>
+      <div class="dh">How much should this change your team?</div>
       <div id="s-weight"></div>
     </div>
   </div>
@@ -548,7 +579,7 @@ function detail(p){
       <div class="bar">${bar}</div>${nbar}<div class="clegend">${leg}</div>
       ${zonalPanel(p)}</div>
     <div><div class="dh">${D.horizon}-gameweek outcomes</div>${distSvg(p)}
-      <div class="dh" style="margin-top:8px">Fixture run</div>${runSvg(p)}</div>
+      <div class="dh">Fixture run</div>${runSvg(p)}</div>
     <div><div class="dh">Drivers</div><dl class="drv">${rows}</dl>${warn}</div>
   </div>`;
 }
@@ -584,7 +615,7 @@ function keeperPanel(p){
     (de > 1.5 ? 'faced hard shots &mdash; GSAA understates him' :
      de < -1.5 ? 'faced easy shots &mdash; GSAA flatters him' :
      'shot difficulty near league average');
-  return `<div class="dh" style="margin-top:14px">Shot-stopping (non-penalty, ${g.matches} matches)</div>
+  return `<div class="dh">Shot-stopping (non-penalty, ${g.matches} matches)</div>
     <div class="gktwo">
       <div class="gkhead">
         <span class="gkbig" style="color:${col}">${prevented>=0?'+':''}${prevented.toFixed(2)}</span>
@@ -761,7 +792,7 @@ function heatPanel(p){
       <div class="zwhy">${why}</div>`;
   }).join('');
   const thin=h.thin?`<div class="zwhy" style="color:var(--neg)">Thin sample &mdash; ${h.n} touches.</div>`:'';
-  return `<div class="dh" style="margin-top:14px">Where he plays
+  return `<div class="dh">Where he plays
       <span style="font-weight:400;color:var(--muted)">&middot; ${h.n.toLocaleString()} touches last season</span></div>
     ${thin}
     <div class="zwhy">Share of his own touches, and the percentile among others in his position.</div>
@@ -794,7 +825,7 @@ function calStrip(p){
   const ticks=st.map((g,i)=> (g%6===1||i===st.length-1)
     ? `<text x="${i*cw+cw/2}" y="40" class="tk" text-anchor="middle" fill="var(--muted)">${g}</text>`:'').join('');
   const best=st[p.cal.indexOf(Math.max(...vals))], worst=st[p.cal.indexOf(Math.min(...vals))];
-  return `<div class="dh" style="margin-top:14px">Fixture calendar
+  return `<div class="dh">Fixture calendar
       <span style="font-weight:400;color:var(--muted)">&middot; each cell is a ${w}-gameweek run</span></div>
     <div class="zwhy">Green where his fixtures are kinder than his own season average, red where they
       are harder. Best run starts GW${best}, worst GW${worst}.</div>
@@ -823,7 +854,7 @@ function tsCurve(p){
                 : sp<-0.08 ? 'inverted &mdash; he is at his best now, so own the run and plan the exit'
                 : 'flat &mdash; the calendar says nothing either way about him';
   const flat = Array.from({length:n},(_,i)=>`${xs(i)},${ys(v[n-1])}`).join(' ');
-  return `<div class="dh" style="margin-top:14px">Term structure
+  return `<div class="dh">Term structure
       <span style="font-weight:400;color:var(--muted)">&middot; points per gameweek by how long you hold</span></div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Expected points per gameweek against holding length">
       <line x1="${L}" y1="${ys(v[n-1])}" x2="${W-R}" y2="${ys(v[n-1])}"
@@ -859,7 +890,7 @@ function tsEvo(p){
     return `<rect x="${xs(i)-1.6}" y="${Math.min(y,z)}" width="3.2"
       height="${Math.max(1,Math.abs(z-y))}" fill="${col}" opacity=".8">
       <title>from GW${st[i]}: ${v[i]>=0?'+':''}${v[i].toFixed(2)}</title></rect>`;}).join('');
-  return `<div class="dh" style="margin-top:12px">and how that spread moves through the season</div>
+  return `<div class="dh sub">and how that spread moves through the season</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Term spread by starting gameweek">
       <line x1="${L}" y1="${ys(0)}" x2="${W-R}" y2="${ys(0)}" stroke="var(--line-2)"/>
       ${bars}
@@ -878,7 +909,7 @@ function zonalPanel(p){
      clubs with no Premier League record. They are emitted before the early
      return below, which previously swallowed them for exactly those players. */
   const always = tsCurve(p) + calStrip(p);
-  if(!p.zon) return always + `<div class="dh" style="margin-top:14px">Territory</div>
+  if(!p.zon) return always + `<div class="dh">Territory</div>
     <div class="zwhy">${p.hist_pl
       ? 'No FotMob event data for this player last season.'
       : 'No Premier League appearances last season.'}</div>`;
@@ -903,7 +934,7 @@ function zonalPanel(p){
       <div class="zwhy">${why}</div>`;
   }).join('');
   const grid = hasGrid(p)
-    ? `<div class="dh" style="margin-top:14px">Shot zones vs others in his position</div>
+    ? `<div class="dh">Shot zones vs others in his position</div>
        ${zoneGrid(p)}${zoneLegend(p)}` : '';
   const gk = keeperPanel(p);
   if (gk) return gk + always + heatPanel(p);
@@ -913,7 +944,7 @@ function zonalPanel(p){
     ? `<div class="zwhy" style="color:var(--neg)">Thin sample &mdash; ${z.mins} minutes last season, so treat these as indicative.</div>`
     : '';
   const terr = rows
-    ? `<div class="dh" style="margin-top:14px">Territory (percentile within position)</div>${thin}
+    ? `<div class="dh">Territory (percentile within position)</div>${thin}
        <div class="zwrap">${rows}</div>` : '';
   return `${always}${heatPanel(p)}${grid}${terr}`;
 }
@@ -947,7 +978,7 @@ function render(){
       return `<td>${fmt[k](p[k])}</td>`;}).join('');
     const o=open.has(p.id);
     return `<tr id="r${p.id}" class="row${o?' open':''}" data-id="${p.id}" tabindex="0" aria-expanded="${o}">${cells}</tr>`+
-      (o?`<tr class="detail"><td colspan="${COLS.length}">${detail(p)}</td></tr>`:'');
+      (o?`<tr class="detail"><td colspan="${COLS.length}"><div class="dwrap">${detail(p)}</div></td></tr>`:'');
   }).join('');
 }
 function toggle(id){open.has(id)?open.delete(id):open.add(id);render();}
@@ -1144,7 +1175,7 @@ function chipAdvice(proj){
     {chip:'Triple Captain', value:capt, bar:typical/11*CHIP_BAR,
      what:`a third multiple on ${proj.capt?proj.capt.name:'your captain'}`},
   ];
-  return `<div class="dh" style="margin-top:14px">Chips</div>
+  return `<div class="dh">Chips</div>
     <div class="zwhy">A chip should clear what a typical gameweek is worth, or it is spent on an
       ordinary week instead of a good one. Bars are the rule the backtest used.</div>
     ${rows.map(r=>{
@@ -1162,7 +1193,7 @@ function chipAdvice(proj){
 function bRenderProj(proj){
   const el=document.getElementById('b-proj');
   if(!proj||bSquad.length===0){
-    el.innerHTML=`<div class="dh" style="margin:0 0 6px">Projection</div>
+    el.innerHTML=`<div class="dh">Projection</div>
       <div style="font-size:12px;color:var(--muted)">Pick players to see the squad simulated
       forward over the next ${H} gameweeks.</div>`;
     return;
@@ -1174,13 +1205,13 @@ function bRenderProj(proj){
   const opt=optIds.length===15?bProject(optIds):null;
 
   el.innerHTML=`
-    <div class="dh" style="margin:0 0 6px">Projection over ${H} gameweeks</div>
+    <div class="dh">Projection over ${H} gameweeks</div>
     ${incomplete?`<div class="bldwarn" style="margin:0 0 8px">Partial squad &mdash; this is the
        ${proj.xi.length} player${proj.xi.length===1?'':'s'} you have, not a full XI.</div>`:''}
     <div class="bigstat">${proj.total.toFixed(1)} <span style="font-size:14px;color:var(--muted)">pts</span></div>
     <div class="bigsub">starting XI plus captain, who counts twice</div>
 
-    <div class="dh" style="margin-top:14px">Range</div>
+    <div class="dh">Range</div>
     <div class="bcmp"><span>Likely (80% of simulations)</span>
       <span class="v">${lo.toFixed(0)} &ndash; ${hi.toFixed(0)}</span></div>
     <div class="bcmp"><span>Standard deviation</span><span class="v">&plusmn;${proj.sd.toFixed(1)}</span></div>
@@ -1188,14 +1219,14 @@ function bRenderProj(proj){
       You hold ${proj.shared} extra player${proj.shared>1?'s':''} from clubs you already own, and
       teammates share clean sheets and goals &mdash; so the real range is wider than this.</div>`:''}
 
-    <div class="dh" style="margin-top:14px">By gameweek</div>
+    <div class="dh">By gameweek</div>
     ${bBar(proj.gw,330,120)}
 
-    <div class="dh" style="margin-top:12px">Captain</div>
+    <div class="dh">Captain</div>
     <div class="bcmp"><span>${proj.capt?proj.capt.name:'&mdash;'}</span>
       <span class="v">${proj.capt?('+'+proj.capt.xpts.toFixed(1)+' from the armband'):''}</span></div>
 
-    ${opt?`<div class="dh" style="margin-top:14px">Against the model's own squad</div>
+    ${opt?`<div class="dh">Against the model's own squad</div>
       <div class="bcmp"><span>This page's optimal fifteen</span>
         <span class="v">${opt.total.toFixed(1)}</span></div>
       <div class="bcmp"><span>Your squad</span><span class="v">${proj.total.toFixed(1)}</span></div>
@@ -1205,7 +1236,7 @@ function bRenderProj(proj){
 
     ${chipAdvice(proj)}
 
-    ${proj.bench.length?`<div class="dh" style="margin-top:14px">Bench</div>
+    ${proj.bench.length?`<div class="dh">Bench</div>
       <div style="font-size:11.5px;color:var(--muted)">
       ${proj.bench.sort((a,b)=>b.xpts-a.xpts).map(p=>`${p.name} ${p.xpts.toFixed(1)}`).join(' &middot; ')}
       </div>`:''}
