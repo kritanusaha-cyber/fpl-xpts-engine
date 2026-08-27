@@ -209,7 +209,18 @@ threshold payoffs depend. Two results govern usage. First, evaluating <i>P</i>(<
 at a nominal ninety minutes rather than at projected minutes yields a Brier score of 0.1270, inferior to
 the base rate of 0.1183; the threshold is reached by playing. Second, calibration degrades severely
 above <i>P</i> = 0.5, where a predicted rate of 0.606 corresponded to a realized rate of 0.188.
-Isotonic recalibration and a tail cap at 0.40 are applied, both fitted walk-forward.</p>
+Isotonic recalibration is applied, fitted walk-forward.</p>
+<p>The tail cap accompanying it was a data artifact rather than a property of the model, and is
+reported here because the error is instructive. The collapse above <i>P</i> = 0.5 was measured on
+sixteen observations, defensive action counts being published for one season and reconstructed for
+the remainder; on that evidence a refusal to emit high-confidence calls was correct. Six seasons of
+per-match counts obtained from a third-party provider remove the collapse entirely: over 41,989
+player-matches the highest bands are now the best calibrated in the distribution, 0.545 predicted
+against 0.548 realized and 0.688 against 0.682. At its original 0.40 the cap had become actively
+harmful, flattening 2,667 predictions for a Brier score of 0.12601 against 0.12479 for applying no
+calibration whatever. It is now 0.70, which is optimal and touches 107. A cap fitted to compensate
+for a thin sample must be revisited when the sample is no longer thin, or it silently becomes the
+constraint it was introduced to prevent.</p>
 
 <h2>IV. Assembly and Valuation</h2>
 <h3>A. Joint Simulation</h3>
@@ -230,6 +241,33 @@ statement about the constraint rather than about the players. Fair price is obta
 empirically fitted concave price&ndash;output relation, not by dividing surplus by &lambda;<sub>B</sub>;
 &lambda;<sub>B</sub> is a marginal rate at a constrained optimum, approximately one third of the market
 gradient, and the linear inversion produced a fair price of 13.3 for a player listed at 4.5.</p>
+
+<h3>C. Fair Price Is a Within-Position Quantity</h3>
+<p>The positional quota that necessitates &mu;<sub>P</sub> in Eq. (5) applies with equal force to the
+price curve, and was omitted from it. Because a competitor must field three forwards whatever they
+cost, a forward is never valued against the market but only against other forwards. Uncorrected, the
+curve reported 89 percent of defenders as underpriced against 8 percent of forwards, which describes
+the constraint rather than the players and is unusable: no action follows from the observation that
+every forward is expensive.</p>
+<p>Each position's curve is therefore centered on the players selectable from it, and the centering is
+applied as an offset in price rather than in the intercept. The distinction is not cosmetic. Fair
+price is exp((<i>y</i> &minus; <i>a</i>)/<i>b</i>), so an intercept shift is multiplicative in price:
+centering the median forward by 1.4 multiplied the entire forward curve by 1.62, adding 2.3 at the
+median and 5.2 at the top, and produced a fair price of 13.6 for a player listed at 8.0. An offset in
+price moves every player by the same amount, which is what centering is intended to mean.</p>
+<p>A second correction addresses the inversion itself. These curves explain between 0.18 and 0.44 of
+the variance in output against price, so most of what separates two similarly priced players is not on
+the curve, and inverting a weak relationship amplifies its error. The listed price is itself an
+estimate formed with more information than points per unit cost. The curve is therefore blended with
+it,</p>
+<div class="eq"><span class="body">fair = listed + <i>w</i> (curve &minus; listed)</span><span class="n">(6)</span></div>
+<p>with <i>w</i> the correlation rather than the coefficient of determination. The latter is the
+appropriate weight when shrinking toward a mean; here the curve is combined with a second estimate of
+the same quantity. The choice is also consequential: at <i>r</i><sup>2</sup> the goalkeeper weights
+fall to 0.18 and their valuations collapse to a spread of 0.09, which no competitor can act upon. The
+resulting fair prices span approximately &plusmn;2, which is the defensible range for a quantity
+obtained by inverting a fit explaining less than half the variance, and they are deliberately not
+comparable across positions.</p>
 
 <h2>V. Validation Methodology</h2>
 <p>The scoring engine is validated by exact reconstruction: realized points are recomputed from action
@@ -310,7 +348,18 @@ above five points. Conditional on a 60-minute appearance and after dividing out 
 probability, residual bias is positional: forwards &minus;1.62, midfielders &minus;1.11, defenders
 &minus;0.17.</p>
 
-<h3>B. Directional Validity of the Valuation</h3>
+<h3>B. Extension to Six Seasons</h3>
+<p>The evaluation above is bounded at four seasons because team expected goals were available in the
+warehouse only from 2022/23. Shot-level data obtained from a third-party provider supplies them for
+2020/21 and 2021/22, and closes the 272 team-matches missing from 2022/23 before its sixteenth
+gameweek. All six seasons are now complete.</p>
+<p>Re-run on six, the system attains lower mean absolute error than the better of the two reference
+benchmarks in <b>six seasons of six</b>, by 4.9 to 10.4 percent, over 132,305 matched player-gameweeks.
+The two seasons added are the two largest margins after 2022/23, at 8.2 and 8.9 percent, so the
+extension neither flatters nor undermines the original result. The consensus comparison of Table 1 is
+not extended, the ownership-weighted benchmark requiring simulation pools that were not rebuilt.</p>
+
+<h3>C. Directional Validity of the Valuation</h3>
 <p>The valuation identifies players projected above what their price implies. Restricted to
 established starters and compared against other starters within the same 0.5m price band, the
 most-underpriced quintile outscores its band 63.4 percent of the time over the following six
@@ -325,7 +374,7 @@ the comparison group contained non-appearing players scoring zero.</p>
 <h2>VII. Rank Optimization and the Margin Variance Identity</h2>
 <p>Expected points is the wrong objective for a competition scored by rank. Write the margin over the
 field as a sum over every player in the game,</p>
-<div class="eq"><span class="body">margin = &Sigma;<sub>i</sub> (own<sub>i</sub> &minus; EO<sub>i</sub>) p<sub>i</sub></span><span class="n">(6)</span></div>
+<div class="eq"><span class="body">margin = &Sigma;<sub>i</sub> (own<sub>i</sub> &minus; EO<sub>i</sub>) p<sub>i</sub></span><span class="n">(7)</span></div>
 <p>where own<sub>i</sub> is an indicator of ownership and EO<sub>i</sub> is effective ownership, the
 fraction of the field holding the player with captaincy counted twice. Separating the terms shows that
 the expectation of the margin is maximized by maximizing expected points, so the two objectives
@@ -334,11 +383,11 @@ a large positive margin, not a positive one. The second moment therefore matters
 objectives diverge.</p>
 <p>Margin variance appears quadratic in the decision variable and thus outside a linear program. It is
 not. Because own<sub>i</sub> is binary, own<sub>i</sub><sup>2</sup> = own<sub>i</sub>, and</p>
-<div class="eq"><span class="body">(own<sub>i</sub> &minus; EO<sub>i</sub>)<sup>2</sup> = own<sub>i</sub>(1 &minus; 2&thinsp;EO<sub>i</sub>) + EO<sub>i</sub><sup>2</sup></span><span class="n">(7)</span></div>
+<div class="eq"><span class="body">(own<sub>i</sub> &minus; EO<sub>i</sub>)<sup>2</sup> = own<sub>i</sub>(1 &minus; 2&thinsp;EO<sub>i</sub>) + EO<sub>i</sub><sup>2</sup></span><span class="n">(8)</span></div>
 <p>The second term is constant. <b>Margin variance is linear in the squad choice</b>, with coefficient
 (1 &minus; 2&thinsp;EO<sub>i</sub>), and is carried exactly by the same linear program that maximizes
 expected points. The objective becomes</p>
-<div class="eq"><span class="body">maximize &nbsp; &Sigma;<sub>i</sub> own<sub>i</sub> [ xPts<sub>i</sub> + &gamma; (1 &minus; 2&thinsp;EO<sub>i</sub>) &sigma;<sub>i</sub><sup>2</sup> ]</span><span class="n">(8)</span></div>
+<div class="eq"><span class="body">maximize &nbsp; &Sigma;<sub>i</sub> own<sub>i</sub> [ xPts<sub>i</sub> + &gamma; (1 &minus; 2&thinsp;EO<sub>i</sub>) &sigma;<sub>i</sub><sup>2</sup> ]</span><span class="n">(9)</span></div>
 <p>The sign of the coefficient carries the result. A player held by more than half the field has a
 negative coefficient: owning him <i>reduces</i> margin variance, because his returns and failures move
 the competitor and the field together. A differential carries the full positive coefficient.</p>
@@ -376,7 +425,7 @@ failure by a universally owned player costs nothing, the field having failed alo
 taking where the field takes it jointly and worth avoiding where it is borne alone.</p>
 
 <h2>VIII. Negative Results</h2>
-<p>Five hypotheses were tested and rejected. They are reported because the rejections are more
+<p>Seven hypotheses were tested and rejected. They are reported because the rejections are more
 informative than several of the positive results.</p>
 <h3>A. Market Blending</h3>
 <p>Combining the team model with de-vigged bookmaker closing odds yields an improvement of +0.00101 in
@@ -428,7 +477,30 @@ a noisier statement of the same fact.</p>
 <p>The negative result is worth stating precisely because the football reasoning was sound and the
 covariate is real. A hypothesis can be true about the sport and useless to the model.</p>
 
-<h2>IX. Transfer Economics</h2>
+<h3>F. Fixture-Aware Transfer Valuation</h3>
+<p>The transfer planner values a swap over a fixed holding period, treating every gameweek in it as
+equivalent to the present one. A club about to miss a gameweek is worth less over that period than its
+single-gameweek projection implies, and the fixture list is published months in advance, so reading the
+schedule forward is not hindsight. Applied across four seasons the correction is worth +14 points and
+prevails in two seasons of four, which is indistinguishable from noise against seasons varying by
+&plusmn;25 on their own. The cause is structural rather than a flaw in the reasoning: blank gameweeks
+occur two or three times a season, so the weighting separates clubs only in the weeks surrounding
+them. The implementation is retained and disabled.</p>
+
+<h3>G. Environment-Specific Weakness</h3>
+<p>Slicing 87,009 walk-forward predictions by scoring environment, clean-sheet rate, fixture
+availability and midweek scheduling appeared to reveal three regimes in which the selection advantage
+vanished: blank gameweeks, midweek rounds, and gameweeks in which clean sheets were common. Treating
+each gameweek as a single observation rather than pooling player-rows dissolves the result. Normal
+gameweeks return +0.514 with a 95 percent interval of +0.22 to +0.80; blank gameweeks return +0.000
+with an interval of &minus;0.87 to +0.87 on eleven observations, and midweek rounds +0.044 on sixteen.
+Every interval contains the normal-gameweek value, and a Welch test between weekend and midweek gives
+<i>p</i> = 0.315. The correct statement is that four seasons contain too few such gameweeks to measure
+them, not that the advantage disappears within them. The finding is reported because it nearly
+motivated a congestion feature to remedy a defect that was never established, and because the
+participation model already carries days-since-last-fixture and fixture-count covariates.</p>
+
+<h2>IX. Transfer and Chip Economics</h2>
 <p>A separate result concerns the four-point charge levied for additional transfers. Applying the
 apparently rational criterion &mdash; incur the charge when projected weekly gain multiplied by
 expected holding period exceeds four points &mdash; cost 349 points across four seasons relative to
@@ -437,6 +509,37 @@ monotonic in the required margin and complete only at abstention. This is the op
 transfer selected is that with the largest <i>estimated</i> gain, and the largest estimate in a noisy
 set is biased upward, so the charge is paid to acquire estimation error. Raising the threshold does not
 resolve it, because the filter operates on the same contaminated estimate.</p>
+
+<h3>A. Chips</h3>
+<p>The game grants four one-shot advantages twice each, in two half-season windows. Their value is
+entirely a question of timing under uncertainty about what remains, so the rule adopted is a threshold
+rather than an argmax: a chip is played when the gameweek clears a bar set by what a typical gameweek
+in that window is worth. Swept across four seasons, the bar is barely rewarded for patience,
+returning 116 points at 1.15 and 115 at 1.00 and declining above 1.3, because a chip held for a better
+week is a chip at risk of expiring.</p>
+
+<div class="tw"><table>
+<caption><b>Table 5</b> &nbsp;Season points with and without chip play, under the objective of
+Section VII.</caption>
+<thead><tr><th class="l">Season</th><th>No chips</th><th>With chips</th><th>Gain</th></tr></thead>
+<tbody>
+<tr><td class="l">2022/23</td><td>1422</td><td>1488</td><td>+66</td></tr>
+<tr><td class="l">2023/24</td><td>1525</td><td>1570</td><td>+45</td></tr>
+<tr><td class="l">2024/25</td><td>1502</td><td>1536</td><td>+34</td></tr>
+<tr><td class="l">2025/26</td><td>1596</td><td>1590</td><td>&minus;6</td></tr>
+</tbody></table></div>
+
+<p>The mean contribution is +35 points a season across three improving seasons of four, with the
+wildcard the largest single contributor at +27 per play against +7.0 for the triple captain and +6.4
+for the bench boost.</p>
+<p>One design error is worth reporting. The threshold was initially collapsed to zero on a window's
+final gameweek, on the reasoning that any positive value exceeds expiry. That is sound only for chips
+which cannot lose points. The bench boost and triple captain apply a multiplier to players already
+held; the wildcard and free hit <i>replace the squad</i>, and a squad re-solved on noisy projections
+can be inferior to the one held. Forcing a wildcard at the 2025/26 window deadline cost that season 44
+points, of which only &minus;2 arrived on the gameweek played, the remainder accruing over subsequent
+weeks. The mechanism is again the optimizer's curse. Restricting the deadline collapse to additive
+chips reduced the worst season from &minus;44 to &minus;6.</p>
 
 <h2>X. Conclusions</h2>
 <p>A threshold-aware simulation system was constructed and validated. Its scoring engine reproduces
@@ -460,6 +563,11 @@ result under a corrected objective. And the value that projection accuracy does 
 at the top of the ordering rather than spread across it. The system loses aggregate rank correlation
 to a five-gameweek form average while its top selection outscores that benchmark by 1.68 points per
 gameweek, which is the difference between describing a population and choosing from it.</p>
+<p>Subsequent work has not disturbed that conclusion and has twice reinforced its mechanism. Chip
+timing contributes +35 points a season and a within-position correction to fair price alters which
+players are recommended, but both are decisions about <i>selection under constraint</i> rather than
+improvements to projection accuracy &mdash; which, extended to six seasons, now wins six of six and
+still does not by itself move season points.</p>
 <p>The methodological caution stands unchanged and now applies to the positive result as well. Four
 seasons yield a sign test at <i>p</i> = 0.06. Two controls were required before the result was
 credited: removing the ownership coefficient collapses it, and contemporaneous ownership inflates it
