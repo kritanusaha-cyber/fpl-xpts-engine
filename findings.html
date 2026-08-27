@@ -4474,4 +4474,153 @@ are the dear ones.</p>
 <p><strong>Fair price now spans about ±2 rather than ±5.6.</strong> That is the honest range
 for a quantity derived by inverting a fit that explains under half the
 variance.</p>
+<hr />
+<h1 id="audit-2026-08-27-the-selection-claim-reverses">Audit, 2026-08-27: the selection claim reverses</h1>
+<p>Every headline recomputed from source, and every tuned parameter checked for
+whether it was ever held out.</p>
+<h2 id="what-holds">What holds</h2>
+<p><strong>Scoring engine.</strong> 108,991 player-matches across eleven seasons, 100.00% exact
+in every season but one, where a single −4 residual traces to the goalkeeper-goal
+rule change. Still exact.</p>
+<p><strong>Error magnitude.</strong> Lower MAE than the better of five-gameweek form and
+season-to-date points per game in <strong>six seasons of six</strong>, 4.9% to 10.4%, on
+132,305 matched rows.</p>
+<p>One caveat on that six: <strong>2020-21 and 2021-22 carry no player-level expected
+goals at all</strong>, so the attacking-shares model has no input in those seasons.
+They test a degraded version of the system. It still wins them, which is mildly
+reassuring, but six is not six independent confirmations.</p>
+<h2 id="what-reverses">What reverses</h2>
+<p>I reported the engine's captain pick averaging <strong>6.69</strong> against 6.09 and called
+it the largest single effect in the project. On six seasons:</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>season</th>
+<th>engine captain</th>
+<th>benchmark</th>
+<th>engine top-10</th>
+<th>benchmark</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2020-21</td>
+<td><strong>3.03</strong></td>
+<td>5.93</td>
+<td><strong>3.36</strong></td>
+<td>3.99</td>
+</tr>
+<tr>
+<td>2021-22</td>
+<td><strong>4.17</strong></td>
+<td>4.73</td>
+<td><strong>3.17</strong></td>
+<td>4.60</td>
+</tr>
+<tr>
+<td>2022-23</td>
+<td><strong>4.67</strong></td>
+<td>5.07</td>
+<td><strong>3.87</strong></td>
+<td>4.67</td>
+</tr>
+<tr>
+<td>2023-24</td>
+<td>6.87</td>
+<td>6.13</td>
+<td>5.10</td>
+<td>4.29</td>
+</tr>
+<tr>
+<td>2024-25</td>
+<td>8.27</td>
+<td>7.90</td>
+<td>5.19</td>
+<td>4.65</td>
+</tr>
+<tr>
+<td>2025-26</td>
+<td>5.20</td>
+<td>4.43</td>
+<td>3.97</td>
+<td>3.94</td>
+</tr>
+<tr>
+<td><strong>pooled</strong></td>
+<td><strong>5.37</strong></td>
+<td><strong>5.70</strong></td>
+<td><strong>4.11</strong></td>
+<td><strong>4.36</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The engine wins the three recent seasons and loses the three older ones.</strong>
+Pooled, it is behind on both.</p>
+<p>Two of the three losing seasons have no player xG, which is a plausible
+mechanism. 2022-23 has that input and loses anyway.</p>
+<p>There is a second problem. On the <em>same four seasons</em> the figure now reads 6.25
+against 5.88, not 6.69 against 6.09 — because 2022-23's missing team expected
+goals were backfilled and <strong>I never recomputed the published number after its
+inputs changed.</strong></p>
+<p><strong>The defensible statement: the selection advantage holds for 2023-24 onward, on
+three seasons, and is not established as a property of the model.</strong></p>
+<h2 id="overfitting">Overfitting</h2>
+<p>Fifteen tuned quantities. Before today, four had been validated out of sample.</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>in sample</th>
+<th>out of sample</th>
+<th>reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rank γ</td>
+<td>+357</td>
+<td><strong>+345</strong></td>
+<td>4 of 4; 12-point penalty</td>
+</tr>
+<tr>
+<td>chip threshold</td>
+<td>+139</td>
+<td><strong>+102</strong></td>
+<td>3 of 4; 37-point penalty</td>
+</tr>
+<tr>
+<td>GW1 minutes weight</td>
+<td>—</td>
+<td><strong>−21.6% error</strong></td>
+<td>every fold picks 0.60–0.70</td>
+</tr>
+<tr>
+<td>incumbent blend</td>
+<td>—</td>
+<td><strong>−18.5% error</strong></td>
+<td>weight itself unidentifiable</td>
+</tr>
+</tbody>
+</table></div>
+<p>The rank result is the strongest thing in the project — chosen blind, applied
+blind, wins four from four.</p>
+<p>The incumbent blend needs its caveat recorded: the per-fold optimum swings
+<strong>0.95, 0.80, 0.40</strong>, and choosing per fold is <em>worse</em> than a fixed 0.50. Fifty-five
+movers cannot identify that parameter. The direction is real; the value is a
+shrug toward the midpoint.</p>
+<p><strong>Still unvalidated and shaping what the page recommends:</strong> the price-curve
+minutes floor, which was moved until the valuation split centred — fitting a
+parameter on the quantity used to judge it — and the fair-price shrinkage
+weight, chosen between two defensible options by which gave a usable spread
+rather than by any test.</p>
+<h2 id="a-defect-this-audit-found">A defect this audit found</h2>
+<p><strong>The scoring validation had stopped running.</strong> The live-season loader inserted
+rows with a null defensive-scoring flag, and the validator raised on the null
+rather than failing a check. The project's strongest guarantee was not being
+tested at all once live data entered the warehouse. Fixed; it passes on all
+eleven seasons.</p>
+<h2 id="the-lesson">The lesson</h2>
+<p>Every number quoted from an earlier write-up rather than recomputed is suspect,
+because the data underneath it moves. The captaincy figure was correct when
+written and wrong three days later, and nothing in the pipeline noticed.</p>
 </div></body></html>
