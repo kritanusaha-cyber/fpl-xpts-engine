@@ -95,6 +95,12 @@ def gameweek(gw: int, boot: dict | None = None) -> pd.DataFrame:
     d["name"] = d["web_name"]
     d["season"] = SEASON
     d["gw"] = gw
+    # Defensive-contribution scoring is live from 2025/26 onward. Left null,
+    # this reaches the scoring validator as a pandas NA and raises rather than
+    # failing a check -- the reconstruction test stopped running entirely once
+    # live rows entered the warehouse.
+    d["defcon_scoring_active"] = True
+    d["defcon_source"] = "native"
     return d
 
 
