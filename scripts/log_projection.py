@@ -32,7 +32,14 @@ def main() -> None:
     m["season"] = SEASON
     if OUT.exists():
         m = pd.concat([pd.read_parquet(OUT), m], ignore_index=True)
-    m = m.drop_duplicates(["season", "gw", "element"], keep="last")
+    # keep="first", not "last". The point of this log is the projection that
+    # PRECEDED a gameweek, and the pipeline re-projects played gameweeks every
+    # time it refreshes. Keeping the newest silently replaced the forecast with
+    # a later model's hindsight view of the same week -- gameweek 1 was
+    # recorded at 813 points, then overwritten with 770 after the valuation and
+    # calibration changes, so a published out-of-sample figure stopped being
+    # reproducible from its own log. First write wins; later ones are dropped.
+    m = m.drop_duplicates(["season", "gw", "element"], keep="first")
     m.to_parquet(OUT, index=False)
     print(f"{len(m)} projection/outcome pairs logged "
           f"across gameweeks {sorted(m.gw.unique())}")

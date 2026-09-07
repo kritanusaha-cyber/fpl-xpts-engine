@@ -4623,4 +4623,116 @@ eleven seasons.</p>
 <p>Every number quoted from an earlier write-up rather than recomputed is suspect,
 because the data underneath it moves. The captaincy figure was correct when
 written and wrong three days later, and nothing in the pipeline noticed.</p>
+<hr />
+<h1 id="live-season-leak-found-2026-09-06">Live-season leak, found 2026-09-06</h1>
+<p>Two gameweeks of 2026/27 are complete. Scoring them exposed that the live path
+had escaped the walk-forward discipline the historical backtest enforces.</p>
+<p><code>coldstart._blend_live</code> folds played gameweeks into the priors — correctly,
+since after a round the team sheets are the best evidence available — and
+<code>predict_horizon</code> then projects from gameweek 1. <strong>So gameweek 1 was being
+projected by a model that already knew who started gameweek 1.</strong></p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th></th>
+<th>contaminated</th>
+<th>walk-forward</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MAE</td>
+<td>1.170</td>
+<td><strong>1.283</strong></td>
+</tr>
+<tr>
+<td>correlation</td>
+<td>0.628</td>
+<td><strong>0.488</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The leak was worth about a tenth of the error. <code>scripts/live_walkforward.py</code>
+restricts the blend to gameweeks strictly earlier than the one being scored.</p>
+<h2 id="the-corrected-picture">The corrected picture</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>gameweek</th>
+<th>projected</th>
+<th>actual</th>
+<th>MAE</th>
+<th>rank corr</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GW1</td>
+<td>742</td>
+<td>948</td>
+<td>1.443</td>
+<td>0.523</td>
+</tr>
+<tr>
+<td>GW2</td>
+<td>791</td>
+<td>891</td>
+<td>1.128</td>
+<td>0.677</td>
+</tr>
+</tbody>
+</table></div>
+<p>GW1 is much the harder, and necessarily — it is a pure cold start. GW2, with one
+round of team sheets behind it, is better on both. That gap is what a single
+week of real minutes is worth, and it agrees with the 0.65 blending weight
+fitted from the historical side.</p>
+<h2 id="the-projection-is-running-19-low">The projection is running 19% low</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>position</th>
+<th>projected</th>
+<th>actual</th>
+<th>ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GKP</td>
+<td>1.19</td>
+<td>0.91</td>
+<td><strong>0.77</strong></td>
+</tr>
+<tr>
+<td>DEF</td>
+<td>1.48</td>
+<td>1.53</td>
+<td>1.04</td>
+</tr>
+<tr>
+<td>FWD</td>
+<td>1.07</td>
+<td>1.39</td>
+<td><strong>1.31</strong></td>
+</tr>
+<tr>
+<td>MID</td>
+<td>1.12</td>
+<td>1.63</td>
+<td><strong>1.45</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>These are almost exactly the positional factors that were removed from the
+displayed projection</strong> — fitted at 1.23 for midfielders and 1.31 for forwards,
+running live at 1.45 and 1.31. They were moved to selection only because applied
+to the projection they inflated the top of the list. The live season is showing
+the bias they were removing, which argues the decision to hide it from the
+displayed number deserves revisiting.</p>
+<h2 id="a-second-defect">A second defect</h2>
+<p><code>scripts/log_projection.py</code> deduplicated with <code>keep="last"</code>, so every refresh
+overwrote a gameweek's stored forecast with a later model's hindsight view of
+it. Gameweek 1 was recorded at 813 points and had silently become 770 — a
+published out-of-sample figure that was no longer reproducible from its own log.
+Now <code>keep="first"</code>: the first write wins and later ones are dropped.</p>
 </div></body></html>

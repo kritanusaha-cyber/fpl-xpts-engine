@@ -2616,3 +2616,59 @@ eleven seasons.
 Every number quoted from an earlier write-up rather than recomputed is suspect,
 because the data underneath it moves. The captaincy figure was correct when
 written and wrong three days later, and nothing in the pipeline noticed.
+
+---
+
+# Live-season leak, found 2026-09-06
+
+Two gameweeks of 2026/27 are complete. Scoring them exposed that the live path
+had escaped the walk-forward discipline the historical backtest enforces.
+
+`coldstart._blend_live` folds played gameweeks into the priors — correctly,
+since after a round the team sheets are the best evidence available — and
+`predict_horizon` then projects from gameweek 1. **So gameweek 1 was being
+projected by a model that already knew who started gameweek 1.**
+
+| | contaminated | walk-forward |
+|---|---|---|
+| MAE | 1.170 | **1.283** |
+| correlation | 0.628 | **0.488** |
+
+The leak was worth about a tenth of the error. `scripts/live_walkforward.py`
+restricts the blend to gameweeks strictly earlier than the one being scored.
+
+## The corrected picture
+
+| gameweek | projected | actual | MAE | rank corr |
+|---|---|---|---|---|
+| GW1 | 742 | 948 | 1.443 | 0.523 |
+| GW2 | 791 | 891 | 1.128 | 0.677 |
+
+GW1 is much the harder, and necessarily — it is a pure cold start. GW2, with one
+round of team sheets behind it, is better on both. That gap is what a single
+week of real minutes is worth, and it agrees with the 0.65 blending weight
+fitted from the historical side.
+
+## The projection is running 19% low
+
+| position | projected | actual | ratio |
+|---|---|---|---|
+| GKP | 1.19 | 0.91 | **0.77** |
+| DEF | 1.48 | 1.53 | 1.04 |
+| FWD | 1.07 | 1.39 | **1.31** |
+| MID | 1.12 | 1.63 | **1.45** |
+
+**These are almost exactly the positional factors that were removed from the
+displayed projection** — fitted at 1.23 for midfielders and 1.31 for forwards,
+running live at 1.45 and 1.31. They were moved to selection only because applied
+to the projection they inflated the top of the list. The live season is showing
+the bias they were removing, which argues the decision to hide it from the
+displayed number deserves revisiting.
+
+## A second defect
+
+`scripts/log_projection.py` deduplicated with `keep="last"`, so every refresh
+overwrote a gameweek's stored forecast with a later model's hindsight view of
+it. Gameweek 1 was recorded at 813 points and had silently become 770 — a
+published out-of-sample figure that was no longer reproducible from its own log.
+Now `keep="first"`: the first write wins and later ones are dropped.
