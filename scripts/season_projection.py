@@ -45,8 +45,14 @@ def windows(gw_df: pd.DataFrame, window: int = WINDOW) -> pd.DataFrame:
 
 
 def main() -> None:
-    print("simulating the full season -- this is 38 gameweeks, not 6", flush=True)
-    tot, gw = run(horizon=38)
+    # From the next unplayed gameweek to the end of the season, not from
+    # gameweek 1. A calendar whose first cells are matches already played is
+    # not a plan, and the term structure's short end would be history.
+    from fpl.predict_horizon import first_unplayed
+    start = first_unplayed()
+    n = 38 - start + 1
+    print(f"simulating GW{start} to 38 -- {n} gameweeks, not 6", flush=True)
+    tot, gw = run(horizon=n, start=start)
     gw.to_parquet("data/features/season_by_gw.parquet", index=False)
 
     w = windows(gw)

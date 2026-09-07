@@ -18,6 +18,7 @@ import gzip
 import glob
 import json
 
+import duckdb
 import numpy as np
 import pandas as pd
 
@@ -57,11 +58,48 @@ def prep_side(players: pd.DataFrame, code: int) -> pd.DataFrame:
     return side
 
 
-def run(horizon: int = HORIZON, n_sims: int = N_SIMS) -> tuple[pd.DataFrame, pd.DataFrame]:
+def first_unplayed(season: str = "2026-27") -> int:
+    """The next gameweek that has not been completed.
+
+    The horizon started at gameweek 1 unconditionally, which was right in
+    August and quietly wrong from the moment a gameweek finished. Two rounds
+    in, the "six-gameweek projection" was gameweeks 1 to 6 -- two of them
+    already played -- so the optimiser was picking a squad partly on results
+    it could look up, the forward view had shrunk to four gameweeks, and the
+    term structure's short end was history. Nothing errored; the horizon just
+    quietly retreated into the past by one week every week.
+
+    Prefers the live bootstrap so a gameweek that finished minutes ago is
+    respected, and falls back to the warehouse when the feed is unreachable.
+    """
+    try:
+        b = json.load(gzip.open(
+            sorted(glob.glob("data/raw/snapshots/bootstrap/date=*/*.json.gz"))[-1], "rt"))
+        done = [e["id"] for e in b.get("events", [])
+                if e.get("finished") and e.get("data_checked")]
+        if done:
+            return max(done) + 1
+    except Exception:
+        pass
+    try:
+        con = duckdb.connect("data/fpl.duckdb", read_only=True)
+        r = con.execute(f"SELECT max(gw) FROM player_gw WHERE season='{season}'").fetchone()
+        con.close()
+        if r and r[0]:
+            return int(r[0]) + 1
+    except Exception:
+        pass
+    return 1
+
+
+def run(horizon: int = HORIZON, n_sims: int = N_SIMS,
+        start: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     rng = np.random.default_rng(11)
     players = build_coldstart()
     model, prior = team_model()
-    gws = list(range(1, horizon + 1))
+    # Forward from the next unplayed gameweek, not from gameweek 1.
+    start = first_unplayed() if start is None else start
+    gws = [g for g in range(start, start + horizon) if g <= 38]
     fx = fixtures_for(gws)
 
     per_gw = []
@@ -111,7 +149,8 @@ if __name__ == "__main__":
     tot, gw = run()
     tot.to_parquet("data/features/horizon_projection.parquet", index=False)
     gw.to_parquet("data/features/horizon_by_gw.parquet", index=False)
-    print(f"horizon H={HORIZON}: {len(tot)} players, {gw.gw.nunique()} gameweeks\n")
+    print(f"horizon H={HORIZON}: {len(tot)} players, "
+          f"{gw.gw.nunique()} gameweeks (GW{int(gw.gw.min())}-{int(gw.gw.max())})\n")
     print(f"  xPts spread over 1 GW  : {gw[gw.gw==1].xpts.max():.2f}")
     print(f"  xPts spread over H GWs : {tot.xpts_h.max():.2f}")
     print()

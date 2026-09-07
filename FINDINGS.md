@@ -2672,3 +2672,47 @@ overwrote a gameweek's stored forecast with a later model's hindsight view of
 it. Gameweek 1 was recorded at 813 points and had silently become 770 — a
 published out-of-sample figure that was no longer reproducible from its own log.
 Now `keep="first"`: the first write wins and later ones are dropped.
+
+---
+
+# The horizon was projecting the past
+
+`predict_horizon` hardcoded `gws = range(1, horizon + 1)`. Correct in August,
+and quietly wrong from the moment a gameweek finished.
+
+Two rounds into 2026/27, the dashboard's "six-gameweek horizon" was gameweeks
+**1 to 6 — two of which had already been played.** Nothing errored. The
+consequences compound weekly:
+
+* the optimiser picked a squad partly on results anyone could look up
+* the forward view had shrunk to **four** gameweeks and would lose one a week
+* the term structure's short end and the fixture calendar's first cells were
+  history, so a "buy before the run arrives" verdict could be pointing at a run
+  that had already arrived
+* by gameweek 10 the projection would have been nine-tenths retrospective
+
+Fixed: the horizon starts at the first gameweek that is finished-and-checked
+plus one. The projection now runs **GW3–GW8**, the season projection GW3–GW38,
+and the schedule view's first window is GW3–8.
+
+## A second thing frozen in August
+
+The component breakdown on every player detail read from
+`data/features/gw1_projection.parquet`, whose producer pinned `event == 1`. The
+file was built **18 August** and never regenerated, so three weeks later the
+page was showing an August forecast of a match already played, under the label
+"GW1 points, by source".
+
+Now built for whichever gameweek is next, and the label follows it. Haaland's
+components sum to 6.54 against his 6.64 GW3 horizon value — the two agree,
+which they could not before.
+
+## What changed in the output
+
+The optimal squad is now chosen on GW3–8 rather than GW1–6: 323.2 xPts, 53.9 a
+gameweek for XI plus captain, against FPL averages of 50 and 81 in the two
+played rounds.
+
+**The general lesson is the one this file keeps recording.** A constant that is
+correct at the start of a season is not a constant, it is an assumption with an
+expiry date, and nothing in a pipeline announces when it expires.

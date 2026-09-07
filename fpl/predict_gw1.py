@@ -30,15 +30,27 @@ DEFAULT_ALPHA = {"GKP": 0.5, "DEF": 0.35, "MID": 0.45, "FWD": 0.6}
 
 
 def gw1_fixtures() -> pd.DataFrame:
+    """Fixtures for the NEXT gameweek, whichever that is.
+
+    This was pinned to `event == 1`, which was right until a gameweek was
+    played and then froze. The component breakdown on every player detail was
+    still an 18 August projection of gameweek 1 three weeks later -- a
+    breakdown of a match that had already been played, labelled as a forecast.
+    The file name is kept because the whole pipeline references it; only the
+    gameweek it describes has stopped being hardcoded.
+    """
+    from fpl.predict_horizon import first_unplayed
     path = sorted(glob.glob("data/raw/snapshots/fixtures/date=*/*.json.gz"))[-1]
     fx = pd.DataFrame(json.load(gzip.open(path, "rt")))
     boot = sorted(glob.glob("data/raw/snapshots/bootstrap/date=*/*.json.gz"))[-1]
     b = json.load(gzip.open(boot, "rt"))
     codes = {t["id"]: t["code"] for t in b["teams"]}
-    fx = fx[fx.event == 1].copy()
+    nxt = first_unplayed()
+    fx = fx[fx.event == nxt].copy()
+    fx["event"] = nxt
     fx["home_code"] = fx["team_h"].map(codes)
     fx["away_code"] = fx["team_a"].map(codes)
-    return fx[["id", "home_code", "away_code", "kickoff_time"]]
+    return fx[["id", "event", "home_code", "away_code", "kickoff_time"]]
 
 
 def team_model() -> tuple[DixonColes, dict]:

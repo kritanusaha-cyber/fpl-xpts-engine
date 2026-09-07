@@ -4735,4 +4735,38 @@ overwrote a gameweek's stored forecast with a later model's hindsight view of
 it. Gameweek 1 was recorded at 813 points and had silently become 770 — a
 published out-of-sample figure that was no longer reproducible from its own log.
 Now <code>keep="first"</code>: the first write wins and later ones are dropped.</p>
+<hr />
+<h1 id="the-horizon-was-projecting-the-past">The horizon was projecting the past</h1>
+<p><code>predict_horizon</code> hardcoded <code>gws = range(1, horizon + 1)</code>. Correct in August,
+and quietly wrong from the moment a gameweek finished.</p>
+<p>Two rounds into 2026/27, the dashboard's "six-gameweek horizon" was gameweeks
+<strong>1 to 6 — two of which had already been played.</strong> Nothing errored. The
+consequences compound weekly:</p>
+<ul>
+<li>the optimiser picked a squad partly on results anyone could look up</li>
+<li>the forward view had shrunk to <strong>four</strong> gameweeks and would lose one a week</li>
+<li>the term structure's short end and the fixture calendar's first cells were
+  history, so a "buy before the run arrives" verdict could be pointing at a run
+  that had already arrived</li>
+<li>by gameweek 10 the projection would have been nine-tenths retrospective</li>
+</ul>
+<p>Fixed: the horizon starts at the first gameweek that is finished-and-checked
+plus one. The projection now runs <strong>GW3–GW8</strong>, the season projection GW3–GW38,
+and the schedule view's first window is GW3–8.</p>
+<h2 id="a-second-thing-frozen-in-august">A second thing frozen in August</h2>
+<p>The component breakdown on every player detail read from
+<code>data/features/gw1_projection.parquet</code>, whose producer pinned <code>event == 1</code>. The
+file was built <strong>18 August</strong> and never regenerated, so three weeks later the
+page was showing an August forecast of a match already played, under the label
+"GW1 points, by source".</p>
+<p>Now built for whichever gameweek is next, and the label follows it. Haaland's
+components sum to 6.54 against his 6.64 GW3 horizon value — the two agree,
+which they could not before.</p>
+<h2 id="what-changed-in-the-output">What changed in the output</h2>
+<p>The optimal squad is now chosen on GW3–8 rather than GW1–6: 323.2 xPts, 53.9 a
+gameweek for XI plus captain, against FPL averages of 50 and 81 in the two
+played rounds.</p>
+<p><strong>The general lesson is the one this file keeps recording.</strong> A constant that is
+correct at the start of a season is not a constant, it is an assumption with an
+expiry date, and nothing in a pipeline announces when it expires.</p>
 </div></body></html>

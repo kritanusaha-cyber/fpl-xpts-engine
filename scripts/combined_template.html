@@ -593,7 +593,7 @@ function detail(p){
     ?`No Premier League history. Attacking prior from calibrated Big&nbsp;5 output abroad (raw ${p.fxg.toFixed(3)}).`
     :'No Premier League history and no Big&nbsp;5 record. Rests entirely on the position &times; price tier.'}</span></div>`:'';
   return `<div class="dbox">
-    <div><div class="dh">GW1 points, by source (${p.gw1.toFixed(2)} total)</div>
+    <div><div class="dh">GW${D.next_gw||1} points, by source (${p.gw1.toFixed(2)} total)</div>
       <div class="bar">${bar}</div>${nbar}<div class="clegend">${leg}</div>
       ${zonalPanel(p)}</div>
     <div><div class="dh">${D.horizon}-gameweek outcomes</div>${distSvg(p)}

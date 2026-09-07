@@ -170,7 +170,11 @@ def build() -> dict:
                 "thin": bool(r.get("low_sample", False)),
             }
 
-    # GW1 component breakdown, keyed by element
+    # Component breakdown for the NEXT gameweek, keyed by element. The label
+    # on the page reads this rather than saying "GW1", which it did for three
+    # weeks after gameweek 1 was played.
+    from fpl.predict_horizon import first_unplayed
+    next_gw = first_unplayed()
     g1 = gw1.set_index("element")
     comp = {int(e): {c: round(float(g1.loc[e].get(f"c_{c}", 0.0)), 2) for c in COMPONENTS}
             for e in g1.index}
@@ -413,6 +417,7 @@ def build() -> dict:
         "roles": sorted(d.role.unique().tolist()),
         "components": COMPONENTS,
         "cal_starts": data_starts,
+        "next_gw": next_gw,
         "ts": ts_meta,
         # What the page was built from, so it can say how fresh it is rather
         # than leaving the reader to guess whether a number is from today.
