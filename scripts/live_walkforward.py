@@ -83,7 +83,12 @@ def main() -> int:
 
         cs.live_season = restricted
         try:
-            _, by_gw = run(horizon=max(gws), n_sims=4000)
+            # Project exactly the gameweek being scored, starting there. This
+            # used to lean on run()'s default start, which was gameweek 1 --
+            # once the horizon began at the next unplayed gameweek instead, the
+            # projection covered gameweeks 4 onward while the scoring loop asked
+            # for 1 to 3, and every join came back empty.
+            _, by_gw = run(horizon=1, start=g, n_sims=4000)
         finally:
             cs.live_season = real_blend
 

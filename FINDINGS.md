@@ -2716,3 +2716,58 @@ played rounds.
 **The general lesson is the one this file keeps recording.** A constant that is
 correct at the start of a season is not a constant, it is an assumption with an
 expiry date, and nothing in a pipeline announces when it expires.
+
+---
+
+# Three live gameweeks, and the model improves week on week
+
+GW3 complete. The pipeline rolled forward on its own — the horizon moved to
+GW4–9, the season projection to GW4–38 — because the start gameweek is now
+derived rather than hardcoded.
+
+| gameweek | projected | actual | MAE | rank corr |
+|---|---|---|---|---|
+| GW1 | 741 | 948 | 1.441 | 0.524 |
+| GW2 | 791 | 891 | 1.127 | 0.681 |
+| GW3 | 804 | 912 | **1.105** | **0.723** |
+
+**Error falls and rank correlation rises in each of three weeks.** GW1 is a pure
+cold start with no current-season evidence; each week adds a round of real team
+sheets. Three points is not a trend, but the direction and size match what the
+historical fit predicts — the GW1 blending weight of 0.65, fitted over six
+seasons, says one round of minutes outweighs a season of priors, and that is
+what the live series shows.
+
+## Still 18% low, still positional
+
+| position | ratio |
+|---|---|
+| Goalkeepers | 0.80 |
+| Defenders | 1.09 |
+| Forwards | 1.19 |
+| Midfielders | **1.36** |
+
+Close to the positional factors removed from the displayed projection — fitted
+at 1.23 for midfielders and 1.31 for forwards. Three gameweeks of live data now
+agree with six seasons of historical fit that the bias is real.
+
+## Selection: read the row, not the average
+
+| | GW1 | GW2 | GW3 | mean |
+|---|---|---|---|---|
+| top 1 | 2.0 | **23.0** | 9.0 | 11.33 |
+| top 10 | 2.3 | 7.5 | 4.4 | 4.73 |
+| field | 1.6 | 1.4 | 1.4 | 1.46 |
+
+The single highest-ranked pick returned 2, then 23, then 9. The mean of 11.33 is
+one haul wearing a trend, and the same statistic read 2.00 when this file had one
+gameweek. **Three weeks has not changed what is knowable about captaincy; it has
+changed which anecdote is available.**
+
+## A bug the horizon change caused
+
+`live_walkforward.py` leaned on `run()`'s default start, which was gameweek 1.
+Once the horizon began at the next unplayed gameweek instead, the projection
+covered GW4 onward while the scoring loop asked for GW1–3, and every join came
+back empty — reported as `pooled n=0, MAE nan` rather than failing. Fixed by
+pinning the gameweek explicitly.

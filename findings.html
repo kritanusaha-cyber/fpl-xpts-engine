@@ -4769,4 +4769,124 @@ played rounds.</p>
 <p><strong>The general lesson is the one this file keeps recording.</strong> A constant that is
 correct at the start of a season is not a constant, it is an assumption with an
 expiry date, and nothing in a pipeline announces when it expires.</p>
+<hr />
+<h1 id="three-live-gameweeks-and-the-model-improves-week-on-week">Three live gameweeks, and the model improves week on week</h1>
+<p>GW3 complete. The pipeline rolled forward on its own — the horizon moved to
+GW4–9, the season projection to GW4–38 — because the start gameweek is now
+derived rather than hardcoded.</p>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>gameweek</th>
+<th>projected</th>
+<th>actual</th>
+<th>MAE</th>
+<th>rank corr</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GW1</td>
+<td>741</td>
+<td>948</td>
+<td>1.441</td>
+<td>0.524</td>
+</tr>
+<tr>
+<td>GW2</td>
+<td>791</td>
+<td>891</td>
+<td>1.127</td>
+<td>0.681</td>
+</tr>
+<tr>
+<td>GW3</td>
+<td>804</td>
+<td>912</td>
+<td><strong>1.105</strong></td>
+<td><strong>0.723</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Error falls and rank correlation rises in each of three weeks.</strong> GW1 is a pure
+cold start with no current-season evidence; each week adds a round of real team
+sheets. Three points is not a trend, but the direction and size match what the
+historical fit predicts — the GW1 blending weight of 0.65, fitted over six
+seasons, says one round of minutes outweighs a season of priors, and that is
+what the live series shows.</p>
+<h2 id="still-18-low-still-positional">Still 18% low, still positional</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th>position</th>
+<th>ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Goalkeepers</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>Defenders</td>
+<td>1.09</td>
+</tr>
+<tr>
+<td>Forwards</td>
+<td>1.19</td>
+</tr>
+<tr>
+<td>Midfielders</td>
+<td><strong>1.36</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Close to the positional factors removed from the displayed projection — fitted
+at 1.23 for midfielders and 1.31 for forwards. Three gameweeks of live data now
+agree with six seasons of historical fit that the bias is real.</p>
+<h2 id="selection-read-the-row-not-the-average">Selection: read the row, not the average</h2>
+<div class="tscroll"><table>
+<thead>
+<tr>
+<th></th>
+<th>GW1</th>
+<th>GW2</th>
+<th>GW3</th>
+<th>mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>top 1</td>
+<td>2.0</td>
+<td><strong>23.0</strong></td>
+<td>9.0</td>
+<td>11.33</td>
+</tr>
+<tr>
+<td>top 10</td>
+<td>2.3</td>
+<td>7.5</td>
+<td>4.4</td>
+<td>4.73</td>
+</tr>
+<tr>
+<td>field</td>
+<td>1.6</td>
+<td>1.4</td>
+<td>1.4</td>
+<td>1.46</td>
+</tr>
+</tbody>
+</table></div>
+<p>The single highest-ranked pick returned 2, then 23, then 9. The mean of 11.33 is
+one haul wearing a trend, and the same statistic read 2.00 when this file had one
+gameweek. <strong>Three weeks has not changed what is knowable about captaincy; it has
+changed which anecdote is available.</strong></p>
+<h2 id="a-bug-the-horizon-change-caused">A bug the horizon change caused</h2>
+<p><code>live_walkforward.py</code> leaned on <code>run()</code>'s default start, which was gameweek 1.
+Once the horizon began at the next unplayed gameweek instead, the projection
+covered GW4 onward while the scoring loop asked for GW1–3, and every join came
+back empty — reported as <code>pooled n=0, MAE nan</code> rather than failing. Fixed by
+pinning the gameweek explicitly.</p>
 </div></body></html>
