@@ -2810,7 +2810,7 @@ of priors.
 | field | 1.6 | 1.4 | 1.4 | 1.4 | 1.4 | 1.44 |
 
 Top-10 edge over the field: +0.95, +5.98, +3.21, +4.50, +3.55. Mean **+3.64**,
-95% CI +2.02 to +5.26, *p* = 0.012, positive in 5 of 5. **This is the first live
+95% CI +1.34 to +5.93, *p* = 0.012, positive in 5 of 5. **This is the first live
 selection result in the project to clear significance**, and its magnitude —
 about 3.5× the field — matches the historical backtest.
 

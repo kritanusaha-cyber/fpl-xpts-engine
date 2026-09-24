@@ -1,0 +1,521 @@
+<!doctype html>
+<title>Accuracy Audit</title>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#F6F8F8; --panel:#FFFFFF; --ink:#14181B; --ink-2:#39434A;
+  --muted:#66727A; --rule:#DBE1E2; --rule-2:#EBEFEF;
+  --good:#1B6B47; --bad:#A33F22; --warn:#8A6A18; --accent:#1E4E79;
+  --good-bg:rgba(27,107,71,.10); --bad-bg:rgba(163,63,34,.10);
+  --warn-bg:rgba(138,106,24,.12); --accent-bg:rgba(30,78,121,.09);
+  --display:"Newsreader",Georgia,"Times New Roman",serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0F1416; --panel:#161C1F; --ink:#E6EBEC; --ink-2:#B9C3C7;
+  --muted:#7E8B91; --rule:#252D31; --rule-2:#1D2427;
+  --good:#5FB98C; --bad:#E08662; --warn:#D3AC4E; --accent:#7FB0DC;
+  --good-bg:rgba(95,185,140,.13); --bad-bg:rgba(224,134,98,.13);
+  --warn-bg:rgba(211,172,78,.13); --accent-bg:rgba(127,176,220,.12);
+}}
+:root[data-theme="dark"]{
+  --ground:#0F1416; --panel:#161C1F; --ink:#E6EBEC; --ink-2:#B9C3C7;
+  --muted:#7E8B91; --rule:#252D31; --rule-2:#1D2427;
+  --good:#5FB98C; --bad:#E08662; --warn:#D3AC4E; --accent:#7FB0DC;
+  --good-bg:rgba(95,185,140,.13); --bad-bg:rgba(224,134,98,.13);
+  --warn-bg:rgba(211,172,78,.13); --accent-bg:rgba(127,176,220,.12);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--body);font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+
+.wrap{max-width:1080px;margin:0 auto;padding:56px 28px 100px;
+  display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+
+.mast{border-bottom:2px solid var(--ink);padding-bottom:22px;
+  display:flex;flex-direction:column;gap:10px}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(34px,5.6vw,52px);
+  line-height:1.04;letter-spacing:-.018em;margin:0;text-wrap:balance}
+.dek{font-size:17px;color:var(--ink-2);max-width:60ch;margin:0}
+.byline{font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  display:flex;gap:18px;flex-wrap:wrap;padding-top:2px}
+
+.verdict{margin-top:34px;background:var(--panel);border:1px solid var(--rule);
+  border-left:3px solid var(--accent);padding:22px 24px;display:grid;gap:12px}
+.verdict h2{font-family:var(--display);font-weight:500;font-size:23px;
+  margin:0;letter-spacing:-.01em}
+.verdict p{margin:0;color:var(--ink-2);max-width:64ch}
+
+section{margin-top:52px}
+h2.sec{font-family:var(--display);font-weight:500;font-size:27px;
+  letter-spacing:-.012em;margin:0 0 6px;text-wrap:balance}
+h3{font-family:var(--body);font-weight:600;font-size:16px;
+  margin:30px 0 6px;letter-spacing:-.005em}
+p{margin:0 0 14px;max-width:68ch}
+.lede{color:var(--ink-2);font-size:16.5px;margin-bottom:22px;max-width:66ch}
+strong{font-weight:600}
+em{font-style:italic;color:var(--ink-2)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);
+  font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  padding:3px 8px;border-radius:2px;white-space:nowrap;vertical-align:2px}
+.chip.holds{color:var(--good);background:var(--good-bg)}
+.chip.rev{color:var(--bad);background:var(--bad-bg)}
+.chip.weak{color:var(--warn);background:var(--warn-bg)}
+.chip.unval{color:var(--muted);background:var(--rule-2)}
+
+.claim{border-top:1px solid var(--rule);padding-top:18px;margin-top:26px;
+  display:grid;gap:8px}
+.claim-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.claim-head h3{margin:0}
+
+.tw{overflow-x:auto;margin:16px 0 20px;border:1px solid var(--rule);
+  background:var(--panel);border-radius:2px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;
+  font-variant-numeric:tabular-nums}
+caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  padding:12px 14px 8px}
+th{text-align:right;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  padding:8px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th.l,td.l{text-align:left}
+td{text-align:right;padding:7px 14px;border-bottom:1px solid var(--rule-2);
+  font-family:var(--mono);font-size:13px;white-space:nowrap}
+td.l{font-family:var(--body);font-size:14px;white-space:normal}
+tbody tr:last-child td{border-bottom:0}
+tr.hi td{background:var(--accent-bg)}
+.pos{color:var(--good)} .neg{color:var(--bad)} .dim{color:var(--muted)}
+
+.fig{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin:22px 0 26px}
+.fig div{background:var(--panel);padding:16px 18px;display:grid;gap:4px}
+.fig .n{font-family:var(--mono);font-size:26px;font-weight:500;
+  letter-spacing:-.02em;line-height:1}
+.fig .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted)}
+
+.note{background:var(--panel);border:1px solid var(--rule);
+  border-left:3px solid var(--bad);padding:16px 18px;margin:20px 0;
+  font-size:15px;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note.ok{border-left-color:var(--good)}
+
+ul{padding-left:20px;margin:0 0 14px;max-width:66ch}
+li{margin:6px 0}
+
+.foot{margin-top:64px;border-top:1px solid var(--rule);padding-top:18px;
+  font-size:13.5px;color:var(--muted);max-width:68ch}
+.foot code{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere}
+a{color:var(--accent)}
+a:focus-visible,:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){.wrap{padding:36px 18px 70px}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="kicker">Model audit &middot; FPL expected-points engine</div>
+  <h1>What this model is actually accurate at</h1>
+  <p class="dek">Every headline claim recomputed from source, every tuned parameter
+    checked for whether it was ever held out, and two previously published results
+    that do not survive.</p>
+  <div class="byline">
+    <span>Updated 23 September 2026</span>
+    <span>132,305 walk-forward predictions</span>
+    <span>Six seasons, plus five live gameweeks</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <h2>The short answer</h2>
+  <p>The model is <strong>reliably better at estimating a player's level</strong> and
+    <strong>near-useless at forecasting a specific gameweek</strong>. It beats both
+    reference benchmarks on mean absolute error in six seasons of six. Among players who
+    actually start, its correlation with what they score is <strong>0.064</strong>.</p>
+  <p>The claim that its <em>selections</em> beat a simple benchmark &mdash; which I reported
+    earlier as the largest effect in the project &mdash; <strong>does not survive extension
+    to six seasons.</strong> It reverses. Live, it does the opposite: over five gameweeks the
+    top-ten selection beats the field in every single week, <em>p</em> = 0.012. Both results
+    stand, and the sections below keep them side by side rather than quoting the flattering
+    one. The live projection is running <strong>24% low</strong>, and its ranking has improved
+    in every one of five weeks.</p>
+</div>
+
+<section>
+  <h2 class="sec">Where the accuracy is</h2>
+  <p class="lede">Three populations, three very different answers. Which one you quote
+    decides whether this model looks strong or worthless, so all three are here.</p>
+
+  <div class="fig">
+    <div><span class="n">0.99</span><span class="k">MAE, all rows</span></div>
+    <div><span class="n">1.96</span><span class="k">MAE, appeared</span></div>
+    <div><span class="n">2.33</span><span class="k">MAE, started</span></div>
+    <div><span class="n">0.064</span><span class="k">corr, started</span></div>
+  </div>
+
+  <p><strong>60.1% of rows are players who did not appear.</strong> Predicting zero for a
+    benched player is easy and every method does it, which is most of what the headline
+    0.99 measures. Strip them out and the error more than doubles. Among players who
+    started, correlation with actual points is 0.064 &mdash; effectively nothing.</p>
+
+  <p>That is not as damning as it reads. A starting midfielder scores two points most
+    weeks; the gap between two and twelve is whether a goal happened, and goals are rare
+    Poisson events nobody forecasts. What a model can do is get the <em>level</em> right
+    &mdash; who plays, who takes penalties, whose team scores.</p>
+</section>
+
+<section>
+  <h2 class="sec">Claim by claim</h2>
+  <p class="lede">Each headline the project has published, recomputed against source data
+    rather than quoted from the earlier write-up.</p>
+
+  <div class="claim">
+    <div class="claim-head">
+      <h3>The scoring engine reconstructs history exactly</h3>
+      <span class="chip holds">Holds</span>
+    </div>
+    <p>108,991 player-matches across eleven seasons, recomputed from action counts.
+      <strong>100.00% exact</strong> in every season but one, where a single &minus;4
+      residual traces to a real rule change: goalkeeper goals revalued from six points to
+      ten. The procedure detects rule drift from data alone.</p>
+  </div>
+
+  <div class="claim">
+    <div class="claim-head">
+      <h3>Lower error than the benchmarks, every season</h3>
+      <span class="chip holds">Holds</span>
+      <span class="chip weak">With a caveat</span>
+    </div>
+    <p>Against the better of a five-gameweek form average and season-to-date points per
+      game, on matched rows:</p>
+    <div class="tw"><table>
+      <caption>Mean absolute error, walk-forward, 132,305 matched player-gameweeks</caption>
+      <thead><tr><th class="l">Season</th><th>Engine</th><th>Best reference</th><th>Margin</th><th>Player xG available</th></tr></thead>
+      <tbody>
+        <tr><td class="l">2020&ndash;21</td><td>1.068</td><td>1.163</td><td class="pos">+8.2%</td><td class="neg">none</td></tr>
+        <tr><td class="l">2021&ndash;22</td><td>1.046</td><td>1.148</td><td class="pos">+8.9%</td><td class="neg">none</td></tr>
+        <tr><td class="l">2022&ndash;23</td><td>0.969</td><td>1.082</td><td class="pos">+10.4%</td><td class="dim">yes</td></tr>
+        <tr><td class="l">2023&ndash;24</td><td>0.921</td><td>0.984</td><td class="pos">+6.4%</td><td class="dim">yes</td></tr>
+        <tr><td class="l">2024&ndash;25</td><td>0.984</td><td>1.035</td><td class="pos">+4.9%</td><td class="dim">yes</td></tr>
+        <tr><td class="l">2025&ndash;26</td><td>0.949</td><td>1.035</td><td class="pos">+8.3%</td><td class="dim">yes</td></tr>
+      </tbody>
+    </table></div>
+    <p>Six of six. The caveat is in the last column: <strong>the two earliest seasons have
+      no player-level expected goals at all</strong>, so the attacking-shares model &mdash;
+      the core of the projection &mdash; has no input there. Those seasons test a degraded
+      version of the model. That it still wins is mildly reassuring; it is not six
+      independent confirmations of the same system.</p>
+  </div>
+
+  <div class="claim">
+    <div class="claim-head">
+      <h3>Better <em>selections</em> than the benchmarks</h3>
+      <span class="chip rev">Reverses</span>
+      <span class="chip holds">Live: holds</span>
+    </div>
+    <p>I previously reported the engine's captain pick averaging <strong>6.69</strong>
+      against 6.09 for a points-per-appearance benchmark, and called it the largest single
+      effect measured in the project. Recomputed on six seasons:</p>
+    <div class="tw"><table>
+      <caption>Mean points scored by each method's highest-ranked pick, chosen before the gameweek</caption>
+      <thead><tr><th class="l">Season</th><th>Engine captain</th><th>Benchmark</th><th>Engine top-10</th><th>Benchmark</th></tr></thead>
+      <tbody>
+        <tr><td class="l">2020&ndash;21</td><td class="neg">3.03</td><td>5.93</td><td class="neg">3.36</td><td>3.99</td></tr>
+        <tr><td class="l">2021&ndash;22</td><td class="neg">4.17</td><td>4.73</td><td class="neg">3.17</td><td>4.60</td></tr>
+        <tr><td class="l">2022&ndash;23</td><td class="neg">4.67</td><td>5.07</td><td class="neg">3.87</td><td>4.67</td></tr>
+        <tr><td class="l">2023&ndash;24</td><td class="pos">6.87</td><td>6.13</td><td class="pos">5.10</td><td>4.29</td></tr>
+        <tr><td class="l">2024&ndash;25</td><td class="pos">8.27</td><td>7.90</td><td class="pos">5.19</td><td>4.65</td></tr>
+        <tr><td class="l">2025&ndash;26</td><td class="pos">5.20</td><td>4.43</td><td class="pos">3.97</td><td>3.94</td></tr>
+        <tr class="hi"><td class="l"><strong>Pooled</strong></td><td class="neg">5.37</td><td>5.70</td><td class="neg">4.11</td><td>4.36</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <strong>The engine wins the three recent seasons and loses the three older ones.</strong>
+      Pooled across six it is behind on both captaincy and top-ten selection. The earlier
+      6.69 figure was computed on four seasons; on those same four it now reads 6.25 against
+      5.88, because the underlying data changed when 2022&ndash;23's missing team expected
+      goals were backfilled and I did not recheck the number afterwards.
+    </div>
+    <p>The two worst seasons are the two with no player expected goals, which is a plausible
+      mechanism rather than an excuse. But 2022&ndash;23 has that input and still loses.
+      <strong>The honest statement is that the historical selection advantage is established
+      only for 2023&ndash;24 onward, on three seasons, and is not a property of the model in
+      general.</strong></p>
+    <div class="note ok">
+      <strong>The live season now pushes the other way.</strong> Over five gameweeks of
+      2026/27 the top-ten selection beat the field in five weeks of five, by a mean of
+      <strong>+3.64 points</strong> (95% interval +1.34 to +5.93, <em>p</em> = 0.012) &mdash;
+      about 3.5&times; the field, the same magnitude the recent seasons give. This is the
+      first live selection result in the project to clear significance. It is also the same
+      quantity that reversed when the historical window was widened, on a sample of five
+      weeks carrying a single test, so it is evidence and not a settlement.
+    </div>
+  </div>
+
+  <div class="claim">
+    <div class="claim-head">
+      <h3>Aggregate ranking beats the benchmarks</h3>
+      <span class="chip rev">Never held</span>
+    </div>
+    <p>Mean per-gameweek rank correlation: engine <strong>0.678</strong>, five-gameweek form
+      <strong>0.686</strong>, points-per-appearance 0.661. The engine has always lost this
+      one and it was reported as such. Sixty percent of rows are non-appearing players, so
+      full-list ranking is mostly the question of who features, which a form average answers
+      about as well.</p>
+  </div>
+</section>
+<section>
+  <h2 class="sec">The season so far</h2>
+  <p class="lede">Five gameweeks of 2026/27 are complete. This is the first data the system
+    has been scored on that had not happened when it was built &mdash; and the first version
+    of this section measured it wrongly.</p>
+
+  <div class="note">
+    <strong>Correction carried from the 29 August edition.</strong> Those figures were
+    contaminated. The cold-start priors fold played gameweeks into the team sheets &mdash;
+    deliberately, because after a round those are the best evidence available &mdash; and
+    the projection then covered gameweek 1 onward. So gameweek 1 was projected by a model
+    that already knew who started gameweek 1. Corrected, the priors see only strictly
+    earlier gameweeks. Every figure below is the corrected kind.
+  </div>
+
+  <div class="fig">
+    <div><span class="n">3,758</span><span class="k">projected</span></div>
+    <div><span class="n">4,638</span><span class="k">actual</span></div>
+    <div><span class="n">1.19</span><span class="k">MAE</span></div>
+    <div><span class="n">0.534</span><span class="k">correlation</span></div>
+  </div>
+
+  <h3>It improves every week, and now that is a result rather than a hope</h3>
+  <div class="tw"><table>
+    <caption>2026/27 walk-forward &mdash; each gameweek projected from earlier ones only</caption>
+    <thead><tr><th class="l">Gameweek</th><th>Players</th><th>Projected</th><th>Actual</th><th>MAE</th><th>Rank corr</th></tr></thead>
+    <tbody>
+      <tr><td class="l">GW1</td><td>610</td><td>720</td><td>948</td><td>1.479</td><td class="neg">0.458</td></tr>
+      <tr><td class="l">GW2</td><td>626</td><td>750</td><td>891</td><td>1.149</td><td>0.615</td></tr>
+      <tr><td class="l">GW3</td><td>654</td><td>765</td><td>912</td><td>1.098</td><td>0.687</td></tr>
+      <tr><td class="l">GW4</td><td>659</td><td>759</td><td>921</td><td>1.151</td><td>0.709</td></tr>
+      <tr><td class="l">GW5</td><td>667</td><td>764</td><td>966</td><td>1.111</td><td class="pos">0.746</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Rank correlation rises in <strong>every one of the four steps</strong>: 0.458, 0.615,
+    0.687, 0.709, 0.746. A strictly increasing run of five values has probability
+    <strong>1 in 120</strong> under random ordering, and the correlation against gameweek
+    number is exactly 1.00. With three gameweeks this was a direction; with five it is a
+    result.</p>
+  <p>The mechanism is not mysterious. Gameweek 1 is a pure cold start with no current-season
+    evidence at all; each subsequent week adds a round of real team sheets. It is also the
+    size the historical fit predicts &mdash; the gameweek-1 blending weight of 0.65, fitted
+    over six seasons, says one round of minutes outweighs a season of priors.</p>
+
+  <h3>The shortfall is not closing</h3>
+  <div class="tw"><table>
+    <caption>Actual points divided by projected, by gameweek and by position</caption>
+    <thead><tr><th class="l">By gameweek</th><th>GW1</th><th>GW2</th><th>GW3</th><th>GW4</th><th>GW5</th><th>Pooled</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Ratio</td><td>1.32</td><td>1.19</td><td>1.19</td><td>1.21</td><td>1.26</td><td class="neg">1.23</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table>
+    <caption>By position, five gameweeks pooled</caption>
+    <thead><tr><th class="l">Position</th><th>Players</th><th>Projected</th><th>Actual</th><th>Ratio</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Goalkeepers</td><td>352</td><td>1.10</td><td>1.04</td><td>0.95</td></tr>
+      <tr><td class="l">Defenders</td><td>1,055</td><td>1.38</td><td>1.59</td><td>1.16</td></tr>
+      <tr><td class="l">Forwards</td><td>381</td><td>1.03</td><td>1.31</td><td class="pos">1.27</td></tr>
+      <tr><td class="l">Midfielders</td><td>1,428</td><td>1.07</td><td>1.46</td><td class="pos">1.37</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <strong>Unlike the correlation, this is not improving.</strong> The ratio sits between
+    1.19 and 1.32 in every week with no trend, so the projection is persistently about a
+    fifth low and the bias is structural rather than a cold-start artefact. Midfielders at
+    1.37 and forwards at 1.27 remain close to the positional factors of 1.23 and 1.31 fitted
+    on six historical seasons. Those factors are applied to squad selection but deliberately
+    not to the displayed projection, because applied there they inflated the top of the
+    list. Five gameweeks of live data now agree with six seasons of backtest that the bias
+    is real, which makes that decision worth revisiting.
+  </div>
+
+  <h3>Selection, which has now cleared significance</h3>
+  <div class="tw"><table>
+    <caption>Mean points scored by the players ranked highest, by gameweek</caption>
+    <thead><tr><th class="l">Selection</th><th>GW1</th><th>GW2</th><th>GW3</th><th>GW4</th><th>GW5</th><th>Mean</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Top 1</td><td class="neg">2.0</td><td class="pos">23.0</td><td>9.0</td><td class="neg">2.0</td><td class="pos">14.0</td><td>10.00</td></tr>
+      <tr><td class="l">Top 10</td><td>2.5</td><td class="pos">7.4</td><td>4.6</td><td>5.9</td><td>5.0</td><td class="pos">5.08</td></tr>
+      <tr><td class="l">Field average</td><td>1.6</td><td>1.4</td><td>1.4</td><td>1.4</td><td>1.4</td><td>1.44</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>The top-ten selection beats the field in <strong>five gameweeks of five</strong>, by a
+    mean of <strong>+3.64 points</strong> &mdash; 95% interval +1.34 to +5.93,
+    <i>p</i> = 0.012. That is the first live selection result in this project to clear
+    significance, and it sits at about three and a half times the field, the same magnitude
+    the historical backtest gives.</p>
+  <p>It deserves one caveat rather than a victory lap. This is the same quantity that
+    <em>reversed</em> when the historical evaluation was extended from four seasons to six,
+    and five gameweeks is a small sample carrying a single test. The live data supports the
+    claim; the historical data is mixed. Both remain true at once.</p>
+  <p>The top row still does not. A single pick returned 2, 23, 9, 2, 14 &mdash; averaging
+    10.0 on the strength of two hauls. <strong>Ten players is ten draws a week; one player
+    is one.</strong> Nothing about captaincy has become knowable in five weeks.</p>
+
+  <div class="note">
+    <strong>Five gameweeks is still a short season.</strong> It is reported because a system
+    that publishes its live record only when the record flatters is not being audited. What
+    does not depend on sample size is the week-on-week improvement, which has a mechanism
+    and a matching prediction from the historical fit, and the positional shortfall, which
+    is large, flat and consistent.
+  </div>
+</section>
+
+<section>
+  <h2 class="sec">Overfitting</h2>
+  <p class="lede">Fifteen quantities in this model were chosen by looking at data. The
+    question is how many were ever checked against data they were not chosen on.</p>
+
+  <div class="tw"><table>
+    <caption>Every tuned parameter, and whether it was validated out of sample</caption>
+    <thead><tr><th class="l">Parameter</th><th class="l">Shipped</th><th class="l">Held out?</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Rank margin coefficient &gamma;</td><td class="l">&minus;0.05</td><td class="l"><span class="chip holds">Yes</span> LOSO, 4 of 4</td></tr>
+      <tr><td class="l">Positional bias factors</td><td class="l">1.20 / 0.98 / 1.23 / 1.31</td><td class="l"><span class="chip holds">Yes</span> 3 of 3 seasons</td></tr>
+      <tr><td class="l">Chip patience threshold</td><td class="l">1.15</td><td class="l"><span class="chip holds">Yes</span></td></tr>
+      <tr><td class="l">Gameweek-1 minutes weight</td><td class="l">0.65</td><td class="l"><span class="chip holds">Yes</span></td></tr>
+      <tr><td class="l">Incumbent share blend</td><td class="l">0.50</td><td class="l"><span class="chip weak">Partly</span> direction only</td></tr>
+      <tr><td class="l">Defensive-contribution tail cap</td><td class="l">0.70</td><td class="l"><span class="chip holds">Yes</span> split-half</td></tr>
+      <tr><td class="l">Dixon&ndash;Coles time decay &xi;</td><td class="l">0.003 / day</td><td class="l"><span class="chip holds">Yes</span> out-of-sample log-loss</td></tr>
+      <tr><td class="l">Price-curve minutes floor</td><td class="l">1900</td><td class="l"><span class="chip unval">No</span> chosen on the target</td></tr>
+      <tr><td class="l">Fair-price shrinkage weight</td><td class="l">correlation</td><td class="l"><span class="chip unval">No</span> a judgement, not a fit</td></tr>
+      <tr><td class="l">Transfer hold horizon</td><td class="l">4 gameweeks</td><td class="l"><span class="chip unval">No</span></td></tr>
+      <tr><td class="l">Club style blend constant</td><td class="l">10.0</td><td class="l"><span class="chip unval">No</span></td></tr>
+      <tr><td class="l">Squad-depth sharpening</td><td class="l">3.0</td><td class="l"><span class="chip unval">No</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What the held-out tests showed</h3>
+  <div class="tw"><table>
+    <caption>Leave-one-season-out &mdash; fitted on the rest, applied blind</caption>
+    <thead><tr><th class="l">Parameter</th><th>In sample</th><th>Out of sample</th><th class="l">Reading</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Rank &gamma;</td><td>+357</td><td class="pos">+345</td><td class="l">4 of 4; 12-point penalty</td></tr>
+      <tr><td class="l">Chip threshold</td><td>+139</td><td class="pos">+102</td><td class="l">3 of 4; 37-point penalty</td></tr>
+      <tr><td class="l">GW1 minutes weight</td><td>&mdash;</td><td class="pos">&minus;21.6% error</td><td class="l">every fold picks 0.60&ndash;0.70</td></tr>
+      <tr><td class="l">Incumbent blend</td><td>&mdash;</td><td class="pos">&minus;18.5% error</td><td class="l">weight itself unidentifiable</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>The rank result is the strongest thing in the project: chosen without seeing a season
+    and applied blind, it still wins that season, four times from four, at a cost of twelve
+    points against the fitted version.</p>
+
+  <p>The incumbent blend needs a caveat. Blending a transferred player's own record toward
+    the man whose place he takes beats using his record alone by 18.5% out of sample &mdash;
+    but the per-fold optimum swings <strong>0.95, 0.80, 0.40</strong>, and choosing it per
+    fold is <em>worse</em> than a fixed 0.50. Fifty-five movers cannot identify that
+    parameter. The direction is real; the value is a shrug toward the midpoint, and is
+    documented as one.</p>
+
+  <div class="note ok">
+    <strong>One prediction from this table has now been tested forward.</strong> The
+    gameweek-1 minutes weight of 0.65 says a single round of real team sheets outweighs a
+    season of priors. That implies the projection should improve sharply after gameweek 1
+    and then flatten &mdash; which is exactly the live shape: rank correlation 0.458, then
+    0.615, then 0.687, 0.709, 0.746. A parameter fitted on six past seasons predicted the
+    curve of a season it had never seen.
+  </div>
+
+  <div class="note">
+    <strong>The remaining risk is concentrated in two places.</strong> The price-curve
+    minutes floor was selected by moving it until the valuation split centred &mdash;
+    fitting a parameter on the quantity used to judge it. And the fair-price shrinkage
+    weight was chosen between two defensible options by which produced a usable spread, not
+    by any test. Neither is validated, and both directly shape what the page recommends.
+  </div>
+</section>
+
+<section>
+  <h2 class="sec">What auditing broke</h2>
+  <p class="lede">Four defects surfaced while checking, all of which had been silently
+    live.</p>
+  <ul>
+    <li><strong>The live projections were measuring a circle.</strong> Played gameweeks are
+      folded into the cold-start priors, and the projection covers those same gameweeks, so
+      the system was being scored on weeks it had already seen the team sheets for. Fixed by
+      restricting the blend to strictly earlier gameweeks; error rose a tenth.</li>
+    <li><strong>The scoring validation had stopped running.</strong> The live-season loader
+      inserted rows with a null defensive-scoring flag, and the validator raised on the null
+      rather than failing a check. The project's strongest guarantee &mdash; exact
+      reconstruction &mdash; was not being tested at all once live data entered the
+      warehouse. Fixed; it passes on all eleven seasons.</li>
+    <li><strong>Two published numbers had drifted from their data.</strong> The captaincy
+      figure was computed before a data backfill and never recomputed. And the projection
+      log kept the newest forecast for a gameweek rather than the first, so each refresh
+      overwrote the original prediction with a later model's hindsight view &mdash;
+      gameweek 1 was recorded at 813 points, then quietly became 770. Both fixed; the log
+      now freezes the first write.</li>
+    <li><strong>Availability was a gate where it should have been a scalar.</strong> A player
+      below a 25% chance of playing scored zero, and everyone at or above it scored as though
+      certain to feature &mdash; so a player the game itself flagged at 75% carried his full
+      projection. The cutoff was doing all the work. The stated probability now multiplies
+      the appearance terms, which moved Palmer from 26.5 to 19.9 points over the horizon;
+      injury, suspension and departure still zero outright, because those are not
+      probabilistic.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 class="sec">What to trust</h2>
+  <div class="fig">
+    <div><span class="n pos">Trust</span><span class="k">the level</span></div>
+    <div><span class="n neg">Don't</span><span class="k">the week</span></div>
+    <div><span class="n pos">Trust</span><span class="k">the rank objective</span></div>
+    <div><span class="n neg">Don't</span><span class="k">the captain pick</span></div>
+  </div>
+  <p><strong>Trust it for who is worth owning over a horizon.</strong> Lower error than both
+    benchmarks in every season tested, and the rank objective survives the hardest test in
+    the project.</p>
+  <p><strong>Do not trust it for what a given player does this weekend.</strong> Correlation
+    0.064 among starters across six seasons, 0.534 across all rows of the five live
+    gameweeks. That is not a fixable defect; it is what the sport's variance permits.</p>
+  <p><strong>Treat the selection claim as contested rather than settled.</strong> It fails
+    pooled across six historical seasons, holds for 2023&ndash;24 onward, and now holds live
+    in five gameweeks of five at <em>p</em> = 0.012. That is better than it stood in
+    September and still short of proven, and an earlier version of this report stated it
+    with more confidence than any of that supports.</p>
+  <p><strong>Expect the projection to read low.</strong> Live it is running 24% under, flat
+    across all five weeks rather than narrowing, and almost all of it is midfielders (1.37)
+    and forwards (1.27) &mdash; the same bias the positional factors were fitted to correct,
+    currently applied to squad selection but not to the number on screen. Five live weeks and
+    six historical seasons now agree on this, which makes it the most clearly identified
+    open defect in the model.</p>
+</section>
+
+<div class="foot">
+  <p>Historical figures from <code>data/features/backtest_predictions.parquet</code> and the
+    DuckDB warehouse; live figures from <code>data/features/live_walkforward.parquet</code>,
+    recomputed 23 September 2026 over gameweeks 1&ndash;5 (n=3,216). Walk-forward throughout:
+    every model refits at each gameweek on gameweeks already played, and for the live season
+    the cold-start priors see only strictly earlier gameweeks. Leave-one-season-out results
+    choose the parameter on the remaining seasons and apply it blind to the held-out one.
+    Significance for the selection edge is a two-sided <em>t</em>-test on five per-gameweek
+    differences. Full working in <code>FINDINGS.md</code>.</p>
+</div>
+
+</div>
