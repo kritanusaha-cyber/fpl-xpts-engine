@@ -52,9 +52,27 @@ def prep_side(players: pd.DataFrame, code: int) -> pd.DataFrame:
     side["save_per90"] = side["save_per90"].fillna(0.0)
     order = pd.to_numeric(side["penalties_order"], errors="coerce")
     side["pen_duty"] = np.where(order == 1, 1.0, np.where(order == 2, 0.15, 0.0))
-    unavailable = side["status"].isin(["i", "s", "u"]) | (
-        side["chance_of_playing_next_round"].fillna(100) < 25)
-    side.loc[unavailable, ["p_60", "p_cameo"]] = 0.0
+    # Availability scales the projection; it does not merely gate it.
+    #
+    # This was a hard cutoff: below a 25% chance of playing a player scored
+    # zero, and at 25% or above he scored as though certain to feature. So a
+    # player the game itself flagged at 75% carried his full projection, and
+    # Cole Palmer at 75% was being valued identically to a player with no doubt
+    # attached at all.
+    #
+    # `chance_of_playing_next_round` is FPL's own stated probability that the
+    # player features, so the appearance probabilities are multiplied by it.
+    # Status still zeroes outright, because injured, suspended and unavailable
+    # are not probabilistic -- a player who has left the club is not a 5% shot,
+    # he is not playing.
+    out = side["status"].isin(["i", "s", "u"])
+    side.loc[out, ["p_60", "p_cameo"]] = 0.0
+
+    chance = pd.to_numeric(side["chance_of_playing_next_round"],
+                           errors="coerce").fillna(100).clip(0, 100) / 100.0
+    scale = np.where(out, 0.0, chance)
+    side["p_60"] = side["p_60"] * scale
+    side["p_cameo"] = side["p_cameo"] * scale
     return side
 
 

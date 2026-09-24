@@ -2771,3 +2771,92 @@ Once the horizon began at the next unplayed gameweek instead, the projection
 covered GW4 onward while the scoring loop asked for GW1–3, and every join came
 back empty — reported as `pooled n=0, MAE nan` rather than failing. Fixed by
 pinning the gameweek explicitly.
+
+# Five live gameweeks: the improvement is now a result, and so is selection
+
+Two gameweeks were added to the three already scored. Both of the claims that
+were provisional at three gameweeks have now cleared significance, and the one
+defect that was provisional has not gone away.
+
+| GW | n | projected | actual | MAE | rank corr |
+|---|---|---|---|---|---|
+| 1 | 610 | 720 | 948 | 1.479 | 0.458 |
+| 2 | 626 | 750 | 891 | 1.149 | 0.615 |
+| 3 | 654 | 765 | 912 | 1.098 | 0.687 |
+| 4 | 659 | 759 | 921 | 1.151 | 0.709 |
+| 5 | 667 | 764 | 966 | 1.111 | **0.746** |
+
+Pooled n=3,216, MAE 1.194, correlation 0.534. Every figure is leak-free: the
+cold-start priors see strictly earlier gameweeks only.
+
+## Rank correlation rises in all four steps
+
+0.458 → 0.615 → 0.687 → 0.709 → 0.746. Four rises out of four; a strictly
+increasing run of five has probability 1/120 under random ordering, and the
+Spearman correlation against gameweek number is exactly 1.000.
+
+This is no longer just a direction. It also has a mechanism that was predicted
+in advance: gameweek 1 is a pure cold start with no current-season evidence,
+and each round adds real team sheets. The gameweek-1 blending weight of 0.65,
+fitted over six seasons, already said one round of minutes outweighs a season
+of priors.
+
+## Selection clears significance; captaincy still does not
+
+| | GW1 | GW2 | GW3 | GW4 | GW5 | mean |
+|---|---|---|---|---|---|---|
+| top 1 | 2.0 | **23.0** | 9.0 | 2.0 | 14.0 | 10.00 |
+| top 10 | 2.5 | 7.4 | 4.6 | 5.9 | 5.0 | **5.08** |
+| field | 1.6 | 1.4 | 1.4 | 1.4 | 1.4 | 1.44 |
+
+Top-10 edge over the field: +0.95, +5.98, +3.21, +4.50, +3.55. Mean **+3.64**,
+95% CI +2.02 to +5.26, *p* = 0.012, positive in 5 of 5. **This is the first live
+selection result in the project to clear significance**, and its magnitude —
+about 3.5× the field — matches the historical backtest.
+
+One caveat belongs next to it: this is the same quantity that *reversed* when
+the historical evaluation went from four seasons to six (5.70 → 5.37). The live
+data supports the claim, the historical data is mixed, and both are true.
+
+The top row still proves nothing. 2, 23, 9, 2, 14 averages 10.0 on the strength
+of two hauls. Ten players is ten draws a week; one player is one.
+
+## The shortfall is flat, not closing
+
+Ratios by gameweek: 1.317, 1.188, 1.192, 1.213, 1.264 — mean 1.235, no trend.
+
+| position | ratio |
+|---|---|
+| Goalkeepers | 0.95 |
+| Defenders | 1.16 |
+| Forwards | 1.27 |
+| Midfielders | **1.37** |
+
+At three gameweeks this could still have been a cold-start artefact. At five it
+is flat across every week, so it is **structural**. Midfielders at 1.37 and
+forwards at 1.27 sit close to the 1.23 and 1.31 fitted over six seasons. Those
+factors are applied to squad selection but deliberately not to the displayed
+projection, because there they inflated the top of the list. That decision is
+now contradicted by two independent bodies of evidence and is worth revisiting.
+
+## Availability was a gate where it should have been a scalar
+
+`prep_side()` zeroed a player below a 25% chance of playing and otherwise left
+the projection untouched. So the cutoff did the only work: a player FPL itself
+flagged at 75% was valued exactly like a player with no doubt at all.
+
+The user raised this as players who definitely will not play being given values.
+The named case — Chidera Obi, no longer at the club — was already zero on status
+`u`. The real defect was the opposite end: **doubtful players carrying full
+value.** `chance_of_playing_next_round` now multiplies the appearance
+probabilities, while status `i`/`s`/`u` still zeroes outright, because injured,
+suspended and gone are not probabilistic.
+
+| player | before | after |
+|---|---|---|
+| Palmer (75%) | 26.47 | 19.92 |
+| Rice (75%) | 24.49 | 18.26 |
+| João Pedro (75%) | 19.68 | 14.78 |
+| Rashford (75%) | 11.28 | 8.53 |
+
+180 players zero on status: 71 injured, 105 unavailable, 4 suspended.
